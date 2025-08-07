@@ -34,6 +34,16 @@ export class UserRolService {
         await this.userRoleRepository.save(userRole);
     }
 
+    async findRolesByUser(user: User): Promise<Role[]> {
+        const userRoles = await this.userRoleRepository.find({
+          where: { user },
+          relations: ['role'],
+        });
+      
+        return userRoles.map((ur) => ur.role);
+      }
+      
+
     private async findUserOrThrow(id: number): Promise<User> {
         const user = await this.userRepository.findOne({ where: { id } });
         if (!user) {
