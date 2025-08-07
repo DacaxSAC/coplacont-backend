@@ -9,7 +9,7 @@ export class User {
   email: string;
 
   @Column()
-  contraseña: string;
+  contrasena: string;
 
   @Column({default: true})
   habilitado: boolean;

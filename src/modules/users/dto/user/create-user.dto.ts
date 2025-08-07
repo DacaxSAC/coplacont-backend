@@ -11,5 +11,5 @@ export class CreateUserDto {
     example: 'your password',
   })
   @MinLength(8)
-  contraseña: string;
+  contrasena: string;
 }

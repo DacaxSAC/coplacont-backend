@@ -15,10 +15,38 @@ import { PermissionController } from './controller/permission.controller';
 import { RolePermissionController } from './controller/role-permission.controller';
 import { RolePermissionService } from './services/role-permission.service';
 import { RolePermission } from './entities/role-permission.entity';
+import { AuthController } from './controller/auth.controller';
+import { AuthService } from './services/auth.service';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([User, Role, UserRole, Permission, RolePermission])],
-    controllers: [UserController, RolController, UserRoleController, PermissionController, RolePermissionController],
-    providers: [UserService, RoleService, UserRolService, PermissionService, RolePermissionService]
-})
-export class UserModule {}
+    imports: [
+      TypeOrmModule.forFeature([User, Role, UserRole, Permission, RolePermission]),
+      JwtModule.registerAsync({
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: async (configService: ConfigService) => ({
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: { expiresIn: '1h' },
+        }),
+      }),
+    ],
+    controllers: [
+      UserController,
+      RolController,
+      UserRoleController,
+      PermissionController,
+      RolePermissionController,
+      AuthController,
+    ],
+    providers: [
+      UserService,
+      RoleService,
+      UserRolService,
+      PermissionService,
+      RolePermissionService,
+      AuthService,
+    ],
+  })
+  export class UserModule {}

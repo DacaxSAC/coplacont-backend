@@ -6,6 +6,7 @@ import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UpdateUserDto } from '../dto/user/update-user.dto';
 import { plainToInstance } from 'class-transformer';
 import { ResponseUserDto } from '../dto/user/response-user.dto';
+import { hash } from 'bcrypt'
 
 @Injectable()
 export class UserService {
@@ -26,11 +27,15 @@ export class UserService {
     return plainToInstance(ResponseUserDto, users, {excludeExtraneousValues: true,});
   }
   
-  async create(createUserDto: CreateUserDto) : Promise<ResponseUserDto> {
+  async create(createUserDto: CreateUserDto): Promise<ResponseUserDto> {
     const user = this.userRepository.create(createUserDto);
+    user.contrasena = await hash(createUserDto.contrasena, 10);
     const userSaved = await this.userRepository.save(user);
-    return plainToInstance(ResponseUserDto, userSaved, {excludeExtraneousValues: true})
+    return plainToInstance(ResponseUserDto, userSaved, {
+      excludeExtraneousValues: true,
+    });
   }
+  
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<void> {
     await this.userRepository.update(id, updateUserDto);
@@ -38,6 +43,10 @@ export class UserService {
   
   async softDelete(id: number): Promise<void> {
     await this.userRepository.update(id, { habilitado: false });
+  }
+
+  async findByEmail (email: string) {
+    return await this.userRepository.findOne({where: {email}})
   }
   
 
