@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Persona } from "./persona.entity";
 
 @Entity()
 export class User {
@@ -11,6 +12,11 @@ export class User {
   @Column()
   contrasena: string;
 
-  @Column({default: true})
+  @Column({ default: true })
   habilitado: boolean;
+
+  @OneToOne(() => Persona)
+  @JoinColumn()
+  persona: Persona;
+  
 }

@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, MinLength } from 'class-validator';
+import { CreatePersonaDto } from '../persona/create-persona.dto';
+import { RolEnum } from '../../enums/RoleEnum';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -7,9 +9,11 @@ export class CreateUserDto {
   })
   @IsEmail()
   email: string;
-  @ApiProperty({
-    example: 'your password',
-  })
-  @MinLength(8)
-  contrasena: string;
+  @ApiProperty()
+  idRol: number
+  @ApiProperty()
+  contrasena : string;
+  @ApiProperty()
+  createPersonaDto : CreatePersonaDto
+
 }
