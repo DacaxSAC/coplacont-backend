@@ -19,10 +19,12 @@ import { AuthController } from './controller/auth.controller';
 import { AuthService } from './services/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PersonaService } from './services/person.service';
+import { Persona } from './entities/persona.entity';
 
 @Module({
     imports: [
-      TypeOrmModule.forFeature([User, Role, UserRole, Permission, RolePermission]),
+      TypeOrmModule.forFeature([User, Role, UserRole, Permission, RolePermission, Persona]),
       JwtModule.registerAsync({
         imports: [ConfigModule],
         inject: [ConfigService],
@@ -47,6 +49,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       PermissionService,
       RolePermissionService,
       AuthService,
+      PersonaService
     ],
   })
   export class UserModule {}
