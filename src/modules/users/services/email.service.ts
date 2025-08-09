@@ -77,13 +77,51 @@ export class EmailService {
   }
 
   /**
+   * Envía un email de bienvenida con credenciales de acceso
+   * @param email Email del destinatario
+   * @param nombre Nombre del usuario
+   * @param password Contraseña temporal generada
+   * @returns Respuesta del envío
+   */
+  async sendWelcomeEmailWithCredentials(email: string, nombre: string, password: string): Promise<EmailResponse> {
+    const emailOptions: EmailOptions = {
+      to: email,
+      subject: 'Bienvenido al Sistema Contable - Credenciales de Acceso',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; text-align: center;">¡Bienvenido al Sistema Contable!</h2>
+          <p>Hola <strong>${nombre}</strong>,</p>
+          <p>Tu cuenta ha sido creada exitosamente en nuestro sistema contable.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border-left: 4px solid #007bff; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">Tus credenciales de acceso:</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Contraseña temporal:</strong> <code style="background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;">${password}</code></p>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <p style="margin: 0;"><strong>⚠️ Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.</p>
+          </div>
+          
+          <p>Ya puedes acceder a la plataforma y comenzar a utilizar todas las funcionalidades disponibles.</p>
+          <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
+          <p>Saludos,<br>El equipo del Sistema Contable</p>
+        </div>
+      `,
+      text: `Hola ${nombre}, tu cuenta ha sido creada exitosamente. Credenciales: Email: ${email}, Contraseña temporal: ${password}. Te recomendamos cambiar tu contraseña después del primer inicio de sesión.`,
+    };
+
+    return this.sendEmail(emailOptions);
+  }
+
+  /**
    * Envía un email de recuperación de contraseña
    * @param email Email del destinatario
    * @param resetToken Token de recuperación
    * @returns Respuesta del envío
    */
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<EmailResponse> {
-    const resetUrl = `${this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token=${resetToken}`;
+    const resetUrl = `${this.configService.get<string>('FRONTEND_URL')}/auth/new-password?token=${resetToken}`;
     
     const emailOptions: EmailOptions = {
       to: email,

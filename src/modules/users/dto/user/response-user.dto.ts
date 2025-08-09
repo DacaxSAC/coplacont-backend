@@ -5,4 +5,6 @@ export class ResponseUserDto {
     id: number;
     @Expose()
     email: string;
+    @Expose()
+    resetPasswordToken: string;
 }
