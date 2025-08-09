@@ -10,6 +10,8 @@ import { Role } from "../entities/role.entity";
 import { Permission } from "../entities/permission.entity";
 import { Payload } from "../dto/auth/payload";
 import { AuthResponseDto } from "../dto/auth/auth-response.dto";
+import { EmailService } from "./email.service";
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     private readonly userRoleService : UserRolService,
     private readonly rolePermissionService : RolePermissionService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {
   }
 
@@ -52,6 +55,109 @@ export class AuthService {
     const permissions = await this.rolePermissionService.findPermissionsByRoles(roles);
     const payload = this.jwtService.sign(this.buildPayload(user,roles,permissions))
     return this.buildAuthResponse('Inicio de sesión exitoso', true, user.email, payload)
+  }
+
+  /**
+   * Solicita recuperación de contraseña enviando un email con token
+   * @param email Email del usuario
+   * @returns Respuesta del proceso
+   */
+  async requestPasswordReset(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return {
+        message: 'Si el email existe, recibirás un correo de recuperación',
+        success: true,
+      };
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await this.usersService.updateResetPasswordToken(user.id, resetToken, expiresAt);
+
+    const emailResult = await this.emailService.sendPasswordResetEmail(email, resetToken);
+    
+    if (!emailResult.success) {
+      return {
+        message: 'Error al enviar el correo de recuperación',
+        success: false,
+      };
+    }
+
+    return {
+      message: 'Si el email existe, recibirás un correo de recuperación',
+      success: true,
+    };
+  }
+
+  /**
+   * Valida si el token de recuperación es válido y no ha expirado
+   * @param token Token de recuperación
+   * @returns Respuesta de validación
+   */
+  async validateResetToken(token: string) {
+    const user = await this.usersService.findByResetToken(token);
+    
+    if (!user) {
+      return {
+        message: 'Token inválido o expirado',
+        success: false,
+      };
+    }
+
+    if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+      await this.usersService.clearResetPasswordToken(user.id);
+      return {
+        message: 'Token expirado',
+        success: false,
+      };
+    }
+
+    return {
+      message: 'Token válido',
+      success: true,
+      userId: user.id,
+    };
+  }
+
+  /**
+   * Resetea la contraseña del usuario usando el token de recuperación
+   * @param token Token de recuperación
+   * @param password Nueva contraseña
+   * @returns Respuesta del proceso
+   */
+  async resetPassword(token: string, password: string) {
+    const tokenValidation = await this.validateResetToken(token);
+    
+    if (!tokenValidation.success) {
+      return tokenValidation;
+    }
+
+    const user = await this.usersService.findByResetToken(token);
+    
+    if (!user) {
+      return {
+        message: 'Token inválido',
+        success: false,
+      };
+    }
+
+    // Hashear la nueva contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Actualizar contraseña
+    await this.usersService.updatePassword(user.id, hashedPassword);
+    
+    // Limpiar token de recuperación
+    await this.usersService.clearResetPasswordToken(user.id);
+
+    return {
+      message: 'Contraseña actualizada exitosamente',
+      success: true,
+    };
   }
 
   private buildPayload (user : User , roles : Role[] , permissions : Permission[]): Payload {

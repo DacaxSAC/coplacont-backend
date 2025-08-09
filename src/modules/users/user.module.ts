@@ -1,26 +1,28 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './controller/user.controller';
+import { UserController } from './controllers/user.controller';
 import { UserService } from './services/user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { RolController } from './controller/role.controller';
+import { RolController } from './controllers/role.controller';
 import { RoleService } from './services/role.service';
 import { Role } from './entities/role.entity';
 import { UserRole } from './entities/user-role.entity';
-import { UserRoleController } from './controller/user-role.controller';
+import { UserRoleController } from './controllers/user-role.controller';
 import { UserRolService } from './services/user-role.service';
 import { Permission } from './entities/permission.entity';
 import { PermissionService } from './services/permission.service';
-import { PermissionController } from './controller/permission.controller';
-import { RolePermissionController } from './controller/role-permission.controller';
+import { PermissionController } from './controllers/permission.controller';
+import { RolePermissionController } from './controllers/role-permission.controller';
 import { RolePermissionService } from './services/role-permission.service';
 import { RolePermission } from './entities/role-permission.entity';
-import { AuthController } from './controller/auth.controller';
+import { AuthController } from './controllers/auth.controller';
+import { EmailController } from './controllers/email.controller';
 import { AuthService } from './services/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PersonaService } from './services/person.service';
 import { Persona } from './entities/persona.entity';
+import { EmailService } from './services/email.service';
 
 @Module({
     imports: [
@@ -41,6 +43,7 @@ import { Persona } from './entities/persona.entity';
       PermissionController,
       RolePermissionController,
       AuthController,
+      EmailController,
     ],
     providers: [
       UserService,
@@ -49,7 +52,8 @@ import { Persona } from './entities/persona.entity';
       PermissionService,
       RolePermissionService,
       AuthService,
-      PersonaService
+      PersonaService,
+      EmailService
     ],
   })
   export class UserModule {}
