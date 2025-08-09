@@ -10,6 +10,7 @@ import { hash } from 'bcrypt'
 import { PersonaService } from './person.service';
 import { randomBytes } from 'crypto';
 import { UserRolService } from './user-role.service';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class UserService {
@@ -18,7 +19,8 @@ export class UserService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly personaService: PersonaService,
-    private readonly userRoleRepository: UserRolService
+    private readonly userRoleRepository: UserRolService,
+    private readonly emailService: EmailService
   ) { }
 
 
@@ -32,19 +34,40 @@ export class UserService {
     return plainToInstance(ResponseUserDto, users, { excludeExtraneousValues: true, });
   }
 
+  /**
+   * Crea un nuevo usuario con contraseña autogenerada y envía email de bienvenida
+   * @param createUserDto Datos del usuario a crear
+   * @returns Usuario creado
+   */
   async create(createUserDto: CreateUserDto): Promise<ResponseUserDto> {
     const persona = await this.personaService.create(createUserDto.createPersonaDto);
-    const passwordPlano = createUserDto.contrasena ?? this.generarPasswordAutogenerada();
+    
+    const passwordPlano = this.generarPasswordAutogenerada();
     const passwordHasheada = await hash(passwordPlano, 10);
+    
     const user = this.userRepository.create({
       email: createUserDto.email,
       contrasena: passwordHasheada,
       persona: persona,
     });
+    
     const userSaved = await this.userRepository.save(user);
-    this.userRoleRepository.create({
-      idUser: userSaved.id, idRole: createUserDto.idRol,
+    
+    await this.userRoleRepository.create({
+      idUser: userSaved.id, 
+      idRole: createUserDto.idRol,
     });
+    
+     try {
+       await this.emailService.sendWelcomeEmailWithCredentials(
+         createUserDto.email,
+         `${persona.primerNombre} ${persona.primerApellido}`,
+         passwordPlano
+       );
+     } catch (error) {
+       console.error('Error enviando email de bienvenida:', error);
+     }
+    
     return plainToInstance(ResponseUserDto, userSaved, {
       excludeExtraneousValues: true,
     });
