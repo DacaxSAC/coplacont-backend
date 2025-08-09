@@ -1,4 +1,6 @@
 export class AuthResponseDto{
-    email : string;
-    jwt : string;
+    message : string;
+    success : boolean;
+    email? : string;
+    jwt? : string;
 }
