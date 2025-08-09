@@ -120,13 +120,15 @@ export class UserService {
    * Limpia el token de recuperación de contraseña del usuario
    * @param userId ID del usuario
    */
+  /**
+   * Limpia el token de recuperación de contraseña del usuario
+   * @param userId ID del usuario
+   */
   async clearResetPasswordToken(userId: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (user) {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
-      await this.userRepository.save(user);
-    }
+    await this.userRepository.query(
+      'UPDATE "user" SET "resetPasswordToken" = NULL, "resetPasswordExpires" = NULL WHERE "id" = $1',
+      [userId]
+    );
   }
 
   /**
