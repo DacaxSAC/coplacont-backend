@@ -15,6 +15,12 @@ export class User {
   @Column({ default: true })
   habilitado: boolean;
 
+  @Column({ nullable: true })
+  resetPasswordToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires?: Date;
+
   @OneToOne(() => Persona)
   @JoinColumn()
   persona: Persona;

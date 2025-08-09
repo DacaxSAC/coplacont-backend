@@ -64,8 +64,57 @@ export class UserService {
   }
 
   async findByEmail(email: string) {
-    return await this.userRepository.findOne({ where: { email } })
+    return await this.userRepository.findOne({ where: { email } });
   }
 
+  /**
+   * Busca un usuario por su token de recuperación de contraseña
+   * @param token Token de recuperación
+   * @returns Usuario si el token es válido y no ha expirado
+   */
+  async findByResetToken(token: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: {
+        resetPasswordToken: token,
+      }
+    });
+  }
+
+  /**
+   * Actualiza el token de recuperación de contraseña del usuario
+   * @param userId ID del usuario
+   * @param token Token de recuperación
+   * @param expiresAt Fecha de expiración del token
+   */
+  async updateResetPasswordToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+    await this.userRepository.update(userId, {
+      resetPasswordToken: token,
+      resetPasswordExpires: expiresAt
+    });
+  }
+
+  /**
+   * Limpia el token de recuperación de contraseña del usuario
+   * @param userId ID del usuario
+   */
+  async clearResetPasswordToken(userId: number): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (user) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await this.userRepository.save(user);
+    }
+  }
+
+  /**
+   * Actualiza la contraseña del usuario
+   * @param userId ID del usuario
+   * @param hashedPassword Contraseña hasheada
+   */
+  async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+    await this.userRepository.update(userId, {
+      contrasena: hashedPassword
+    });
+  }
 
 }
