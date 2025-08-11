@@ -6,6 +6,8 @@ import { PersonModule } from './modules/persons/person.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
+import { ComprobanteController } from './modules/comprobantes/controller/comprobante.controller';
+import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
 
 
 @Module({
@@ -20,8 +22,9 @@ import { ConfigModule } from '@nestjs/config';
     // Módulos funcionales
     UserModule,
     PersonModule,
+    ComprobanteModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, ComprobanteController],
   providers: [AppService],
 })
 export class AppModule {}
