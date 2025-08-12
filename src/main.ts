@@ -1,9 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
+import { addTransactionalDataSource, initializeTransactionalContext } from 'typeorm-transactional';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
+  initializeTransactionalContext();
   const app = await NestFactory.create(AppModule);
+
+  const dataSource = app.get(DataSource);
+  addTransactionalDataSource(dataSource);
   
   // Habilitar CORS
   app.enableCors({
