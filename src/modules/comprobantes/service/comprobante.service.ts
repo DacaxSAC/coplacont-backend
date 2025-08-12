@@ -8,6 +8,7 @@ import { Transactional } from "typeorm-transactional";
 import { ComprobanteDetalleService } from "./comprobante-detalle.service";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
 import { plainToInstance } from "class-transformer";
+import { TipoOperacion } from "../enum/tipo-operacion.enum";
 
 @Injectable()
 export class ComprobanteService {
@@ -44,6 +45,34 @@ export class ComprobanteService {
             Array.isArray(createComprobanteDto.detalles) &&
             createComprobanteDto.detalles.length > 0
         );
+    }
+
+    /**
+     * Obtiene todos los comprobantes de tipo COMPRA
+     * @returns Lista de comprobantes de compra
+     */
+    async findCompras(): Promise<ResponseComprobanteDto[]> {
+        const comprobantes = await this.comprobanteRepository.find({
+            where: { tipoOperacion: TipoOperacion.COMPRA },
+            relations: ['totales', 'persona']
+        });
+        return plainToInstance(ResponseComprobanteDto, comprobantes, {
+            excludeExtraneousValues: true,
+        });
+    }
+
+    /**
+     * Obtiene todos los comprobantes de tipo VENTA
+     * @returns Lista de comprobantes de venta
+     */
+    async findVentas(): Promise<ResponseComprobanteDto[]> {
+        const comprobantes = await this.comprobanteRepository.find({
+            where: { tipoOperacion: TipoOperacion.VENTA },
+            relations: ['totales', 'persona']
+        });
+        return plainToInstance(ResponseComprobanteDto, comprobantes, {
+            excludeExtraneousValues: true,
+        });
     }
 
 }
