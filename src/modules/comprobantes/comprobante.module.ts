@@ -4,7 +4,11 @@ import { Comprobante } from "./entities/comprobante";
 import { ComprobanteDetalle } from "./entities/comprobante-detalle";
 import { ComprobanteTotales } from "./entities/comprobante-totales";
 import { ComprobanteController } from "./controller/comprobante.controller";
+import { ComprasController } from "./controller/compras.controller";
+import { VentasController } from "./controller/ventas.controller";
 import { ComprobanteService } from "./service/comprobante.service";
+import { ComprasService } from "./service/compras.service";
+import { VentasService } from "./service/ventas.service";
 import { PersonModule } from "../persons/person.module";
 import { ComprobanteDetalleService } from "./service/comprobante-detalle.service";
 import { ComprobanteTotalesService } from "./service/comprobante-totales.service";
@@ -14,8 +18,14 @@ import { ComprobanteTotalesService } from "./service/comprobante-totales.service
     TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales]),
     PersonModule
   ],
-  controllers: [ComprobanteController],
-  providers: [ComprobanteService, ComprobanteDetalleService, ComprobanteTotalesService],
-  exports: [TypeOrmModule, ComprobanteService],
+  controllers: [ComprobanteController, ComprasController, VentasController],
+  providers: [
+    ComprobanteService, 
+    ComprasService, 
+    VentasService, 
+    ComprobanteDetalleService, 
+    ComprobanteTotalesService
+  ],
+  exports: [TypeOrmModule, ComprobanteService, ComprasService, VentasService],
 })
 export class ComprobanteModule{}
