@@ -8,6 +8,7 @@ import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
 import { ComprobanteController } from './modules/comprobantes/controller/comprobante.controller';
 import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
+import { ProductosModule } from './modules/productos/productos.module';
 
 
 @Module({
@@ -22,7 +23,8 @@ import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
     // Módulos funcionales
     UserModule,
     PersonModule,
-    ComprobanteModule
+    ComprobanteModule,
+    ProductosModule
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService],
