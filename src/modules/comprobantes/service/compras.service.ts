@@ -6,10 +6,6 @@ import { Comprobante } from '../entities/comprobante';
 import { TipoOperacion } from '../enum/tipo-operacion.enum';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 
-/**
- * Servicio especializado para el manejo de comprobantes de compra
- * Proporciona métodos específicos para operaciones relacionadas con compras
- */
 @Injectable()
 export class ComprasService {
 
