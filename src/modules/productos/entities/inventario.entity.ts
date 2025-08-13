@@ -1,0 +1,86 @@
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    ManyToOne,
+    JoinColumn,
+    OneToMany,
+    CreateDateColumn,
+    UpdateDateColumn,
+    Index
+} from 'typeorm';
+import { Almacen } from './almacen.entity';
+import { Producto } from './producto.entity';
+import { InventarioLote } from './inventario-lote.entity';
+
+/**
+ * Entidad Inventario
+ * Representa el stock actual de un producto en un almacén específico
+ * Relación entre almacén y producto con cantidad disponible
+ */
+@Entity('inventario')
+@Index(['almacen', 'producto'], { unique: true }) // Un producto por almacén
+export class Inventario {
+
+    /**
+     * Identificador único del registro de inventario
+     */
+    @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+    id: number;
+
+    /**
+     * Stock actual disponible del producto en el almacén
+     */
+    @Column({
+        type: 'decimal',
+        precision: 12,
+        scale: 4,
+        default: 0,
+        comment: 'Cantidad total disponible del producto en el almacén'
+    })
+    stockActual: number;
+
+    /**
+     * Fecha de creación del registro
+     */
+    @CreateDateColumn({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP'
+    })
+    fechaCreacion: Date;
+
+    /**
+     * Fecha de última actualización
+     */
+    @UpdateDateColumn({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+        onUpdate: 'CURRENT_TIMESTAMP'
+    })
+    fechaActualizacion: Date;
+
+    // Relaciones
+
+    /**
+     * Relación con Almacén
+     * Un inventario pertenece a un almacén específico
+     */
+    @ManyToOne(() => Almacen, { eager: true })
+    @JoinColumn({ name: 'id_almacen' })
+    almacen: Almacen;
+
+    /**
+     * Relación con Producto
+     * Un inventario corresponde a un producto específico
+     */
+    @ManyToOne(() => Producto, { eager: true })
+    @JoinColumn({ name: 'id_producto' })
+    producto: Producto;
+
+    /**
+     * Relación con InventarioLote
+     * Un inventario puede tener múltiples lotes
+     */
+    @OneToMany(() => InventarioLote, inventarioLote => inventarioLote.inventario)
+    lotes: InventarioLote[];
+}

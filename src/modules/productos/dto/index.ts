@@ -12,3 +12,13 @@ export { ResponseProductoDto } from './producto/response-producto.dto';
 export { CreateAlmacenDto } from './almacen/create-almacen.dto';
 export { UpdateAlmacenDto } from './almacen/update-almacen.dto';
 export { ResponseAlmacenDto } from './almacen/response-almacen.dto';
+
+// Inventario DTOs
+export { CreateInventarioDto } from './inventario/create-inventario.dto';
+export { UpdateInventarioDto } from './inventario/update-inventario.dto';
+export { ResponseInventarioDto } from './inventario/response-inventario.dto';
+
+// InventarioLote DTOs
+export { CreateInventarioLoteDto } from './inventario-lote/create-inventario-lote.dto';
+export { UpdateInventarioLoteDto } from './inventario-lote/update-inventario-lote.dto';
+export { ResponseInventarioLoteDto } from './inventario-lote/response-inventario-lote.dto';
