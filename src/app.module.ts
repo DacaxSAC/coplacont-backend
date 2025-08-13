@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ComprobanteController } from './modules/comprobantes/controller/comprobante.controller';
 import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
 import { ProductosModule } from './modules/productos/productos.module';
+import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
 
 
 @Module({
@@ -24,7 +25,8 @@ import { ProductosModule } from './modules/productos/productos.module';
     UserModule,
     EntidadModule,
     ComprobanteModule,
-    ProductosModule
+    ProductosModule,
+    TipoCambioModule
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService],
