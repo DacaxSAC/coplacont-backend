@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from "@nestjs/swagger";
 import { ComprobanteService } from "../service/comprobante.service";
 import { CreateComprobanteDto } from "../dto/comprobante/create-comprobante.dto";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
+import { TipoOperacion } from "../enum/tipo-operacion.enum";
 
 @ApiTags('Comprobantes')
 @Controller('api/comprobante')
@@ -31,6 +32,20 @@ export class ComprobanteController {
     @ApiResponse({ status: 200, description: 'Lista de comprobantes de venta obtenida exitosamente', type: [ResponseComprobanteDto] })
     findVentas(): Promise<ResponseComprobanteDto[]> {
         return this.comprobanteService.findVentas();
+    }
+
+    @Get('siguiente-correlativo')
+    @ApiOperation({ summary: 'Obtener el siguiente correlativo para un tipo de operación' })
+    @ApiQuery({ 
+        name: 'tipoOperacion', 
+        description: 'Tipo de operación (venta o compra)', 
+        enum: TipoOperacion,
+        example: TipoOperacion.VENTA
+    })
+    @ApiResponse({ status: 200, description: 'Siguiente correlativo obtenido exitosamente', schema: { type: 'object', properties: { correlativo: { type: 'string', example: 'corr-000001' } } } })
+    @ApiResponse({ status: 400, description: 'Tipo de operación inválido' })
+    getNextCorrelativo(@Query('tipoOperacion') tipoOperacion: TipoOperacion): Promise<{ correlativo: string }> {
+        return this.comprobanteService.getNextCorrelativo(tipoOperacion);
     }
 
     @Post()

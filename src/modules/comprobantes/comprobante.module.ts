@@ -3,6 +3,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Comprobante } from "./entities/comprobante";
 import { ComprobanteDetalle } from "./entities/comprobante-detalle";
 import { ComprobanteTotales } from "./entities/comprobante-totales";
+import { Correlativo } from "./entities/correlativo";
 import { ComprobanteController } from "./controller/comprobante.controller";
 import { ComprasController } from "./controller/compras.controller";
 import { VentasController } from "./controller/ventas.controller";
@@ -15,7 +16,7 @@ import { ComprobanteTotalesService } from "./service/comprobante-totales.service
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales]),
+    TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales, Correlativo]),
     PersonModule
   ],
   controllers: [ComprobanteController, ComprasController, VentasController],
