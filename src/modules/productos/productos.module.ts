@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Entities
-import { Producto, Categoria, Almacen } from './entities';
+import { Producto, Categoria, Almacen, Inventario, InventarioLote } from './entities';
 
 // Services
-import { CategoriaService, ProductoService, AlmacenService } from './service';
+import { CategoriaService, ProductoService, AlmacenService, InventarioService, InventarioLoteService } from './service';
 
 // Controllers
-import { CategoriaController, ProductoController, AlmacenController } from './controller';
+import { CategoriaController, ProductoController, AlmacenController, InventarioController, InventarioLoteController } from './controller';
 
 /**
  * Módulo de productos y almacenes
@@ -19,23 +19,31 @@ import { CategoriaController, ProductoController, AlmacenController } from './co
         TypeOrmModule.forFeature([
             Producto,
             Categoria,
-            Almacen
+            Almacen,
+            Inventario,
+            InventarioLote
         ])
     ],
     controllers: [
         CategoriaController,
         ProductoController,
-        AlmacenController
+        AlmacenController,
+        InventarioController,
+        InventarioLoteController
     ],
     providers: [
         CategoriaService,
         ProductoService,
-        AlmacenService
+        AlmacenService,
+        InventarioService,
+        InventarioLoteService
     ],
     exports: [
         CategoriaService,
         ProductoService,
-        AlmacenService
+        AlmacenService,
+        InventarioService,
+        InventarioLoteService
     ]
 })
 export class ProductosModule {}
