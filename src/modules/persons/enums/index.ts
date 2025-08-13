@@ -1,1 +1,0 @@
-export { PersonType } from './PersonType.enum';

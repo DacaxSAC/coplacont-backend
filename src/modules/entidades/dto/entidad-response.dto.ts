@@ -1,94 +1,94 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PersonType } from '../enums/PersonType.enum';
+import { EntidadType } from '../enums';
 
 /**
- * DTO de respuesta para la entidad Person
+ * DTO de respuesta para la entidad Entidad
  */
-export class PersonResponseDto {
+export class EntidadResponseDto {
   @ApiProperty({
     example: 1,
-    description: 'ID único de la persona'
+    description: 'ID único de la entidad'
   })
   id: number;
 
   @ApiProperty({
     example: false,
-    description: 'Indica si la persona es un proveedor'
+    description: 'Indica si la entidad es un proveedor'
   })
-  isProveedor: boolean;
+  esProveedor: boolean;
 
   @ApiProperty({
     example: true,
-    description: 'Indica si la persona es un cliente'
+    description: 'Indica si la entidad es un cliente'
   })
-  isCliente: boolean;
+  esCliente: boolean;
 
   @ApiProperty({
-    example: PersonType.NATURAL,
-    description: 'Tipo de persona: NATURAL o JURIDICA',
-    enum: PersonType
+    example: EntidadType.NATURAL,
+    description: 'Tipo de entidad: NATURAL o JURIDICA',
+    enum: EntidadType
   })
-  type: PersonType;
+  tipo: EntidadType;
 
   @ApiProperty({
     example: '12345678',
     description: 'Número de documento (DNI para naturales, RUC para jurídicas)'
   })
-  documentNumber: string;
+  numeroDocumento: string;
 
   @ApiProperty({
     example: 'Juan',
     description: 'Nombre (para personas naturales)',
     nullable: true
   })
-  firstName?: string;
+  nombre?: string;
 
   @ApiProperty({
     example: 'García',
     description: 'Apellido materno (para personas naturales)',
     nullable: true
   })
-  maternalSurname?: string;
+  apellidoMaterno?: string;
 
   @ApiProperty({
     example: 'Pérez',
     description: 'Apellido paterno (para personas naturales)',
     nullable: true
   })
-  paternalSurname?: string;
+  apellidoPaterno?: string;
 
   @ApiProperty({
     example: 'Empresa ABC S.A.C.',
     description: 'Razón social (para personas jurídicas)',
     nullable: true
   })
-  businessName?: string;
+  razonSocial?: string;
 
   @ApiProperty({
     example: true,
-    description: 'Estado activo/inactivo de la persona'
+    description: 'Estado activo/inactivo de la entidad'
   })
-  active: boolean;
+  activo: boolean;
 
   @ApiProperty({
     example: 'Av. Principal 123, Lima',
-    description: 'Dirección de la persona',
+    description: 'Dirección de la entidad',
     nullable: true
   })
-  address?: string;
+  direccion?: string;
 
   @ApiProperty({
     example: '+51 987654321',
     description: 'Número de teléfono',
     nullable: true
   })
-  phone?: string;
+  telefono?: string;
 
   @ApiProperty({
     example: 'Juan Pérez García',
     description: 'Nombre completo para mostrar'
   })
-  displayName: string;
+  nombreCompleto: string;
 
   @ApiProperty({
     example: '2024-01-15T10:30:00Z',

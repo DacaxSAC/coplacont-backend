@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ComprobanteDetalle } from "./comprobante-detalle";
 import { ComprobanteTotales } from "./comprobante-totales";
-import { Person } from "src/modules/persons/entities";
+import { Entidad } from "src/modules/entidades/entities";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { Moneda } from "../enum/tipo-moneda.enum";
 import { TipoComprobante } from "../enum/tipo-comprobante.enum";
@@ -17,9 +17,9 @@ export class Comprobante {
     correlativo : string;
 
     //Manual
-    @ManyToOne(() => Person)
+    @ManyToOne(() => Entidad, { nullable: true })
     @JoinColumn({ name: 'id_persona' })
-    persona: Person;
+    persona: Entidad;
 
     //Manual
     @Column({

@@ -10,14 +10,14 @@ import { VentasController } from "./controller/ventas.controller";
 import { ComprobanteService } from "./service/comprobante.service";
 import { ComprasService } from "./service/compras.service";
 import { VentasService } from "./service/ventas.service";
-import { PersonModule } from "../persons/person.module";
+import { EntidadModule } from "../entidades/entidad.module";
 import { ComprobanteDetalleService } from "./service/comprobante-detalle.service";
 import { ComprobanteTotalesService } from "./service/comprobante-totales.service";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales, Correlativo]),
-    PersonModule
+    EntidadModule
   ],
   controllers: [ComprobanteController, ComprasController, VentasController],
   providers: [

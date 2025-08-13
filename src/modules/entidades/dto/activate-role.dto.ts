@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
 /**
- * DTO para activar roles de una persona (cliente o proveedor)
+ * DTO para activar roles de una entidad (cliente o proveedor)
  * Solo permite activar roles, no desactivarlos
  */
 export class ActivateRoleDto {

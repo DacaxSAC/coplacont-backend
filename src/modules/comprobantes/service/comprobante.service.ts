@@ -3,7 +3,7 @@ import { Repository } from "typeorm";
 import { Comprobante } from "../entities/comprobante";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CreateComprobanteDto } from "../dto/comprobante/create-comprobante.dto";
-import { PersonService } from "src/modules/persons/services";
+import { EntidadService } from "src/modules/entidades/services";
 import { Transactional } from "typeorm-transactional";
 import { ComprobanteDetalleService } from "./comprobante-detalle.service";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
@@ -20,7 +20,7 @@ export class ComprobanteService {
         @InjectRepository(Correlativo)
         private readonly correlativoRepository: Repository<Correlativo>,
         private readonly comprobanteDetalleService: ComprobanteDetalleService,
-        private readonly personaService: PersonService
+        private readonly personaService: EntidadService
     ) { }
 
     @Transactional()

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
-import { PersonModule } from './modules/persons/person.module';
+import { EntidadModule } from './modules/entidades/entidad.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
@@ -22,7 +22,7 @@ import { ProductosModule } from './modules/productos/productos.module';
 
     // Módulos funcionales
     UserModule,
-    PersonModule,
+    EntidadModule,
     ComprobanteModule,
     ProductosModule
   ],
