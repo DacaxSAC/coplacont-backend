@@ -151,7 +151,7 @@ export class EntidadController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Eliminar una entidad (soft delete)',
     description: 'Marca la entidad como inactiva sin eliminarla físicamente'
@@ -170,6 +170,7 @@ export class EntidadController {
   }
 
   @Patch(':id/restore')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Restaurar una entidad eliminada',
     description: 'Reactiva una entidad que fue eliminada con soft delete'

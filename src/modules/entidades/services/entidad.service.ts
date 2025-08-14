@@ -43,7 +43,6 @@ export class EntidadService {
   async findAll(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
       const persons = await this.personRepository.find({
-        where: { activo: true },
         order: { createdAt: 'DESC' }
       });
       
@@ -84,8 +83,7 @@ export class EntidadService {
     try {
       const clients = await this.personRepository.find({
         where: { 
-          isCliente: true,
-          activo: true 
+          esCliente: true,
         },
         order: { createdAt: 'DESC' }
       });
@@ -105,8 +103,7 @@ export class EntidadService {
     try {
       const providers = await this.personRepository.find({
         where: { 
-          isProveedor: true,
-          activo: true 
+          esProveedor: true,
         },
         order: { createdAt: 'DESC' }
       });
@@ -168,10 +165,10 @@ export class EntidadService {
 
       // Activar los roles especificados
       if (activateRoleDto.isCliente !== undefined) {
-        person.isCliente = activateRoleDto.isCliente;
+        person.esCliente = activateRoleDto.isCliente;
       }
       if (activateRoleDto.isProveedor !== undefined) {
-        person.isProveedor = activateRoleDto.isProveedor;
+        person.esProveedor = activateRoleDto.isProveedor;
       }
 
       const updatedPerson = await this.personRepository.save(person);
@@ -269,8 +266,8 @@ export class EntidadService {
   private mapToResponseDto(entidad: Entidad): EntidadResponseDto {
     const dto = new EntidadResponseDto();
     dto.id = entidad.id;
-    dto.esProveedor = entidad.isProveedor;
-    dto.esCliente = entidad.isCliente;
+    dto.esProveedor = entidad.esProveedor;
+    dto.esCliente = entidad.esCliente;
     dto.tipo = entidad.tipo;
     dto.numeroDocumento = entidad.numeroDocumento;
     dto.nombre = entidad.nombre;
