@@ -13,7 +13,7 @@ import {
 import { ApiResponseDto } from '../../entidades/dto/api-response.dto';
 
 @ApiTags('Tipo de Cambio')
-@Controller('tipo-cambio')
+@Controller('/api/tipo-cambio')
 export class TipoCambioController {
   private readonly logger = new Logger(TipoCambioController.name);
 
