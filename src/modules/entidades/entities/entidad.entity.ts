@@ -19,10 +19,10 @@ export class Entidad {
   id: number;
 
   @Column({ default: false })
-  isProveedor: boolean;
+  esProveedor: boolean;
 
   @Column({ default: false })
-  isCliente: boolean;
+  esCliente: boolean;
 
   @Column({
     type: 'enum',
