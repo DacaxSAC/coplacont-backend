@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { ResponseCategoriaDto } from '../categoria/response-categoria.dto';
+import { TipoProducto } from '../../enum/tipo-producto.enum';
 
 /**
  * DTO de respuesta para producto
@@ -17,6 +18,13 @@ export class ResponseProductoDto {
     })
     @Expose()
     id: number;
+
+    /**
+     * Tipo del ítem (producto o servicio)
+     */
+    @ApiProperty({ description: 'Tipo del ítem', enum: TipoProducto, example: TipoProducto.PRODUCTO })
+    @Expose()
+    tipo: TipoProducto;
 
     /**
      * Descripción del producto

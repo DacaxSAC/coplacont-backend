@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, IsNumber, IsPositive, MaxLength, MinLength, Min } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsPositive, MaxLength, MinLength, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TipoProducto } from '../../enum/tipo-producto.enum';
 
 /**
  * DTO para crear un nuevo producto
@@ -19,6 +20,13 @@ export class CreateProductoDto {
     @IsPositive({ message: 'El ID de categoría debe ser positivo' })
     @Type(() => Number)
     idCategoria: number;
+
+    /**
+     * Tipo del ítem (producto o servicio)
+     */
+    @ApiProperty({ description: 'Tipo del ítem', enum: TipoProducto, example: TipoProducto.PRODUCTO })
+    @IsEnum(TipoProducto)
+    tipo: TipoProducto;
 
     /**
      * Descripción del producto

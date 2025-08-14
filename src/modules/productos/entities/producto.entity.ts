@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Categoria } from './categoria.entity';
+import { TipoProducto } from '../enum/tipo-producto.enum';
 
 /**
  * Entidad que representa un producto en el sistema
@@ -17,6 +18,12 @@ export class Producto {
     @ManyToOne(() => Categoria, (categoria) => categoria.productos)
     @JoinColumn({ name: 'id_categoria' })
     categoria: Categoria;
+
+    /**
+     * Tipo del registro (producto o servicio)
+     */
+    @Column({ type: 'enum', enum: TipoProducto, default: TipoProducto.PRODUCTO })
+    tipo: TipoProducto;
 
     /**
      * Descripción del producto
