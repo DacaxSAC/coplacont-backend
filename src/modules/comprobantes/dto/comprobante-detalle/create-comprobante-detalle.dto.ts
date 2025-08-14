@@ -3,6 +3,15 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-v
 
 export class CreateComprobanteDetalleDto {
   @ApiProperty({
+    description: 'ID del producto asociado al detalle',
+    example: 123,
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  @Min(1)
+  idProducto: number;
+
+  @ApiProperty({
     description: 'Cantidad del producto o servicio',
     example: 10.5,
   })

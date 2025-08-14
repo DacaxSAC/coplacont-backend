@@ -5,6 +5,7 @@ import { plainToInstance } from 'class-transformer';
 import { Comprobante } from '../entities/comprobante';
 import { TipoOperacion } from '../enum/tipo-operacion.enum';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
+import { ResponseComprobanteWithDetallesDto } from '../dto/comprobante/response-comprobante-with-detalles.dto';
 
 @Injectable()
 export class VentasService {
@@ -31,22 +32,22 @@ export class VentasService {
     /**
      * Busca un comprobante de venta por su ID
      * @param id - ID del comprobante
-     * @returns Promise<ResponseComprobanteDto | null> Comprobante encontrado o null
+     * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
      */
-    async findById(id: number): Promise<ResponseComprobanteDto | null> {
+    async findById(id: number): Promise<ResponseComprobanteWithDetallesDto | null> {
         const comprobante = await this.comprobanteRepository.findOne({
             where: { 
                 idComprobante: id,
                 tipoOperacion: TipoOperacion.VENTA 
             },
-            relations: ['totales', 'persona', 'detalles']
+            relations: ['totales', 'persona', 'detalles', 'detalles.producto']
         });
         
         if (!comprobante) {
             return null;
         }
         
-        return plainToInstance(ResponseComprobanteDto, comprobante, {
+        return plainToInstance(ResponseComprobanteWithDetallesDto, comprobante, {
             excludeExtraneousValues: true,
         });
     }
@@ -103,7 +104,7 @@ export class VentasService {
         const result = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoin('comprobante.totales', 'totales')
-            .select('SUM(totales.totalVenta)', 'total')
+            .select('SUM(totales.totalGeneral)', 'total')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })

@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { VentasService } from '../service/ventas.service';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
+import { ResponseComprobanteWithDetallesDto } from '../dto/comprobante/response-comprobante-with-detalles.dto';
 
 /**
  * Controlador especializado para el manejo de comprobantes de venta
@@ -33,7 +34,7 @@ export class VentasController {
     /**
      * Busca un comprobante de venta por su ID
      * @param id - ID del comprobante
-     * @returns Promise<ResponseComprobanteDto | null> Comprobante encontrado o null
+     * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
      */
     @Get(':id')
     @ApiOperation({ summary: 'Obtener un comprobante de venta por ID' })
@@ -41,10 +42,10 @@ export class VentasController {
     @ApiResponse({ 
         status: 200, 
         description: 'Comprobante de venta encontrado', 
-        type: ResponseComprobanteDto 
+        type: ResponseComprobanteWithDetallesDto 
     })
     @ApiResponse({ status: 404, description: 'Comprobante de venta no encontrado' })
-    async findById(@Param('id') id: number): Promise<ResponseComprobanteDto | null> {
+    async findById(@Param('id') id: number): Promise<ResponseComprobanteWithDetallesDto | null> {
         return this.ventasService.findById(id);
     }
 
@@ -138,11 +139,6 @@ export class VentasController {
         const inicio = new Date(fechaInicio);
         const fin = new Date(fechaFin);
         const total = await this.ventasService.getTotalVentasByDateRange(inicio, fin);
-        
-        return {
-            total,
-            fechaInicio,
-            fechaFin
-        };
+        return { total, fechaInicio, fechaFin };
     }
 }

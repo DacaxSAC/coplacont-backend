@@ -1,11 +1,13 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiExtraModels, ApiBody } from "@nestjs/swagger";
 import { ComprobanteService } from "../service/comprobante.service";
 import { CreateComprobanteDto } from "../dto/comprobante/create-comprobante.dto";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
+import { CreateComprobanteDetalleDto } from "../dto/comprobante-detalle/create-comprobante-detalle.dto";
 
 @ApiTags('Comprobantes')
+@ApiExtraModels(CreateComprobanteDetalleDto)
 @Controller('api/comprobante')
 export class ComprobanteController {
 
@@ -50,6 +52,7 @@ export class ComprobanteController {
 
     @Post()
     @ApiOperation({ summary: 'Crear un nuevo comprobante' })
+    @ApiBody({ type: CreateComprobanteDto })
     @ApiResponse({ status: 201, description: 'Comprobante creado exitosamente' })
     @ApiResponse({ status: 400, description: 'Datos inválidos' })
     create (@Body() createComprobanteDto : CreateComprobanteDto) : Promise<void>{
