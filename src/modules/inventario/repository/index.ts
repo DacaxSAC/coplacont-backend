@@ -1,0 +1,1 @@
+export { InventarioRepository } from './inventario.repository';
