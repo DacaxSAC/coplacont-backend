@@ -28,7 +28,7 @@ import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dt
  * Proporciona endpoints REST para la gestión de productos
  */
 @ApiTags('Productos')
-@Controller('productos')
+@Controller('/api/productos')
 export class ProductoController {
 
     constructor(private readonly productoService: ProductoService) {}

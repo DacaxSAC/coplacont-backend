@@ -31,7 +31,7 @@ import { plainToClass } from 'class-transformer';
  * Maneja las operaciones CRUD y consultas específicas de inventario
  */
 @ApiTags('Inventario')
-@Controller('inventario')
+@Controller('/api/inventario')
 @UseInterceptors(ClassSerializerInterceptor)
 export class InventarioController {
 
