@@ -1,0 +1,1 @@
+export { InventarioService } from './inventario.service';

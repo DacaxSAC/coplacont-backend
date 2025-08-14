@@ -31,7 +31,7 @@ import { plainToClass } from 'class-transformer';
  * Maneja las operaciones CRUD y consultas específicas de lotes para el Kardex
  */
 @ApiTags('Inventario Lotes')
-@Controller('inventario-lote')
+@Controller('/api/inventario-lote')
 @UseInterceptors(ClassSerializerInterceptor)
 export class InventarioLoteController {
 

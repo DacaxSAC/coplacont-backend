@@ -29,7 +29,7 @@ import { CreateAlmacenDto, UpdateAlmacenDto, ResponseAlmacenDto } from '../dto';
  * Proporciona endpoints REST para la gestión de almacenes
  */
 @ApiTags('Almacenes')
-@Controller('/api/almacenes')
+@Controller('almacenes')
 export class AlmacenController {
 
     constructor(private readonly almacenService: AlmacenService) {}

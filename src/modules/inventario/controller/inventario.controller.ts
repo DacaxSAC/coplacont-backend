@@ -21,9 +21,7 @@ import {
     ApiBody
 } from '@nestjs/swagger';
 import { InventarioService } from '../service/inventario.service';
-import { CreateInventarioDto } from '../dto/inventario/create-inventario.dto';
-import { UpdateInventarioDto } from '../dto/inventario/update-inventario.dto';
-import { ResponseInventarioDto } from '../dto/inventario/response-inventario.dto';
+import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from '../dto';
 import { plainToClass } from 'class-transformer';
 
 /**
@@ -31,7 +29,7 @@ import { plainToClass } from 'class-transformer';
  * Maneja las operaciones CRUD y consultas específicas de inventario
  */
 @ApiTags('Inventario')
-@Controller('/api/inventario')
+@Controller('inventario')
 @UseInterceptors(ClassSerializerInterceptor)
 export class InventarioController {
 

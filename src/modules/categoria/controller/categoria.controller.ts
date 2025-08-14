@@ -28,7 +28,7 @@ import { CreateCategoriaDto, UpdateCategoriaDto, ResponseCategoriaDto } from '..
  * Proporciona endpoints REST para la gestión de categorías de productos
  */
 @ApiTags('Categorías')
-@Controller('/api/categorias')
+@Controller('categorias')
 export class CategoriaController {
 
     constructor(private readonly categoriaService: CategoriaService) {}
