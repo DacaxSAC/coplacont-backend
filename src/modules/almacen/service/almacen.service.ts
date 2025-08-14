@@ -47,12 +47,8 @@ export class AlmacenService {
      * @param includeInactive - Incluir almacenes inactivos (opcional)
      * @returns Promise<ResponseAlmacenDto[]> - Lista de almacenes
      */
-    async findAll(includeInactive: boolean = false): Promise<ResponseAlmacenDto[]> {
+    async findAll(): Promise<ResponseAlmacenDto[]> {
         const queryBuilder = this.almacenRepository.createQueryBuilder('almacen');
-
-        if (!includeInactive) {
-            queryBuilder.where('almacen.estado = :estado', { estado: true });
-        }
 
         queryBuilder.orderBy('almacen.nombre', 'ASC');
 

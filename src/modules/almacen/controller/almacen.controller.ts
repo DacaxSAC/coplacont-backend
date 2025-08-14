@@ -75,7 +75,7 @@ export class AlmacenController {
     async findAll(
         @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
     ): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findAll(includeInactive || false);
+        return await this.almacenService.findAll();
     }
 
     /**
