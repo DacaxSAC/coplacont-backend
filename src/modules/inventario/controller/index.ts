@@ -1,0 +1,1 @@
+export { InventarioController } from './inventario.controller';
