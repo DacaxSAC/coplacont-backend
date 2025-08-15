@@ -6,7 +6,7 @@ import { CreateComprobanteDetalleDto } from "../dto/comprobante-detalle/create-c
 import { Comprobante } from "../entities/comprobante";
 import { Transactional } from "typeorm-transactional";
 import { ComprobanteTotalesService } from "./comprobante-totales.service";
-import { Producto } from "src/modules/productos/entities";
+import { Inventario } from "src/modules/inventario";
 
 @Injectable()
 export class ComprobanteDetalleService {
@@ -19,7 +19,7 @@ export class ComprobanteDetalleService {
     ) { }
 
     @Transactional()
-    async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) {
+    async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) : Promise<ComprobanteDetalle[]>{
         // Mapear DTOs a entidades y setear relaciones (comprobante y producto)
         const comprobante = new Comprobante();
         comprobante.idComprobante = idComprobante;
@@ -27,16 +27,17 @@ export class ComprobanteDetalleService {
         const detalles = createComprobanteDetalleDtos.map(dto => {
             const detalle = this.comprobanteDetalleRepository.create(dto);
             detalle.comprobante = comprobante;
-            if (dto.idProducto) {
-                const producto = new Producto();
-                producto.id = dto.idProducto;
-                detalle.producto = producto;
+            if (dto.idInventario) {
+                const inventario = new Inventario();
+                inventario.id = dto.idInventario;
+                detalle.inventario = inventario;
             }
             return detalle;
         });
 
         const detallesSaved = await this.comprobanteDetalleRepository.save(detalles);
         await this.comprobanteTotalesService.register(idComprobante, detallesSaved);
+        return detallesSaved;
     }
 
 }

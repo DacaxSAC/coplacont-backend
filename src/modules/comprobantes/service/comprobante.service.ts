@@ -10,6 +10,9 @@ import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.
 import { plainToInstance } from "class-transformer";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { Correlativo } from "../entities/correlativo";
+import { MovimientosService } from "src/modules/movimientos";
+import { MovimientoFactory } from "src/modules/movimientos/factory/MovimientoFactory";
+import { LoteService } from "src/modules/inventario/services/lote.service";
 
 @Injectable()
 export class ComprobanteService {
@@ -20,7 +23,10 @@ export class ComprobanteService {
         @InjectRepository(Correlativo)
         private readonly correlativoRepository: Repository<Correlativo>,
         private readonly comprobanteDetalleService: ComprobanteDetalleService,
-        private readonly personaService: EntidadService
+        private readonly personaService: EntidadService,
+        private readonly movimientoService : MovimientosService,
+        private readonly movimientoFactory : MovimientoFactory,
+        private readonly loteService: LoteService
     ) { }
 
     @Transactional()
@@ -55,8 +61,13 @@ export class ComprobanteService {
 
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
         if (await this.existDetails(createComprobanteDto)) {
-            this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
+            const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
+            comprobanteSaved.detalles = detallesSaved;
+            
+            // Procesar lotes según el tipo de operación
+            await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion);
         }
+        this.movimientoService.create(this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved));
     }
 
     @Transactional()

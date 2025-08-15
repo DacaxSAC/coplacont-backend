@@ -4,10 +4,10 @@ export class ResponseComprobanteDetalleDto {
   @Expose()
   idDetalle: number;
 
-  // Id del producto asociado al detalle
+  // Id del inventario asociado al detalle
   @Expose()
-  @Transform(({ obj }) => obj?.producto?.id, { toClassOnly: true })
-  idProducto?: number;
+  @Transform(({ obj }) => obj?.inventario?.id, { toClassOnly: true })
+  idInventario?: number;
 
   @Expose()
   cantidad: number;

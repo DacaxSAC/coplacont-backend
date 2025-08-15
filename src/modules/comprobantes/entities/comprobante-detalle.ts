@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Comprobante } from "./comprobante";
 import { Producto } from "src/modules/productos/entities";
+import { Inventario } from "src/modules/inventario";
 
 @Entity({ name: 'comprobante_detalle' })
 export class ComprobanteDetalle {
@@ -13,8 +14,8 @@ export class ComprobanteDetalle {
 
   // Relación con el producto siguiendo la convención de nombres (id_producto)
   @ManyToOne(() => Producto)
-  @JoinColumn({ name: 'id_producto' })
-  producto: Producto;
+  @JoinColumn({ name: 'id_inventario' })
+  inventario: Inventario;
 
   @Column('decimal', { precision: 15, scale: 4 })
   cantidad: number;

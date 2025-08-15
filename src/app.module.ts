@@ -10,6 +10,7 @@ import { ComprobanteController } from './modules/comprobantes/controller/comprob
 import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
+import { MovimientosModule } from './modules/movimientos/movimientos.module';
 
 
 @Module({
@@ -26,7 +27,8 @@ import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
     EntidadModule,
     ComprobanteModule,
     ProductosModule,
-    TipoCambioModule
+    TipoCambioModule,
+    MovimientosModule
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService],

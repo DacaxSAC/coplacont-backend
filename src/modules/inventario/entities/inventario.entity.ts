@@ -35,14 +35,14 @@ export class Inventario {
      * Relación muchos a uno con almacén
      */
     @ManyToOne(() => Almacen, { nullable: false })
-    @JoinColumn({ name: 'almacen_id' })
+    @JoinColumn({ name: 'id_almacen' })
     almacen: Almacen;
 
     /**
      * Relación muchos a uno con producto
      */
     @ManyToOne(() => Producto, { nullable: false })
-    @JoinColumn({ name: 'producto_id' })
+    @JoinColumn({ name: 'id_producto' })
     producto: Producto;
 
     /**

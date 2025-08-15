@@ -6,8 +6,7 @@ import {
     JoinColumn,
     OneToMany,
     CreateDateColumn,
-    UpdateDateColumn,
-    Index
+    UpdateDateColumn
 } from 'typeorm';
 import { Almacen } from './almacen.entity';
 import { Producto } from './producto.entity';
@@ -19,7 +18,6 @@ import { InventarioLote } from './inventario-lote.entity';
  * Relación entre almacén y producto con cantidad disponible
  */
 @Entity('inventario')
-@Index(['almacen', 'producto'], { unique: true }) // Un producto por almacén
 export class Inventario {
 
     /**
