@@ -5,6 +5,7 @@ import { plainToClass } from 'class-transformer';
 import { Producto } from '../entities/producto.entity';
 import { Categoria } from '../entities/categoria.entity';
 import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dto';
+import { TipoProducto } from '../enum/tipo-producto.enum';
 
 /**
  * Servicio para gestionar las operaciones CRUD de productos
@@ -68,15 +69,20 @@ export class ProductoService {
     /**
      * Obtener todos los productos
      * @param includeInactive - Incluir productos inactivos (opcional)
+     * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Lista de productos
      */
-    async findAll(includeInactive: boolean = false): Promise<ResponseProductoDto[]> {
+    async findAll(includeInactive: boolean = false, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria');
 
         if (!includeInactive) {
             queryBuilder.where('producto.estado = :estado', { estado: true });
+        }
+
+        if (tipo) {
+            queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
         }
 
         queryBuilder.orderBy('producto.descripcion', 'ASC');
@@ -182,15 +188,49 @@ export class ProductoService {
     /**
      * Buscar productos por descripción
      * @param descripcion - Descripción a buscar
+     * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos encontrados
      */
-    async findByDescription(descripcion: string): Promise<ResponseProductoDto[]> {
-        const productos = await this.productoRepository
+    async findByDescription(descripcion: string, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+        const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
             .where('producto.descripcion ILIKE :descripcion', { descripcion: `%${descripcion}%` })
-            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('producto.estado = :estado', { estado: true });
+
+        if (tipo) {
+            queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+        }
+
+        const productos = await queryBuilder
             .orderBy('producto.descripcion', 'ASC')
+            .getMany();
+
+        return productos.map(producto => 
+            plainToClass(ResponseProductoDto, producto, { excludeExtraneousValues: true })
+        );
+    }
+
+    /**
+     * Buscar productos por nombre
+     * @param nombre - Nombre a buscar
+     * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
+     * @returns Promise<ResponseProductoDto[]> - Productos encontrados
+     */
+    async findByName(nombre: string, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+        const queryBuilder = this.productoRepository
+            .createQueryBuilder('producto')
+            .leftJoinAndSelect('producto.categoria', 'categoria')
+            .where('producto.nombre IS NOT NULL')
+            .andWhere('producto.nombre ILIKE :nombre', { nombre: `%${nombre}%` })
+            .andWhere('producto.estado = :estado', { estado: true });
+
+        if (tipo) {
+            queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+        }
+
+        const productos = await queryBuilder
+            .orderBy('producto.nombre', 'ASC')
             .getMany();
 
         return productos.map(producto => 
@@ -201,14 +241,21 @@ export class ProductoService {
     /**
      * Buscar productos por categoría
      * @param categoriaId - ID de la categoría
+     * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos de la categoría
      */
-    async findByCategory(categoriaId: number): Promise<ResponseProductoDto[]> {
-        const productos = await this.productoRepository
+    async findByCategory(categoriaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+        const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
             .where('categoria.id = :categoriaId', { categoriaId })
-            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('producto.estado = :estado', { estado: true });
+
+        if (tipo) {
+            queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+        }
+
+        const productos = await queryBuilder
             .orderBy('producto.descripcion', 'ASC')
             .getMany();
 
@@ -219,14 +266,21 @@ export class ProductoService {
 
     /**
      * Buscar productos con stock bajo
+     * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos con stock bajo
      */
-    async findLowStock(): Promise<ResponseProductoDto[]> {
-        const productos = await this.productoRepository
+    async findLowStock(tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+        const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
             .where('producto.stockMinimo > 0')
-            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('producto.estado = :estado', { estado: true });
+
+        if (tipo) {
+            queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+        }
+
+        const productos = await queryBuilder
             .orderBy('producto.descripcion', 'ASC')
             .getMany();
 

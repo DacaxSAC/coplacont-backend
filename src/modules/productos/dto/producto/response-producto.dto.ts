@@ -20,6 +20,17 @@ export class ResponseProductoDto {
     id: number;
 
     /**
+     * Nombre del producto
+     */
+    @ApiProperty({
+        description: 'Nombre del producto',
+        example: 'Laptop HP Pavilion',
+        required: false
+    })
+    @Expose()
+    nombre?: string;
+
+    /**
      * Tipo del ítem (producto o servicio)
      */
     @ApiProperty({ description: 'Tipo del ítem', enum: TipoProducto, example: TipoProducto.PRODUCTO })
