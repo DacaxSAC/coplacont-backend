@@ -36,10 +36,15 @@ export class ProductoService {
             throw new BadRequestException('La categoría especificada no existe o está inactiva');
         }
 
-        // Verificar si ya existe un producto con el mismo código (si se proporciona)
-        if (createProductoDto.codigo) {
+        let codigo = createProductoDto.codigo;
+
+        // Autogenerar código si no se proporciona
+        if (!codigo) {
+            codigo = await this.generateProductCode(categoria.nombre, createProductoDto.tipo);
+        } else {
+            // Verificar si ya existe un producto con el mismo código (si se proporciona)
             const existingProducto = await this.productoRepository.findOne({
-                where: { codigo: createProductoDto.codigo }
+                where: { codigo }
             });
 
             if (existingProducto) {
@@ -50,6 +55,7 @@ export class ProductoService {
         // Crear nuevo producto
         const producto = this.productoRepository.create({
             ...createProductoDto,
+            codigo,
             categoria,
             estado: createProductoDto.estado ?? true,
             stockMinimo: createProductoDto.stockMinimo ?? 0
@@ -287,5 +293,44 @@ export class ProductoService {
         return productos.map(producto => 
             plainToClass(ResponseProductoDto, producto, { excludeExtraneousValues: true })
         );
+    }
+
+    /**
+     * Genera un código único para el producto
+     * Formato: [PREFIJO_CATEGORIA]-[TIPO]-[NUMERO_SECUENCIAL]
+     */
+    private async generateProductCode(categoriaNombre: string, tipo: TipoProducto): Promise<string> {
+        // Crear prefijo de categoría (primeras 3 letras en mayúsculas)
+        const categoriaPrefix = categoriaNombre
+            .replace(/[^a-zA-Z]/g, '') // Remover caracteres especiales
+            .substring(0, 3)
+            .toUpperCase()
+            .padEnd(3, 'X'); // Rellenar con X si es menor a 3 caracteres
+
+        // Prefijo de tipo
+        const tipoPrefix = tipo === TipoProducto.PRODUCTO ? 'PROD' : 'SERV';
+
+        // Buscar el último número secuencial para esta combinación
+        const lastProduct = await this.productoRepository
+            .createQueryBuilder('producto')
+            .where('producto.codigo LIKE :pattern', { 
+                pattern: `${categoriaPrefix}-${tipoPrefix}-%` 
+            })
+            .orderBy('producto.codigo', 'DESC')
+            .getOne();
+
+        let nextNumber = 1;
+        if (lastProduct && lastProduct.codigo) {
+            // Extraer el número del último código
+            const match = lastProduct.codigo.match(/-([0-9]+)$/);
+            if (match) {
+                nextNumber = parseInt(match[1]) + 1;
+            }
+        }
+
+        // Formatear número con ceros a la izquierda (4 dígitos)
+        const formattedNumber = nextNumber.toString().padStart(4, '0');
+
+        return `${categoriaPrefix}-${tipoPrefix}-${formattedNumber}`;
     }
 }
