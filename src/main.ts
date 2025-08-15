@@ -13,7 +13,7 @@ async function bootstrap() {
   
   // Habilitar CORS
   app.enableCors({
-    origin: ['http://localhost:3000','http://localhost:5173','https://coplacont-frontend-vercel.app'], // Orígenes permitidos
+    origin: ['http://localhost:3000','http://localhost:5173','https://coplacont-frontend.vercel.app'], // Orígenes permitidos
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Métodos HTTP permitidos
     allowedHeaders: ['Content-Type', 'Authorization'], // Headers permitidos
     credentials: true, // Permitir cookies y credenciales
