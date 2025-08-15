@@ -6,6 +6,7 @@ import { Producto } from '../entities/producto.entity';
 import { Categoria } from '../entities/categoria.entity';
 import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dto';
 import { TipoProducto } from '../enum/tipo-producto.enum';
+import { TipoCategoria } from '../enum/tipo-categoria.enum';
 
 /**
  * Servicio para gestionar las operaciones CRUD de productos
@@ -40,7 +41,7 @@ export class ProductoService {
 
         // Autogenerar código si no se proporciona
         if (!codigo) {
-            codigo = await this.generateProductCode(categoria.nombre, createProductoDto.tipo);
+            codigo = await this.generateProductCode(categoria.nombre, categoria.tipo);
         } else {
             // Verificar si ya existe un producto con el mismo código (si se proporciona)
             const existingProducto = await this.productoRepository.findOne({
@@ -299,7 +300,7 @@ export class ProductoService {
      * Genera un código único para el producto
      * Formato: [PREFIJO_CATEGORIA]-[TIPO]-[NUMERO_SECUENCIAL]
      */
-    private async generateProductCode(categoriaNombre: string, tipo: TipoProducto): Promise<string> {
+    private async generateProductCode(categoriaNombre: string, tipo: TipoCategoria): Promise<string> {
         // Crear prefijo de categoría (primeras 3 letras en mayúsculas)
         const categoriaPrefix = categoriaNombre
             .replace(/[^a-zA-Z]/g, '') // Remover caracteres especiales
@@ -308,7 +309,7 @@ export class ProductoService {
             .padEnd(3, 'X'); // Rellenar con X si es menor a 3 caracteres
 
         // Prefijo de tipo
-        const tipoPrefix = tipo === TipoProducto.PRODUCTO ? 'PROD' : 'SERV';
+        const tipoPrefix = tipo === TipoCategoria.PRODUCTO ? 'PROD' : 'SERV';
 
         // Buscar el último número secuencial para esta combinación
         const lastProduct = await this.productoRepository

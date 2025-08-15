@@ -1,5 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Producto } from '../../productos/entities/producto.entity';
+import { TipoCategoria } from '../../productos/enum/tipo-categoria.enum';
 
 /**
  * Entidad que representa una categoría de productos
@@ -22,6 +23,12 @@ export class Categoria {
      */
     @Column({ length: 255, nullable: true })
     descripcion: string;
+
+    /**
+     * Tipo de categoría (PRODUCTO o SERVICIO)
+     */
+    @Column({ type: 'enum', enum: TipoCategoria, default: TipoCategoria.PRODUCTO })
+    tipo: TipoCategoria;
 
     /**
      * Estado de la categoría (activo/inactivo)

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { plainToClass } from 'class-transformer';
 import { Categoria } from '../entities/categoria.entity';
 import { CreateCategoriaDto, UpdateCategoriaDto, ResponseCategoriaDto } from '../dto';
+import { TipoCategoria } from '../enum/tipo-categoria.enum';
 
 /**
  * Servicio para gestionar las operaciones CRUD de categorías
@@ -35,6 +36,7 @@ export class CategoriaService {
         // Crear nueva categoría
         const categoria = this.categoriaRepository.create({
             ...createCategoriaDto,
+            tipo: createCategoriaDto.tipo ?? TipoCategoria.PRODUCTO,
             estado: createCategoriaDto.estado ?? true
         });
 
