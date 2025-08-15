@@ -14,9 +14,10 @@ export class ComprobanteDetalleService {
     constructor(
         @InjectRepository(ComprobanteDetalle)
         private readonly comprobanteDetalleRepository: Repository<ComprobanteDetalle>,
-
+        @InjectRepository(Inventario)
+        private readonly inventarioRepository: Repository<Inventario>,
         private readonly comprobanteTotalesService: ComprobanteTotalesService,
-    ) { }
+    ) {}
 
     @Transactional()
     async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) : Promise<ComprobanteDetalle[]>{
@@ -24,16 +25,20 @@ export class ComprobanteDetalleService {
         const comprobante = new Comprobante();
         comprobante.idComprobante = idComprobante;
 
-        const detalles = createComprobanteDetalleDtos.map(dto => {
+        const detalles = await Promise.all(createComprobanteDetalleDtos.map(async dto => {
             const detalle = this.comprobanteDetalleRepository.create(dto);
             detalle.comprobante = comprobante;
             if (dto.idInventario) {
-                const inventario = new Inventario();
-                inventario.id = dto.idInventario;
+                const inventario = await this.inventarioRepository.findOne({
+                    where: { id: dto.idInventario }
+                });
+                if (!inventario) {
+                    throw new Error(`Inventario no encontrado: ${dto.idInventario}`);
+                }
                 detalle.inventario = inventario;
             }
             return detalle;
-        });
+        }));
 
         const detallesSaved = await this.comprobanteDetalleRepository.save(detalles);
         await this.comprobanteTotalesService.register(idComprobante, detallesSaved);

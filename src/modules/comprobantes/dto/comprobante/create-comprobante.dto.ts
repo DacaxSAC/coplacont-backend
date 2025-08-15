@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import { TipoOperacion } from '../../enum/tipo-operacion.enum';
 import { TipoComprobante } from '../../enum/tipo-comprobante.enum';
 import { Moneda } from '../../enum/tipo-moneda.enum';
+import { MetodoValoracion } from '../../enum/metodo-valoracion.enum';
 import { CreateComprobanteDetalleDto } from '../comprobante-detalle/create-comprobante-detalle.dto';
 
 export class CreateComprobanteDto {
@@ -93,4 +94,13 @@ export class CreateComprobanteDto {
   @ValidateNested({ each: true })
   @Type(() => CreateComprobanteDetalleDto)
   detalles?: CreateComprobanteDetalleDto[];
+
+  @ApiPropertyOptional({
+    description: 'Método de valoración de inventario',
+    enum: MetodoValoracion,
+    example: MetodoValoracion.FIFO,
+  })
+  @IsOptional()
+  @IsEnum(MetodoValoracion)
+  metodoValoracion?: MetodoValoracion;
 }

@@ -9,6 +9,7 @@ import { ComprobanteDetalleService } from "./comprobante-detalle.service";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
 import { plainToInstance } from "class-transformer";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
+import { MetodoValoracion } from "../enum/metodo-valoracion.enum";
 import { Correlativo } from "../entities/correlativo";
 import { MovimientosService } from "src/modules/movimientos";
 import { MovimientoFactory } from "src/modules/movimientos/factory/MovimientoFactory";
@@ -64,8 +65,9 @@ export class ComprobanteService {
             const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
             comprobanteSaved.detalles = detallesSaved;
             
-            // Procesar lotes según el tipo de operación
-            await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion);
+            // Procesar lotes según el tipo de operación y método de valoración
+            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.FIFO;
+            await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
         }
         this.movimientoService.create(this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved));
     }

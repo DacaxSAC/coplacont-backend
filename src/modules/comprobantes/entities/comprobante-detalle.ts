@@ -40,4 +40,7 @@ export class ComprobanteDetalle {
 
   @Column({ length: 255 })
   descripcion: string;
+
+  @Column({ nullable: true })
+  idLote?: number;
 }

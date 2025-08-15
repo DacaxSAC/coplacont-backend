@@ -82,4 +82,13 @@ export class CreateComprobanteDetalleDto {
   @IsString()
   @Length(0, 255)
   descripcion?: string;
+
+  @ApiPropertyOptional({
+    description: 'ID del lote específico para ventas (opcional, si no se especifica usa FIFO)',
+    example: 123,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  loteId?: number;
 }

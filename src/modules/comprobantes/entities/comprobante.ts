@@ -13,7 +13,7 @@ export class Comprobante {
     idComprobante: number;
 
     //Manual
-    @Column({unique : true , nullable : false})
+    @Column({unique : false , nullable : false})
     correlativo : string;
 
     //Manual
