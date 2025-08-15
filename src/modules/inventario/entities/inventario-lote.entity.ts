@@ -68,7 +68,7 @@ export class InventarioLote {
     /**
      * Relación muchos a uno con inventario
      */
-    @ManyToOne(() => Inventario, (inventario) => inventario.inventarioLotes, { nullable: false })
-    @JoinColumn({ name: 'inventario_id' })
+    @ManyToOne(() => Inventario, (inventario) => inventario.inventarioLotes, { nullable: true })
+    @JoinColumn({ name: 'id_inventario' })
     inventario: Inventario;
 }
