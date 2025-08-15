@@ -13,6 +13,12 @@ export class Producto {
     id: number;
 
     /**
+     * Nombre del producto
+     */
+    @Column({ length: 255, nullable: true })
+    nombre?: string;
+
+    /**
      * Relación muchos a uno con categoría
      */
     @ManyToOne(() => Categoria, (categoria) => categoria.productos)

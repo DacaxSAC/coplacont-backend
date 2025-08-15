@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { ProductoService } from '../service/producto.service';
 import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dto';
+import { TipoProducto } from '../enum/tipo-producto.enum';
 
 /**
  * Controlador para gestionar las operaciones CRUD de productos
@@ -66,15 +67,22 @@ export class ProductoController {
         type: Boolean,
         description: 'Incluir productos inactivos' 
     })
+    @ApiQuery({ 
+        name: 'tipo', 
+        required: false, 
+        enum: TipoProducto,
+        description: 'Filtrar por tipo de ítem (PRODUCTO | SERVICIO)'
+    })
     @ApiResponse({ 
         status: 200, 
         description: 'Lista de productos obtenida exitosamente',
         type: [ResponseProductoDto] 
     })
     async findAll(
-        @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
+        @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean,
+        @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findAll(includeInactive || false);
+        return await this.productoService.findAll(includeInactive || false, tipo);
     }
 
     /**
@@ -153,13 +161,54 @@ export class ProductoController {
         type: String,
         description: 'Descripción a buscar' 
     })
+    @ApiQuery({ 
+        name: 'tipo', 
+        required: false, 
+        enum: TipoProducto,
+        description: 'Filtrar por tipo de ítem (PRODUCTO | SERVICIO)'
+    })
     @ApiResponse({ 
         status: 200, 
         description: 'Productos encontrados',
         type: [ResponseProductoDto] 
     })
-    async findByDescription(@Query('descripcion') descripcion: string): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findByDescription(descripcion);
+    async findByDescription(
+        @Query('descripcion') descripcion: string,
+        @Query('tipo') tipo?: TipoProducto
+    ): Promise<ResponseProductoDto[]> {
+        return await this.productoService.findByDescription(descripcion, tipo);
+    }
+
+    /**
+     * Buscar productos por nombre
+     */
+    @Get('search/by-name')
+    @ApiOperation({ 
+        summary: 'Buscar productos por nombre',
+        description: 'Busca productos que contengan el nombre especificado' 
+    })
+    @ApiQuery({ 
+        name: 'nombre', 
+        required: true, 
+        type: String,
+        description: 'Nombre a buscar' 
+    })
+    @ApiQuery({ 
+        name: 'tipo', 
+        required: false, 
+        enum: TipoProducto,
+        description: 'Filtrar por tipo de ítem (PRODUCTO | SERVICIO)'
+    })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Productos encontrados',
+        type: [ResponseProductoDto] 
+    })
+    async findByName(
+        @Query('nombre') nombre: string,
+        @Query('tipo') tipo?: TipoProducto
+    ): Promise<ResponseProductoDto[]> {
+        return await this.productoService.findByName(nombre, tipo);
     }
 
     /**
@@ -171,13 +220,22 @@ export class ProductoController {
         description: 'Busca todos los productos de una categoría específica' 
     })
     @ApiParam({ name: 'categoriaId', description: 'ID de la categoría', type: Number })
+    @ApiQuery({ 
+        name: 'tipo', 
+        required: false, 
+        enum: TipoProducto,
+        description: 'Filtrar por tipo de ítem (PRODUCTO | SERVICIO)'
+    })
     @ApiResponse({ 
         status: 200, 
         description: 'Productos de la categoría encontrados',
         type: [ResponseProductoDto] 
     })
-    async findByCategory(@Param('categoriaId', ParseIntPipe) categoriaId: number): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findByCategory(categoriaId);
+    async findByCategory(
+        @Param('categoriaId', ParseIntPipe) categoriaId: number,
+        @Query('tipo') tipo?: TipoProducto
+    ): Promise<ResponseProductoDto[]> {
+        return await this.productoService.findByCategory(categoriaId, tipo);
     }
 
     /**
@@ -188,12 +246,20 @@ export class ProductoController {
         summary: 'Productos con stock bajo',
         description: 'Obtiene productos que tienen definido un stock mínimo (para alertas de inventario)' 
     })
+    @ApiQuery({ 
+        name: 'tipo', 
+        required: false, 
+        enum: TipoProducto,
+        description: 'Filtrar por tipo de ítem (PRODUCTO | SERVICIO)'
+    })
     @ApiResponse({ 
         status: 200, 
         description: 'Productos con stock bajo obtenidos',
         type: [ResponseProductoDto] 
     })
-    async findLowStock(): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findLowStock();
+    async findLowStock(
+        @Query('tipo') tipo?: TipoProducto
+    ): Promise<ResponseProductoDto[]> {
+        return await this.productoService.findLowStock(tipo);
     }
 }

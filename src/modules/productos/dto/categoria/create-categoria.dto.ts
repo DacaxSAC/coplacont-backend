@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, MaxLength, MinLength, IsEnum } from 'class-validator';
+import { TipoCategoria } from '../../enum/tipo-categoria.enum';
 
 /**
  * DTO para crear una nueva categoría
@@ -34,6 +35,20 @@ export class CreateCategoriaDto {
     @IsString()
     @MaxLength(255, { message: 'La descripción no puede exceder 255 caracteres' })
     descripcion?: string;
+
+    /**
+     * Tipo de categoría
+     */
+    @ApiProperty({
+        description: 'Tipo de categoría',
+        enum: TipoCategoria,
+        example: TipoCategoria.PRODUCTO,
+        required: false,
+        default: TipoCategoria.PRODUCTO
+    })
+    @IsOptional()
+    @IsEnum(TipoCategoria, { message: 'El tipo debe ser PRODUCTO o SERVICIO' })
+    tipo?: TipoCategoria;
 
     /**
      * Estado de la categoría (opcional, por defecto true)

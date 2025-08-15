@@ -22,6 +22,22 @@ export class CreateProductoDto {
     idCategoria: number;
 
     /**
+     * Nombre del producto
+     */
+    @ApiProperty({
+        description: 'Nombre del producto',
+        example: 'Laptop HP Pavilion',
+        required: false,
+        minLength: 3,
+        maxLength: 255
+    })
+    @IsOptional()
+    @IsString()
+    @MinLength(3, { message: 'El nombre debe tener al menos 3 caracteres' })
+    @MaxLength(255, { message: 'El nombre no puede exceder 255 caracteres' })
+    nombre?: string;
+
+    /**
      * Tipo del ítem (producto o servicio)
      */
     @ApiProperty({ description: 'Tipo del ítem', enum: TipoProducto, example: TipoProducto.PRODUCTO })
