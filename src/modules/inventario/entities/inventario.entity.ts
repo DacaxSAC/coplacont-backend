@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
-import { Almacen } from '../../almacen/entities/almacen.entity';
+import { Almacen } from 'src/modules/productos/entities';
 import { Producto } from '../../productos/entities/producto.entity';
 import { InventarioLote } from './inventario-lote.entity';
 

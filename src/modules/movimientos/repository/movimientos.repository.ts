@@ -7,7 +7,7 @@ import { CreateMovimientoDto } from '../dto/create-movimiento.dto';
 import { TipoMovimiento } from '../enum/tipo-movimiento.enum';
 import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
 import { Producto } from '../../productos/entities/producto.entity';
-import { Almacen } from '../../almacen/entities/almacen.entity';
+import { Almacen } from 'src/modules/productos/entities';
 import { Inventario } from '../../inventario/entities/inventario.entity';
 import { InventarioLote } from '../../inventario/entities/inventario-lote.entity';
 

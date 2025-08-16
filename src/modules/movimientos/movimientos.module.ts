@@ -8,7 +8,7 @@ import { Movimiento } from './entities/movimiento.entity';
 import { MovimientoDetalle } from './entities/movimiento-detalle.entity';
 // Importar entidades de otros módulos
 import { Producto } from '../productos/entities/producto.entity';
-import { Almacen } from '../almacen/entities/almacen.entity';
+import { Almacen } from '../productos/entities';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { InventarioLote } from '../inventario/entities/inventario-lote.entity';
 

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Inventario } from './entities/inventario.entity';
 import { InventarioLote } from './entities';
-import { Almacen } from '../almacen/entities/almacen.entity';
+import { Almacen } from 'src/modules/productos/entities';
 import { Producto } from '../productos/entities/producto.entity';
 
 
@@ -14,14 +14,12 @@ import { KardexRepository } from './repositories/kardex.repository';
 import { InventarioController } from './controller/inventario.controller';
 import { LoteController } from './controller/lote.controller';
 import { KardexController } from './controller/kardex.controller';
-import { AlmacenModule } from '../almacen/almacen.module';
 import { ProductosModule } from '../productos/productos.module';
 
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Inventario, InventarioLote, Almacen, Producto]),
-    AlmacenModule,
     ProductosModule
   ],
   controllers: [InventarioController, LoteController, KardexController],
