@@ -1,6 +1,6 @@
 import { Controller, Get, Query, ValidationPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { KardexService } from '../services/kardex.service';
+import { KardexService } from '../service/kardex.service';
 import { KardexRequestDto, KardexResponseDto } from '../dto';
 
 @ApiTags('Kardex')

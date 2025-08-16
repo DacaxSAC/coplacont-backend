@@ -13,7 +13,7 @@ import { MetodoValoracion } from "../enum/metodo-valoracion.enum";
 import { Correlativo } from "../entities/correlativo";
 import { MovimientosService } from "src/modules/movimientos";
 import { MovimientoFactory } from "src/modules/movimientos/factory/MovimientoFactory";
-import { LoteService } from "src/modules/inventario/services/lote.service";
+import { LoteService } from "src/modules/inventario/service/lote.service";
 
 @Injectable()
 export class ComprobanteService {

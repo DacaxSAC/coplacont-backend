@@ -7,10 +7,10 @@ import { Producto } from '../productos/entities/producto.entity';
 
 
 import { InventarioService } from './service/inventario.service';
-import { LoteService } from './services/lote.service';
-import { KardexService } from './services/kardex.service';
+import { LoteService } from './service/lote.service';
+import { KardexService } from './service/kardex.service';
 import { InventarioRepository } from './repository';
-import { KardexRepository } from './repositories/kardex.repository';
+import { KardexRepository } from './repository/kardex.repository';
 import { InventarioController } from './controller/inventario.controller';
 import { LoteController } from './controller/lote.controller';
 import { KardexController } from './controller/kardex.controller';

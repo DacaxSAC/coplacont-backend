@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { KardexRepository, KardexMovementData } from '../repositories/kardex.repository';
+import { KardexRepository, KardexMovementData } from '../repository/kardex.repository';
 import { KardexRequestDto, KardexResponseDto, KardexReportMovementDto } from '../dto';
 import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';

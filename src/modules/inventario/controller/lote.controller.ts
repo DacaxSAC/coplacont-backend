@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { LoteService } from '../services/lote.service';
+import { LoteService } from '../service/lote.service';
 import { InventarioLote } from 'src/modules/productos/entities';
-import { ResponseLoteDto } from '../dto/response-lote.dto';
+import { ResponseLoteDto } from '../dto/lote/response-lote.dto';
 import { plainToInstance } from 'class-transformer';
 
 @Controller('lotes')

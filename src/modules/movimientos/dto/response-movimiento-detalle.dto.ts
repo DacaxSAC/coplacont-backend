@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { ResponseInventarioDto } from '../../inventario/dto/response-inventario.dto';
+import { ResponseInventarioDto } from 'src/modules/inventario/dto';
 
 /**
  * DTO de respuesta para detalle de movimiento

@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
+import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracion.enum';
 
 export class ValuationItemDto {
   @ApiProperty({
