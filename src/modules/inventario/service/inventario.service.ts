@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException }
 import { plainToInstance } from 'class-transformer';
 import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from '../dto';
 import { InventarioRepository } from '../repository';
-import { Inventario } from '../entities/inventario.entity';
+import { Inventario } from 'src/modules/productos/entities';
 
 @Injectable()
 export class InventarioService {
@@ -115,16 +115,6 @@ export class InventarioService {
         return this.mapToResponseDto(updatedInventario);
     }
 
-    async remove(id: number): Promise<{ message: string }> {
-        const inventario = await this.getInventarioById(id);
-        
-        if (inventario.inventarioLotes && inventario.inventarioLotes.length > 0) {
-            throw new BadRequestException('No se puede eliminar el inventario porque tiene lotes asociados');
-        }
-
-        await this.inventarioRepository.remove(inventario);
-        return { message: `Inventario con ID ${id} eliminado correctamente` };
-    }
 
  
     async getResumenByAlmacen(idAlmacen: number): Promise<any> {

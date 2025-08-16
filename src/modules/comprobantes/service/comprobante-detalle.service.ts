@@ -6,7 +6,7 @@ import { CreateComprobanteDetalleDto } from "../dto/comprobante-detalle/create-c
 import { Comprobante } from "../entities/comprobante";
 import { Transactional } from "typeorm-transactional";
 import { ComprobanteTotalesService } from "./comprobante-totales.service";
-import { Inventario } from "src/modules/inventario";
+import { Inventario } from "src/modules/productos/entities";
 
 @Injectable()
 export class ComprobanteDetalleService {

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Inventario } from './entities/inventario.entity';
-import { InventarioLote } from './entities';
+import { Inventario } from 'src/modules/productos/entities';
+import { InventarioLote } from 'src/modules/productos/entities';
 import { Almacen } from 'src/modules/productos/entities';
 import { Producto } from '../productos/entities/producto.entity';
 

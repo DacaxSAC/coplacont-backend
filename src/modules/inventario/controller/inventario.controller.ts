@@ -5,7 +5,6 @@ import {
     Body,
     Patch,
     Param,
-    Delete,
     Query,
     ParseIntPipe,
     HttpStatus,
@@ -303,28 +302,5 @@ export class InventarioController {
         return plainToClass(ResponseInventarioDto, inventario);
     }
 
-    /**
-     * Eliminar un inventario
-     */
-    @Delete(':id')
-    @ApiOperation({ 
-        summary: 'Eliminar inventario', 
-        description: 'Elimina un registro de inventario (solo si no tiene lotes asociados)' 
-    })
-    @ApiParam({ name: 'id', description: 'ID del inventario', type: 'number' })
-    @ApiResponse({ 
-        status: HttpStatus.OK, 
-        description: 'Inventario eliminado exitosamente'
-    })
-    @ApiResponse({ 
-        status: HttpStatus.BAD_REQUEST, 
-        description: 'No se puede eliminar el inventario porque tiene lotes asociados' 
-    })
-    @ApiResponse({ 
-        status: HttpStatus.NOT_FOUND, 
-        description: 'Inventario no encontrado' 
-    })
-    async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-        return await this.inventarioService.remove(id);
-    }
+    
 }

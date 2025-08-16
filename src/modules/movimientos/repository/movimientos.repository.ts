@@ -8,8 +8,8 @@ import { TipoMovimiento } from '../enum/tipo-movimiento.enum';
 import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
 import { Producto } from '../../productos/entities/producto.entity';
 import { Almacen } from 'src/modules/productos/entities';
-import { Inventario } from '../../inventario/entities/inventario.entity';
-import { InventarioLote } from '../../inventario/entities/inventario-lote.entity';
+import { Inventario } from 'src/modules/productos/entities';
+import { InventarioLote } from 'src/modules/productos/entities';
 
 /**
  * Repositorio para encapsular la lógica de acceso a datos de movimientos

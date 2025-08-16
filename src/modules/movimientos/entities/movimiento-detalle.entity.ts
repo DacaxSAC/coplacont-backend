@@ -8,7 +8,7 @@ import {
     JoinColumn
 } from 'typeorm';
 import { Movimiento } from './movimiento.entity';
-import { Inventario } from 'src/modules/inventario';
+import { Inventario } from 'src/modules/productos/entities';
 
 /**
  * Entidad para detalles de movimientos de inventario

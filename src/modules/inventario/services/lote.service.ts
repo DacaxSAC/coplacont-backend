@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InventarioLote } from '../entities/inventario-lote.entity';
-import { Inventario } from '../entities/inventario.entity';
+import { Inventario } from 'src/modules/productos/entities';
+import { InventarioLote } from 'src/modules/productos/entities';
 import { ComprobanteDetalle } from '../../comprobantes/entities/comprobante-detalle';
 import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';

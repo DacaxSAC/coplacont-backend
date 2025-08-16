@@ -1,4 +1,4 @@
-export * from './entities';
+//export * from './entities';
 export * from './service';
 export * from './repository';
 export * from './controller';

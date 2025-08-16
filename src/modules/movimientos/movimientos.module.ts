@@ -9,8 +9,8 @@ import { MovimientoDetalle } from './entities/movimiento-detalle.entity';
 // Importar entidades de otros módulos
 import { Producto } from '../productos/entities/producto.entity';
 import { Almacen } from '../productos/entities';
-import { Inventario } from '../inventario/entities/inventario.entity';
-import { InventarioLote } from '../inventario/entities/inventario-lote.entity';
+import { Inventario } from '../productos/entities';
+import { InventarioLote } from '../productos/entities';
 
 /**
  * Módulo para la gestión de movimientos de inventario
