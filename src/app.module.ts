@@ -4,7 +4,8 @@ import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
 import { EntidadModule } from './modules/entidades/entidad.module';
 import { AlmacenModule } from './modules/almacen/almacen.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule } from '@nestjs/typeorm';  
+import { CategoriaModule } from './modules/categoria/categoria.module';
 import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
 import { ComprobanteController } from './modules/comprobantes/controller/comprobante.controller';
@@ -28,6 +29,7 @@ import { MovimientosModule } from './modules/movimientos/movimientos.module';
     EntidadModule,
     ComprobanteModule,
     ProductosModule,
+    CategoriaModule,
     AlmacenModule,
     TipoCambioModule,
     MovimientosModule

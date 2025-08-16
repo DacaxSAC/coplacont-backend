@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Almacen } from "../productos/entities";
+import { Almacen } from './entities/almacen.entity';
 import { AlmacenController } from "./controller";
 import {AlmacenService} from "./service";
 

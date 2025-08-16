@@ -2,9 +2,9 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { plainToClass } from 'class-transformer';
-import { Categoria } from '../entities/categoria.entity';
+import { Categoria } from '../entities';
 import { CreateCategoriaDto, UpdateCategoriaDto, ResponseCategoriaDto } from '../dto';
-import { TipoCategoria } from '../enum/tipo-categoria.enum';
+import { TipoCategoria } from '../enum';
 
 /**
  * Servicio para gestionar las operaciones CRUD de categorías

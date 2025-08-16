@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { plainToClass } from 'class-transformer';
 import { Producto } from '../entities/producto.entity';
-import { Categoria } from '../entities/categoria.entity';
+import { Categoria } from 'src/modules/categoria/entities';
 import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dto';
 import { TipoProducto } from '../enum/tipo-producto.enum';
-import { TipoCategoria } from '../enum/tipo-categoria.enum';
+import { TipoCategoria } from '../../categoria/enum/tipo-categoria.enum';
 
 /**
  * Servicio para gestionar las operaciones CRUD de productos

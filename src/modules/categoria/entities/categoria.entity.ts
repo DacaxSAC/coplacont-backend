@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Producto } from './producto.entity';
-import { TipoCategoria } from '../enum/tipo-categoria.enum';
+import { Producto } from 'src/modules/productos/entities';
+import { TipoCategoria } from '../../categoria/enum/tipo-categoria.enum';
 
 /**
  * Entidad que representa una categoría de productos

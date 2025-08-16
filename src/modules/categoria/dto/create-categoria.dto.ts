@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsBoolean, MaxLength, MinLength, IsEnum } from 'class-validator';
-import { TipoCategoria } from '../../enum/tipo-categoria.enum';
+import { TipoCategoria } from '../enum';
 
 /**
  * DTO para crear una nueva categoría

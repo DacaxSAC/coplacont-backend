@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { ResponseCategoriaDto } from '../categoria/response-categoria.dto';
+import { ResponseCategoriaDto } from 'src/modules/categoria/dto';
 import { TipoProducto } from '../../enum/tipo-producto.enum';
 
 /**

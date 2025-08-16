@@ -1,8 +1,3 @@
-// Categoria DTOs
-export { CreateCategoriaDto } from './categoria/create-categoria.dto';
-export { UpdateCategoriaDto } from './categoria/update-categoria.dto';
-export { ResponseCategoriaDto } from './categoria/response-categoria.dto';
-
 // Producto DTOs
 export { CreateProductoDto } from './producto/create-producto.dto';
 export { UpdateProductoDto } from './producto/update-producto.dto';

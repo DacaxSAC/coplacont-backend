@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Inventario } from 'src/modules/productos/entities';
 import { InventarioLote } from 'src/modules/productos/entities';
-import { Almacen } from 'src/modules/productos/entities';
+import { Almacen } from '../almacen/entities/almacen.entity';
 import { Producto } from '../productos/entities/producto.entity';
 
 

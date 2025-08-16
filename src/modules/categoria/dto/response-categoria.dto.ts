@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { TipoCategoria } from '../../enum/tipo-categoria.enum';
+import { TipoCategoria } from '../enum';
 
 /**
  * DTO de respuesta para categoría
