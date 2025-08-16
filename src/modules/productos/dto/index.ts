@@ -8,11 +8,6 @@ export { CreateProductoDto } from './producto/create-producto.dto';
 export { UpdateProductoDto } from './producto/update-producto.dto';
 export { ResponseProductoDto } from './producto/response-producto.dto';
 
-// Almacen DTOs
-export { CreateAlmacenDto } from './almacen/create-almacen.dto';
-export { UpdateAlmacenDto } from './almacen/update-almacen.dto';
-export { ResponseAlmacenDto } from './almacen/response-almacen.dto';
-
 // Inventario DTOs
 export { CreateInventarioDto } from './inventario/create-inventario.dto';
 export { UpdateInventarioDto } from './inventario/update-inventario.dto';

@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
 import { EntidadModule } from './modules/entidades/entidad.module';
+import { AlmacenModule } from './modules/almacen/almacen.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
@@ -27,6 +28,7 @@ import { MovimientosModule } from './modules/movimientos/movimientos.module';
     EntidadModule,
     ComprobanteModule,
     ProductosModule,
+    AlmacenModule,
     TipoCambioModule,
     MovimientosModule
   ],

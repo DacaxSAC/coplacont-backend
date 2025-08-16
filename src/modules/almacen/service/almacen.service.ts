@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { plainToClass } from 'class-transformer';
-import { Almacen } from '../entities/almacen.entity';
+import { Almacen } from 'src/modules/almacen/entities/almacen.entity';
 import { CreateAlmacenDto, UpdateAlmacenDto, ResponseAlmacenDto } from '../dto';
 
 /**

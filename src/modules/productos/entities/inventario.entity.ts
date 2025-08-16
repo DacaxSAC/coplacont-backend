@@ -8,7 +8,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn
 } from 'typeorm';
-import { Almacen } from './almacen.entity';
+import { Almacen } from '../../almacen/entities/almacen.entity';
 import { Producto } from './producto.entity';
 import { InventarioLote } from './inventario-lote.entity';
 

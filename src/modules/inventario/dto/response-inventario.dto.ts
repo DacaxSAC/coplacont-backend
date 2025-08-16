@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { ResponseAlmacenDto } from 'src/modules/productos/dto';
+import { ResponseAlmacenDto } from 'src/modules/almacen/dto';
 import { ResponseProductoDto } from '../../productos/dto/producto/response-producto.dto';
 
 /**
