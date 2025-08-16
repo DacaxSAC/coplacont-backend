@@ -24,11 +24,13 @@ export class LoteService {
         tipoOperacion: TipoOperacion,
         metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO
     ): Promise<void> {
+        console.log(detalles);
         console.log(`🔄 Iniciando procesamiento de lotes: Tipo=${tipoOperacion}, Método=${metodoValoracion}, Detalles=${detalles.length}`);
         
         try {
             for (let i = 0; i < detalles.length; i++) {
                 const detalle = detalles[i];
+                console.log(detalle);
                 console.log(`📦 Procesando detalle ${i + 1}/${detalles.length}: Inventario=${detalle.inventario?.id}, Cantidad=${detalle.cantidad}`);
                 
                 if (tipoOperacion === TipoOperacion.COMPRA) {
@@ -109,6 +111,14 @@ export class LoteService {
      * Actualizar stock para ventas (FIFO - First In, First Out o lote específico)
      */
     private async actualizarStockVenta(detalle: ComprobanteDetalle, metodoValoracion: MetodoValoracion = MetodoValoracion.FIFO): Promise<void> {
+        console.log('----------------------------------------');
+        console.log('----------------------------------------');
+        console.log('SECCION DE ACTUALIZAR LOTES');
+        console.log('----------------------------------------');
+        console.log('----------------------------------------');
+
+        //Buscamos el inventario que pertenece el detalle
+        console.log(detalle.inventario.id);
         const inventario = await this.inventarioRepository.findOne({
             where: { id: detalle.inventario.id }
         });
@@ -117,8 +127,10 @@ export class LoteService {
             throw new Error(`Inventario no encontrado: ${detalle.inventario.id}`);
         }
     
-        const stockActualNum = Number(inventario.stockActual);
+        const stockActualNum = Number(detalle.inventario.stockActual);
+        console.log('Stock actual del inventario:',stockActualNum);
         const cantidadNum = Number(detalle.cantidad);
+        console.log('Cantidad del detalle', cantidadNum);
     
         if (stockActualNum < cantidadNum) {
             throw new Error(
@@ -178,13 +190,28 @@ export class LoteService {
      * Actualizar lotes usando lógica FIFO
      */
     private async actualizarLotesFIFO(inventarioId: number, cantidad: number): Promise<void> {
+        console.log(`🔍 FIFO: Buscando lotes para inventario ${inventarioId} con cantidad requerida ${cantidad}`);
+        
         // Obtener lotes ordenados por fecha de ingreso (FIFO)
-        const lotes = await this.loteRepository.find({
-            where: { inventario: { id: inventarioId } },
-            order: { fechaIngreso: 'ASC' }
+        const lotes = await this.loteRepository
+            .createQueryBuilder('lote')
+            .leftJoinAndSelect('lote.inventario', 'inventario')
+            .where('inventario.id = :inventarioId', { inventarioId })
+            .andWhere('lote.cantidadActual > 0')
+            .orderBy('lote.fechaIngreso', 'ASC')
+            .getMany();
+    
+        console.log(`📦 FIFO: Lotes encontrados: ${lotes.length}`);
+        lotes.forEach((lote, index) => {
+            console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}, Fecha=${lote.fechaIngreso}`);
         });
+        
+        if (lotes.length === 0) {
+            throw new Error(`FIFO: No hay lotes disponibles para la venta. Inventario: ${inventarioId}`);
+        }
     
         let cantidadPendiente = cantidad;
+        console.log(`🔄 FIFO: Iniciando descuento de ${cantidad} unidades`);
     
         for (const lote of lotes) {
             if (cantidadPendiente <= 0) break;
@@ -192,30 +219,50 @@ export class LoteService {
     
             const cantidadADescontar = Math.min(Number(lote.cantidadActual), cantidadPendiente);
             
+            console.log(`📦 FIFO: Lote ${lote.id}: Descontando ${cantidadADescontar} de ${lote.cantidadActual}`);
+            
             lote.cantidadActual = Number(lote.cantidadActual) - cantidadADescontar;
             cantidadPendiente -= cantidadADescontar;
     
             await this.loteRepository.save(lote);
+            console.log(`✅ FIFO: Lote ${lote.id} actualizado: ${lote.cantidadActual}, Pendiente: ${cantidadPendiente}`);
         }
     
         if (cantidadPendiente > 0) {
             throw new Error(
-                `No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`
+                `FIFO: No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`
             );
         }
+        
+        console.log(`✅ FIFO: Descuento completado exitosamente`);
     }
 
     /**
      * Actualizar lotes usando lógica LIFO (Last In, First Out)
      */
     private async actualizarLotesLIFO(inventarioId: number, cantidad: number): Promise<void> {
+        console.log(`🔍 LIFO: Buscando lotes para inventario ${inventarioId} con cantidad requerida ${cantidad}`);
+        
         // Obtener lotes ordenados por fecha de ingreso descendente (LIFO)
-        const lotes = await this.loteRepository.find({
-            where: { inventario: { id: inventarioId } },
-            order: { fechaIngreso: 'DESC' }
+        const lotes = await this.loteRepository
+            .createQueryBuilder('lote')
+            .leftJoinAndSelect('lote.inventario', 'inventario')
+            .where('inventario.id = :inventarioId', { inventarioId })
+            .andWhere('lote.cantidadActual > 0')
+            .orderBy('lote.fechaIngreso', 'DESC')
+            .getMany();
+    
+        console.log(`📦 LIFO: Lotes encontrados: ${lotes.length}`);
+        lotes.forEach((lote, index) => {
+            console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}, Fecha=${lote.fechaIngreso}`);
         });
+        
+        if (lotes.length === 0) {
+            throw new Error(`LIFO: No hay lotes disponibles para la venta. Inventario: ${inventarioId}`);
+        }
     
         let cantidadPendiente = cantidad;
+        console.log(`🔄 LIFO: Iniciando descuento de ${cantidad} unidades`);
     
         for (const lote of lotes) {
             if (cantidadPendiente <= 0) break;
@@ -223,35 +270,58 @@ export class LoteService {
     
             const cantidadADescontar = Math.min(Number(lote.cantidadActual), cantidadPendiente);
             
+            console.log(`📦 LIFO: Lote ${lote.id}: Descontando ${cantidadADescontar} de ${lote.cantidadActual}`);
+            
             lote.cantidadActual = Number(lote.cantidadActual) - cantidadADescontar;
             cantidadPendiente -= cantidadADescontar;
     
             await this.loteRepository.save(lote);
+            console.log(`✅ LIFO: Lote ${lote.id} actualizado: ${lote.cantidadActual}, Pendiente: ${cantidadPendiente}`);
         }
     
         if (cantidadPendiente > 0) {
             throw new Error(
-                `No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`
+                `LIFO: No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`
             );
         }
+        
+        console.log(`✅ LIFO: Descuento completado exitosamente`);
     }
 
     /**
      * Actualizar lotes usando promedio ponderado
      */
     private async actualizarLotesPromedio(inventarioId: number, cantidad: number): Promise<void> {
-        // Obtener todos los lotes con stock disponible
+        console.log('----------------------------------------');
+        console.log('----------------------------------------');
+        console.log('PROMEDIO - SELECCIÓN DE LOTES');
+        console.log('----------------------------------------');
+        console.log('----------------------------------------');
+
+        console.log(`🔍 Buscando lotes para inventario ${inventarioId} con cantidad requerida ${cantidad}`);
+        
+        // Ejecutar debug para diagnosticar el problema
+        //await this.debugLotes(inventarioId);
+        
+        // Obtener lotes de forma más simple
         const lotes = await this.loteRepository.find({
             where: { inventario: { id: inventarioId } },
             order: { fechaIngreso: 'ASC' }
         });
     
-        console.log(lotes)
+        console.log(`📦 Lotes encontrados: ${lotes.length}`);
+        console.log(lotes);
+        
+        lotes.forEach((lote, index) => {
+            console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
+        });
+        
         // Filtrar lotes con stock disponible
         const lotesDisponibles = lotes.filter(lote => Number(lote.cantidadActual) > 0);
+        console.log(`✅ Lotes disponibles después de filtro: ${lotesDisponibles.length}`);
         
         if (lotesDisponibles.length === 0) {
-            throw new Error('No hay lotes disponibles para la venta');
+            throw new Error(`No hay lotes disponibles para la venta. Inventario: ${inventarioId}, Lotes totales: ${lotes.length}`);
         }
     
         // Calcular totales para el promedio ponderado
@@ -263,7 +333,10 @@ export class LoteService {
             const costoLote = Number(lote.costoUnitario);
             cantidadTotal += cantidadLote;
             valorTotal += cantidadLote * costoLote;
+            console.log(`📊 Lote ${lote.id}: Cantidad=${cantidadLote}, Costo=${costoLote}, Subtotal=${cantidadLote * costoLote}`);
         }
+        
+        console.log(`📊 Totales: Cantidad=${cantidadTotal}, Valor=${valorTotal}, Promedio=${valorTotal / cantidadTotal}`);
     
         if (cantidadTotal < cantidad) {
             throw new Error(
@@ -273,6 +346,7 @@ export class LoteService {
     
         // Distribuir proporcionalmente la cantidad a descontar
         let cantidadPendiente = cantidad;
+        console.log(`🔄 Iniciando distribución de ${cantidad} unidades`);
     
         for (const lote of lotesDisponibles) {
             if (cantidadPendiente <= 0) break;
@@ -285,15 +359,19 @@ export class LoteService {
                 cantidadPendiente
             );
             
+            console.log(`📦 Lote ${lote.id}: Proporción=${proporcion.toFixed(4)}, A descontar=${cantidadADescontar}`);
+            
             if (cantidadADescontar > 0) {
                 lote.cantidadActual = cantidadLote - cantidadADescontar;
                 cantidadPendiente -= cantidadADescontar;
                 await this.loteRepository.save(lote);
+                console.log(`✅ Lote ${lote.id} actualizado: ${cantidadLote} -> ${lote.cantidadActual}`);
             }
         }
     
         // Si queda cantidad pendiente, descontarla de los primeros lotes disponibles
         if (cantidadPendiente > 0) {
+            console.log(`⚠️ Cantidad pendiente: ${cantidadPendiente}, distribuyendo de lotes restantes`);
             for (const lote of lotesDisponibles) {
                 if (cantidadPendiente <= 0) break;
                 
@@ -303,9 +381,12 @@ export class LoteService {
                     lote.cantidadActual = cantidadDisponible - cantidadADescontar;
                     cantidadPendiente -= cantidadADescontar;
                     await this.loteRepository.save(lote);
+                    console.log(`✅ Lote ${lote.id} ajustado: ${cantidadDisponible} -> ${lote.cantidadActual}`);
                 }
             }
         }
+        
+        console.log(`✅ Distribución completada. Cantidad pendiente: ${cantidadPendiente}`);
     }
 
     /**
@@ -405,4 +486,118 @@ export class LoteService {
             .orderBy('lote.fechaIngreso', 'ASC')
             .getMany();
     }
+
+    /**
+     * Crear lotes faltantes basándose en las compras existentes
+     */
+    async crearLotesFaltantes(inventarioId: number): Promise<void> {
+        console.log(`🔧 Creando lotes faltantes para inventario ${inventarioId}`);
+        
+        try {
+            // Obtener detalles de compra que no tienen lotes
+            const detallesComprobante = await this.loteRepository.query(`
+                SELECT cd.*, c."tipoOperacion", c."fechaEmision"
+                FROM comprobante_detalle cd
+                INNER JOIN comprobante c ON cd.id_comprobante = c."idComprobante"
+                WHERE cd.id_inventario = $1 
+                AND c."tipoOperacion" = 'COMPRA'
+                ORDER BY c."fechaEmision" ASC
+            `, [inventarioId]);
+            
+            console.log(`📊 Encontrados ${detallesComprobante.length} detalles de compra para crear lotes`);
+            
+            if (detallesComprobante.length === 0) {
+                console.log(`⚠️ No hay detalles de compra para el inventario ${inventarioId}`);
+                return;
+            }
+            
+            // Obtener el inventario
+            const inventario = await this.inventarioRepository.findOne({
+                where: { id: inventarioId },
+                relations: ['producto', 'almacen']
+            });
+            
+            if (!inventario) {
+                throw new Error(`Inventario ${inventarioId} no encontrado`);
+            }
+            
+            // Crear lotes para cada detalle de compra
+            for (const detalle of detallesComprobante) {
+                const lote = this.loteRepository.create({
+                    inventario: inventario,
+                    numeroLote: `LOTE-${Date.now()}-${inventarioId}-${detalle.id_comprobante}`,
+                    cantidadInicial: Number(detalle.cantidad),
+                    cantidadActual: Number(detalle.cantidad),
+                    costoUnitario: Number(detalle.precioUnitario),
+                    fechaIngreso: new Date(detalle.fechaEmision),
+                    observaciones: `Lote creado automáticamente desde compra ${detalle.id_comprobante} - ${detalle.descripcion || 'Sin descripción'}`
+                });
+                
+                await this.loteRepository.save(lote);
+                console.log(`✅ Lote creado: ID=${lote.id}, Cantidad=${lote.cantidadInicial}, Costo=${lote.costoUnitario}`);
+            }
+            
+            console.log(`✅ Se crearon ${detallesComprobante.length} lotes para el inventario ${inventarioId}`);
+            
+        } catch (error) {
+            console.error(`❌ Error al crear lotes faltantes:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Método de debug para verificar lotes en la base de datos
+     */
+    async debugLotes(inventarioId: number): Promise<void> {
+        console.log(`🔍 DEBUG: Verificando lotes para inventario ${inventarioId}`);
+        
+        try {
+            // Verificar si el inventario existe
+            const inventario = await this.inventarioRepository.findOne({
+                where: { id: inventarioId }
+            });
+            
+            console.log(`📊 DEBUG: Inventario ${inventarioId} existe: ${!!inventario}`);
+            if (inventario) {
+                console.log(`  Inventario: ID=${inventario.id}, Stock=${inventario.stockActual}`);
+            }
+            
+            // Intentar consulta directa a la tabla inventario_lote (sin JOINs problemáticos)
+            const lotesDirectos = await this.loteRepository.query(`
+                SELECT id, id_inventario, cantidadActual, costoUnitario, fechaIngreso
+                FROM inventario_lote 
+                WHERE id_inventario = $1 
+                ORDER BY id DESC
+            `, [inventarioId]);
+            
+            console.log(`📊 DEBUG: Lotes encontrados en inventario_lote: ${lotesDirectos.length}`);
+            lotesDirectos.forEach((lote: any, index: number) => {
+                console.log(`  Lote ${index + 1}: ID=${lote.id}, Inventario=${lote.id_inventario}, Cantidad=${lote.cantidad_actual}, Costo=${lote.costo_unitario}`);
+            });
+            
+            // Intentar consulta con TypeORM (más simple)
+            const lotesTypeORM = await this.loteRepository.find({
+                where: { inventario: { id: inventarioId } }
+            });
+            
+            console.log(`📊 DEBUG: Lotes encontrados con TypeORM: ${lotesTypeORM.length}`);
+            lotesTypeORM.forEach((lote, index) => {
+                console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
+            });
+            
+            // Verificar si hay lotes con cantidad > 0
+            const lotesConStock = lotesTypeORM.filter(lote => Number(lote.cantidadActual) > 0);
+            console.log(`📊 DEBUG: Lotes con stock > 0: ${lotesConStock.length}`);
+            lotesConStock.forEach((lote, index) => {
+                console.log(`  Lote con stock ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
+            });
+            
+        } catch (error) {
+            console.error(`❌ DEBUG: Error al verificar lotes:`, error.message);
+        }
+    }
+
+    /**
+     * Actualizar lotes usando promedio ponderado
+     */
 }

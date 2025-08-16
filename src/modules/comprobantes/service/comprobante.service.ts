@@ -53,25 +53,31 @@ export class ComprobanteService {
     async register(createComprobanteDto: CreateComprobanteDto): Promise<void> {
         console.log(`🔄 Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}`);
         
+        //Busca entidad dueña del idPersona
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
+        // Crea instancia de comprobante
         const comprobante = this.comprobanteRepository.create(createComprobanteDto);
         comprobante.persona = entidad;
-
+        // Asigna correlativo
         const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion);
         correlativo.ultimoNumero += 1;
         await this.correlativoRepository.save(correlativo);
         comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
-
+        //Guarda el comprobante
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
         console.log(`✅ Comprobante creado: ID=${comprobanteSaved.idComprobante}, Correlativo=${comprobanteSaved.correlativo}`);
         
+        //Verifica si el comprobante tiene detalles
         if (await this.existDetails(createComprobanteDto)) {
+            //Registra detalles
             const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
+
             comprobanteSaved.detalles = detallesSaved;
+
             console.log(`✅ Detalles registrados: ${detallesSaved.length} detalles`);
             
             // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
+            const metodoValoracion = MetodoValoracion.PROMEDIO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
             await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
             
             // Validar que los lotes se crearon correctamente para compras

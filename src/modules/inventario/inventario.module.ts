@@ -13,7 +13,7 @@ import { InventarioRepository } from './repository';
 import { KardexRepository } from './repositories/kardex.repository';
 import { InventarioController } from './controller/inventario.controller';
 import { LoteController } from './controller/lote.controller';
-import { KardexController } from './controllers/kardex.controller';
+import { KardexController } from './controller/kardex.controller';
 import { AlmacenModule } from '../almacen/almacen.module';
 import { ProductosModule } from '../productos/productos.module';
 
