@@ -408,6 +408,7 @@ export class InventarioLoteService {
      * @returns Costo promedio ponderado
      */
     async getCostoPromedioPonderado(idInventario: number): Promise<number> {
+        
         const lotes = await this.inventarioLoteRepository.find({
             where: { 
                 inventario: { id: idInventario }, 
@@ -424,10 +425,14 @@ export class InventarioLoteService {
         let cantidadTotal = 0;
 
         for (const lote of lotes) {
-            costoTotal += lote.cantidadActual * lote.costoUnitario;
-            cantidadTotal += lote.cantidadActual;
+            // Convertir strings a números para asegurar cálculos correctos
+            const cantidad = parseFloat(lote.cantidadActual.toString());
+            const costo = parseFloat(lote.costoUnitario.toString());
+            
+            costoTotal += cantidad * costo;
+            cantidadTotal += cantidad;
         }
-
+        
         return cantidadTotal > 0 ? parseFloat((costoTotal / cantidadTotal).toFixed(4)) : 0;
     }
 }

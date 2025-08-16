@@ -4,27 +4,65 @@ import { TipoOperacion } from "src/modules/comprobantes/enum/tipo-operacion.enum
 import { EstadoMovimiento, TipoMovimiento } from "../enum";
 import { Injectable } from "@nestjs/common";
 import { ComprobanteDetalle } from "src/modules/comprobantes/entities/comprobante-detalle";
+import { InventarioLoteService } from "src/modules/inventario/service/inventario-lote.service";
 
 @Injectable()
 export class MovimientoFactory {
 
-    createMovimientoFromComprobante(comprobante : Comprobante): CreateMovimientoDto {
+    constructor(
+        private readonly inventarioLoteService: InventarioLoteService
+    ) {}
+
+    /**
+     * Crea un movimiento desde un comprobante
+     * Utiliza el método de costeo promedio ponderado para calcular los costos en ventas
+     * Para compras usa el precio unitario original del comprobante
+     */
+    async createMovimientoFromComprobante(comprobante : Comprobante): Promise<CreateMovimientoDto> {
+        console.log('Comprobante')
+        console.log(comprobante.detalles);
+        const detalles = await this.createMovimientosDetallesFromDetallesComprobante(comprobante.detalles, comprobante.tipoOperacion);
+        
         return {
             tipo: this.generateTipoFromTipoOperacion(comprobante.tipoOperacion),
             fecha: comprobante.fechaEmision,
             observaciones: `Movimiento generado desde comprobante ${comprobante.serie}-${comprobante.numero}`,
             estado: EstadoMovimiento.PROCESADO,
             idComprobante: comprobante.idComprobante,
-            detalles:this.createMovimientosDetallesFromDetallesComprobante(comprobante.detalles)
+            detalles: detalles
         }
     }
 
-    createMovimientosDetallesFromDetallesComprobante (detalles: ComprobanteDetalle[]): CreateMovimientoDetalleDto[] {
-        return detalles.map(detalle => ({
-            idInventario: detalle.inventario.id,
-            cantidad: detalle.cantidad,
-            costoUnitario: detalle.precioUnitario
-        }))
+    /**
+     * Crea los detalles de movimiento desde los detalles del comprobante
+     * Para ventas: calcula el costo unitario usando el método de costeo promedio ponderado
+     * Para compras: usa el precio unitario original del comprobante
+     */
+    async createMovimientosDetallesFromDetallesComprobante (detalles: ComprobanteDetalle[], tipoOperacion: TipoOperacion): Promise<CreateMovimientoDetalleDto[]> {
+        const movimientoDetalles: CreateMovimientoDetalleDto[] = [];
+        
+        for (const detalle of detalles) {
+            let costoUnitario: number;
+            
+            if (tipoOperacion === TipoOperacion.COMPRA) {
+                // Para compras (entradas), usar el precio unitario original del comprobante
+                costoUnitario = detalle.precioUnitario;
+            } else {
+                // Para ventas (salidas), calcular el costo unitario promedio ponderado
+                const costoUnitarioPromedio = await this.inventarioLoteService.getCostoPromedioPonderado(detalle.inventario.id);
+                console.log(costoUnitarioPromedio);
+                // Si no hay costo promedio (inventario sin lotes), usar el precio unitario del comprobante
+                costoUnitario = costoUnitarioPromedio > 0 ? costoUnitarioPromedio : detalle.precioUnitario;
+            }
+            
+            movimientoDetalles.push({
+                idInventario: detalle.inventario.id,
+                cantidad: detalle.cantidad,
+                costoUnitario: costoUnitario
+            });
+        }
+        
+        return movimientoDetalles;
     }
 
     generateTipoFromTipoOperacion (tipoOperacion : TipoOperacion) : TipoMovimiento {

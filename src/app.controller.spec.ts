@@ -14,4 +14,9 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
+  describe('root', () => {
+    it('should be defined', () => {
+      expect(appController).toBeDefined();
+    });
+  });
 });

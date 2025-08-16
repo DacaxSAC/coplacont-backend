@@ -91,7 +91,9 @@ export class ComprobanteService {
             }
         }
         
-        this.movimientoService.create(this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved));
+        // Crear movimiento con costo promedio ponderado
+        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved);
+        this.movimientoService.create(movimientoDto);
         console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
     }
 

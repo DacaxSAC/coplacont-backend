@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Categoria } from 'src/modules/categoria/entities';
+import { Categoria } from '../../categoria/entities';
 import { TipoProducto } from '../enum/tipo-producto.enum';
 
 /**

@@ -367,6 +367,7 @@ export class LoteService {
                 console.log(`✅ Lote ${lote.id} actualizado: ${cantidadLote} -> ${lote.cantidadActual}`);
             }
         }
+        console.log(lotesDisponibles);
     
         // Si queda cantidad pendiente, descontarla de los primeros lotes disponibles
         if (cantidadPendiente > 0) {
