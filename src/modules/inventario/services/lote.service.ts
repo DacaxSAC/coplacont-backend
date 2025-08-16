@@ -311,7 +311,7 @@ export class LoteService {
     
         console.log(`📦 Lotes encontrados: ${lotes.length}`);
         console.log(lotes);
-        
+
         lotes.forEach((lote, index) => {
             console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
         });
@@ -487,117 +487,6 @@ export class LoteService {
             .getMany();
     }
 
-    /**
-     * Crear lotes faltantes basándose en las compras existentes
-     */
-    async crearLotesFaltantes(inventarioId: number): Promise<void> {
-        console.log(`🔧 Creando lotes faltantes para inventario ${inventarioId}`);
-        
-        try {
-            // Obtener detalles de compra que no tienen lotes
-            const detallesComprobante = await this.loteRepository.query(`
-                SELECT cd.*, c."tipoOperacion", c."fechaEmision"
-                FROM comprobante_detalle cd
-                INNER JOIN comprobante c ON cd.id_comprobante = c."idComprobante"
-                WHERE cd.id_inventario = $1 
-                AND c."tipoOperacion" = 'COMPRA'
-                ORDER BY c."fechaEmision" ASC
-            `, [inventarioId]);
-            
-            console.log(`📊 Encontrados ${detallesComprobante.length} detalles de compra para crear lotes`);
-            
-            if (detallesComprobante.length === 0) {
-                console.log(`⚠️ No hay detalles de compra para el inventario ${inventarioId}`);
-                return;
-            }
-            
-            // Obtener el inventario
-            const inventario = await this.inventarioRepository.findOne({
-                where: { id: inventarioId },
-                relations: ['producto', 'almacen']
-            });
-            
-            if (!inventario) {
-                throw new Error(`Inventario ${inventarioId} no encontrado`);
-            }
-            
-            // Crear lotes para cada detalle de compra
-            for (const detalle of detallesComprobante) {
-                const lote = this.loteRepository.create({
-                    inventario: inventario,
-                    numeroLote: `LOTE-${Date.now()}-${inventarioId}-${detalle.id_comprobante}`,
-                    cantidadInicial: Number(detalle.cantidad),
-                    cantidadActual: Number(detalle.cantidad),
-                    costoUnitario: Number(detalle.precioUnitario),
-                    fechaIngreso: new Date(detalle.fechaEmision),
-                    observaciones: `Lote creado automáticamente desde compra ${detalle.id_comprobante} - ${detalle.descripcion || 'Sin descripción'}`
-                });
-                
-                await this.loteRepository.save(lote);
-                console.log(`✅ Lote creado: ID=${lote.id}, Cantidad=${lote.cantidadInicial}, Costo=${lote.costoUnitario}`);
-            }
-            
-            console.log(`✅ Se crearon ${detallesComprobante.length} lotes para el inventario ${inventarioId}`);
-            
-        } catch (error) {
-            console.error(`❌ Error al crear lotes faltantes:`, error.message);
-            throw error;
-        }
-    }
 
-    /**
-     * Método de debug para verificar lotes en la base de datos
-     */
-    async debugLotes(inventarioId: number): Promise<void> {
-        console.log(`🔍 DEBUG: Verificando lotes para inventario ${inventarioId}`);
-        
-        try {
-            // Verificar si el inventario existe
-            const inventario = await this.inventarioRepository.findOne({
-                where: { id: inventarioId }
-            });
-            
-            console.log(`📊 DEBUG: Inventario ${inventarioId} existe: ${!!inventario}`);
-            if (inventario) {
-                console.log(`  Inventario: ID=${inventario.id}, Stock=${inventario.stockActual}`);
-            }
-            
-            // Intentar consulta directa a la tabla inventario_lote (sin JOINs problemáticos)
-            const lotesDirectos = await this.loteRepository.query(`
-                SELECT id, id_inventario, cantidadActual, costoUnitario, fechaIngreso
-                FROM inventario_lote 
-                WHERE id_inventario = $1 
-                ORDER BY id DESC
-            `, [inventarioId]);
-            
-            console.log(`📊 DEBUG: Lotes encontrados en inventario_lote: ${lotesDirectos.length}`);
-            lotesDirectos.forEach((lote: any, index: number) => {
-                console.log(`  Lote ${index + 1}: ID=${lote.id}, Inventario=${lote.id_inventario}, Cantidad=${lote.cantidad_actual}, Costo=${lote.costo_unitario}`);
-            });
-            
-            // Intentar consulta con TypeORM (más simple)
-            const lotesTypeORM = await this.loteRepository.find({
-                where: { inventario: { id: inventarioId } }
-            });
-            
-            console.log(`📊 DEBUG: Lotes encontrados con TypeORM: ${lotesTypeORM.length}`);
-            lotesTypeORM.forEach((lote, index) => {
-                console.log(`  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
-            });
-            
-            // Verificar si hay lotes con cantidad > 0
-            const lotesConStock = lotesTypeORM.filter(lote => Number(lote.cantidadActual) > 0);
-            console.log(`📊 DEBUG: Lotes con stock > 0: ${lotesConStock.length}`);
-            lotesConStock.forEach((lote, index) => {
-                console.log(`  Lote con stock ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`);
-            });
-            
-        } catch (error) {
-            console.error(`❌ DEBUG: Error al verificar lotes:`, error.message);
-        }
-    }
 
-    /**
-     * Actualizar lotes usando promedio ponderado
-     */
 }
