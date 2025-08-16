@@ -66,7 +66,7 @@ export class ComprobanteService {
             comprobanteSaved.detalles = detallesSaved;
             
             // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.FIFO;
+            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
             await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
         }
         this.movimientoService.create(this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved));

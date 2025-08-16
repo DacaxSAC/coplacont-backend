@@ -22,7 +22,7 @@ export class LoteService {
     async procesarLotesComprobante(
         detalles: ComprobanteDetalle[],
         tipoOperacion: TipoOperacion,
-        metodoValoracion: MetodoValoracion = MetodoValoracion.FIFO
+        metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO
     ): Promise<void> {
         for (const detalle of detalles) {
             if (tipoOperacion === TipoOperacion.COMPRA) {
@@ -203,6 +203,7 @@ export class LoteService {
             order: { fechaIngreso: 'ASC' }
         });
     
+        console.log(lotes)
         // Filtrar lotes con stock disponible
         const lotesDisponibles = lotes.filter(lote => Number(lote.cantidadActual) > 0);
         

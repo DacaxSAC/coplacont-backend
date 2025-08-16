@@ -6,3 +6,5 @@ export * from './kardex-filter.dto';
 export * from './kardex-movement.dto';
 export * from './stock-balance.dto';
 export * from './valuation-report.dto';
+export * from './kardex-request.dto';
+export * from './kardex-response.dto';
