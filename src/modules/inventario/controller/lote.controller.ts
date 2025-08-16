@@ -9,15 +9,6 @@ export class LoteController {
     constructor(private readonly loteService: LoteService) {}
 
     /**
-     * Debug temporal para verificar lotes
-     */
-    @Get('debug/:idInventario')
-    async debugLotes(@Param('idInventario', ParseIntPipe) idInventario: number): Promise<{ message: string }> {
-        await this.loteService.debugLotes(idInventario);
-        return { message: 'Debug ejecutado, revisa los logs del servidor' };
-    }
-
-    /**
      * Obtener lotes por inventario
      */
     @Get('inventario/:idInventario')
