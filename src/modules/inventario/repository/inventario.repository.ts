@@ -27,7 +27,7 @@ export class InventarioRepository {
     async findById(id: number): Promise<Inventario | null> {
         return await this.repository.findOne({
             where: { id },
-            relations: ['almacen', 'producto', 'producto.categoria', 'inventarioLotes']
+            relations: ['almacen', 'producto', 'producto.categoria', 'lotes']
         });
     }
 
@@ -60,7 +60,7 @@ export class InventarioRepository {
                 almacen: { id: idAlmacen }, 
                 producto: { id: idProducto } 
             },
-            relations: ['almacen', 'producto', 'producto.categoria', 'inventarioLotes']
+            relations: ['almacen', 'producto', 'producto.categoria', 'lotes']
         });
     }
 

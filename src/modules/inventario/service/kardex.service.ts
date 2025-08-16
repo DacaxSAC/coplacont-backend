@@ -4,11 +4,13 @@ import { KardexRequestDto, KardexResponseDto, KardexReportMovementDto } from '..
 import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
+import { InventarioRepository } from '../repository';
 
 @Injectable()
 export class KardexService {
   constructor(
-    private readonly kardexRepository: KardexRepository
+    private readonly kardexRepository: KardexRepository,
+    private readonly inventarioRepository: InventarioRepository
   ) {}
 
   /**
@@ -73,6 +75,7 @@ export class KardexService {
   ): { movimientos: KardexReportMovementDto[]; costoTotalFinal: number } {
     let saldoAcumulado = Number(stockInicial.cantidad) || 0;
     let costoTotalAcumulado = Number(stockInicial.costoTotal) || 0;
+    console.log('COSTO TOTAL ACUMULADO', costoTotalAcumulado);
 
     const movimientosCalculados = movimientos.map(movimiento => {
       const isEntrada = this.isMovimientoEntrada(movimiento.tipoOperacion, movimiento.tipoMovimiento);
