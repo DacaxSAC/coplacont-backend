@@ -16,6 +16,8 @@ export class ComprobanteDetalleService {
         private readonly comprobanteDetalleRepository: Repository<ComprobanteDetalle>,
         @InjectRepository(Inventario)
         private readonly inventarioRepository: Repository<Inventario>,
+        @InjectRepository(Comprobante)
+        private readonly comprobanteRepository: Repository<Comprobante>,
         private readonly comprobanteTotalesService: ComprobanteTotalesService,
     ) {}
 
@@ -23,13 +25,19 @@ export class ComprobanteDetalleService {
     async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) : Promise<ComprobanteDetalle[]>{
         console.log(`🔄 Registrando ${createComprobanteDetalleDtos.length} detalles para comprobante ${idComprobante}`);
         
-        // Mapear DTOs a entidades y setear relaciones (comprobante y producto)
-        const comprobante = new Comprobante();
-        comprobante.idComprobante = idComprobante;
+        // Cargar el comprobante completo desde la base de datos
+        const comprobante = await this.comprobanteRepository.findOne({
+            where: { idComprobante },
+            relations: ['persona']
+        });
+        
+        if (!comprobante) {
+            throw new Error(`Comprobante no encontrado: ${idComprobante}`);
+        }
 
         const detalles = await Promise.all(createComprobanteDetalleDtos.map(async (dto, index) => {
             console.log(`📦 Procesando detalle ${index + 1}: Inventario=${dto.idInventario}, Cantidad=${dto.cantidad}`);
-            
+            console.log(dto);
             const detalle = this.comprobanteDetalleRepository.create(dto);
             detalle.comprobante = comprobante;
             
@@ -43,6 +51,9 @@ export class ComprobanteDetalleService {
                     throw new Error(`Inventario no encontrado: ${dto.idInventario}`);
                 }
                 detalle.inventario = inventario;
+                
+                // Console.log después de asignar las relaciones
+                console.log('Detalle con relaciones asignadas:', detalle);
                 
                 // Validar que el inventario tenga producto y almacén
                 if (!inventario.producto) {
@@ -59,6 +70,7 @@ export class ComprobanteDetalleService {
             
             return detalle;
         }));
+        console.log(detalles);
 
         const detallesSaved = await this.comprobanteDetalleRepository.save(detalles);
         console.log(`✅ ${detallesSaved.length} detalles guardados exitosamente`);

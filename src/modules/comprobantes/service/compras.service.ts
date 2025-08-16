@@ -21,7 +21,12 @@ export class ComprasService {
     async findAll(): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
             where: { tipoOperacion: TipoOperacion.COMPRA },
-            relations: ['totales', 'persona', 'detalles']
+            relations: [
+                'totales', 
+                'persona', 
+                'detalles', 
+                'detalles.inventario'
+            ]
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,
@@ -36,10 +41,15 @@ export class ComprasService {
     async findById(id: number): Promise<ResponseComprobanteDto | null> {
         const comprobante = await this.comprobanteRepository.findOne({
             where: { 
-                idComprobante: id,
+                idComprobante: id, 
                 tipoOperacion: TipoOperacion.COMPRA 
             },
-            relations: ['totales', 'persona', 'detalles']
+            relations: [
+                'totales', 
+                'persona', 
+                'detalles', 
+                'detalles.inventario'
+            ]
         });
         
         if (!comprobante) {
@@ -63,6 +73,7 @@ export class ComprasService {
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
+            .leftJoinAndSelect('detalles.inventario', 'inventario')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.COMPRA })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
@@ -84,6 +95,7 @@ export class ComprasService {
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
+            .leftJoinAndSelect('detalles.inventario', 'inventario')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.COMPRA })
             .andWhere('persona.id = :personaId', { personaId })
             .getMany();

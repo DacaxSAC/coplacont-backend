@@ -3,6 +3,8 @@ import { TipoComprobante } from "../../enum/tipo-comprobante.enum";
 import { Moneda } from "../../enum/tipo-moneda.enum";
 import { TipoOperacion } from "../../enum/tipo-operacion.enum";
 import { ResponseComprobanteTotalesDto } from "../comprobante-totales/response-comprobante-totales.dto";
+import { EntidadResponseDto } from "../../../entidades/dto/entidad-response.dto";
+import { ResponseComprobanteDetalleDto } from "../comprobante-detalle/response-comprobante-detalle.dto";
 
 export class ResponseComprobanteDto {
   @Expose()
@@ -30,5 +32,13 @@ export class ResponseComprobanteDto {
     @Expose()
     @Type(() => ResponseComprobanteTotalesDto)
     totales : ResponseComprobanteTotalesDto;
+    
+    @Expose()
+    @Type(() => EntidadResponseDto)
+    persona?: EntidadResponseDto;
+    
+    @Expose()
+    @Type(() => ResponseComprobanteDetalleDto)
+    detalles?: ResponseComprobanteDetalleDto[];
   }
   

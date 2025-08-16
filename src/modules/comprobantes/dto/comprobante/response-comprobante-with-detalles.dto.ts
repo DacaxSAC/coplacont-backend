@@ -5,5 +5,5 @@ import { ResponseComprobanteDetalleDto } from "../comprobante-detalle/response-c
 export class ResponseComprobanteWithDetallesDto extends ResponseComprobanteDto {
   @Expose()
   @Type(() => ResponseComprobanteDetalleDto)
-  detalles?: ResponseComprobanteDetalleDto[];
+  declare detalles?: ResponseComprobanteDetalleDto[];
 }
