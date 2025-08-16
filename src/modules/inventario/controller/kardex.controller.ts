@@ -4,7 +4,7 @@ import { KardexService } from '../service/kardex.service';
 import { KardexRequestDto, KardexResponseDto } from '../dto';
 
 @ApiTags('Kardex')
-@Controller('kardex')
+@Controller('api/kardex')
 export class KardexController {
   constructor(private readonly kardexService: KardexService) {}
 

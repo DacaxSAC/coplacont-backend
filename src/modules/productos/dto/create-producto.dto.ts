@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsBoolean, IsNumber, IsPositive, MaxLength, MinLength, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TipoProducto } from '../../enum/tipo-producto.enum';
+import { TipoProducto } from '../enum/tipo-producto.enum';
 
 /**
  * DTO para crear un nuevo producto

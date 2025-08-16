@@ -1,9 +1,9 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { LoteService } from '../service/lote.service';
 import { ResponseLoteDto } from '../dto/lote/response-lote.dto';
 import { plainToInstance } from 'class-transformer';
 
-@Controller('lotes')
+@Controller('api/lotes')
 export class LoteController {
     constructor(private readonly loteService: LoteService) {}
 
