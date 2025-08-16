@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException }
 import { plainToInstance } from 'class-transformer';
 import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from '../dto';
 import { InventarioRepository } from '../repository';
-import { Inventario } from 'src/modules/productos/entities';
+import { Inventario } from '../entities';
 
 @Injectable()
 export class InventarioService {

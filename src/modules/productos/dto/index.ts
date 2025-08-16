@@ -7,8 +7,3 @@ export { ResponseProductoDto } from './producto/response-producto.dto';
 export { CreateInventarioDto } from './inventario/create-inventario.dto';
 export { UpdateInventarioDto } from './inventario/update-inventario.dto';
 export { ResponseInventarioDto } from './inventario/response-inventario.dto';
-
-// InventarioLote DTOs
-export { CreateInventarioLoteDto } from './inventario-lote/create-inventario-lote.dto';
-export { UpdateInventarioLoteDto } from './inventario-lote/update-inventario-lote.dto';
-export { ResponseInventarioLoteDto } from './inventario-lote/response-inventario-lote.dto';

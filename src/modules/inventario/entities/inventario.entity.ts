@@ -9,7 +9,7 @@ import {
     UpdateDateColumn
 } from 'typeorm';
 import { Almacen } from '../../almacen/entities/almacen.entity';
-import { Producto } from './producto.entity';
+import { Producto } from '../../productos/entities/producto.entity';
 import { InventarioLote } from './inventario-lote.entity';
 
 /**

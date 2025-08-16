@@ -7,7 +7,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn
 } from 'typeorm';
-import { Inventario } from './inventario.entity';
+import { Inventario } from '../../inventario/entities/inventario.entity';
 
 /**
  * Entidad InventarioLote

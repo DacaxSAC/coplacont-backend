@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Inventario } from '../entities/inventario.entity';
+import { Inventario } from '../../inventario/entities/inventario.entity';
 import { Almacen } from '../../almacen/entities/almacen.entity';
 import { Producto } from '../entities/producto.entity';
 import { CreateInventarioDto } from '../dto/inventario/create-inventario.dto';
