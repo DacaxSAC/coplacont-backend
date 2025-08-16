@@ -1,6 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Comprobante } from "./comprobante";
-import { Producto } from "src/modules/productos/entities";
 import { Inventario } from "src/modules/inventario";
 
 @Entity({ name: 'comprobante_detalle' })
@@ -12,8 +11,8 @@ export class ComprobanteDetalle {
   @JoinColumn({ name: 'id_comprobante' })
   comprobante: Comprobante;
 
-  // Relación con el producto siguiendo la convención de nombres (id_producto)
-  @ManyToOne(() => Producto)
+  // Relación con el inventario
+  @ManyToOne(() => Inventario)
   @JoinColumn({ name: 'id_inventario' })
   inventario: Inventario;
 

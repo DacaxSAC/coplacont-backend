@@ -51,6 +51,8 @@ export class ComprobanteService {
 
     @Transactional()
     async register(createComprobanteDto: CreateComprobanteDto): Promise<void> {
+        console.log(`🔄 Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}`);
+        
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
         const comprobante = this.comprobanteRepository.create(createComprobanteDto);
         comprobante.persona = entidad;
@@ -61,15 +63,30 @@ export class ComprobanteService {
         comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
 
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
+        console.log(`✅ Comprobante creado: ID=${comprobanteSaved.idComprobante}, Correlativo=${comprobanteSaved.correlativo}`);
+        
         if (await this.existDetails(createComprobanteDto)) {
             const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
             comprobanteSaved.detalles = detallesSaved;
+            console.log(`✅ Detalles registrados: ${detallesSaved.length} detalles`);
             
             // Procesar lotes según el tipo de operación y método de valoración
             const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
             await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
+            
+            // Validar que los lotes se crearon correctamente para compras
+            if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
+                console.log(`🔍 Validando lotes para compra ${comprobanteSaved.idComprobante}`);
+                const lotesValidos = await this.loteService.validarLotesCompra(detallesSaved);
+                if (!lotesValidos) {
+                    throw new Error('Error al crear los lotes para la compra. Verifique los logs para más detalles.');
+                }
+                console.log(`✅ Lotes validados correctamente para compra ${comprobanteSaved.idComprobante}`);
+            }
         }
+        
         this.movimientoService.create(this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved));
+        console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
     }
 
     @Transactional()

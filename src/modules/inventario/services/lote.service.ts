@@ -24,12 +24,24 @@ export class LoteService {
         tipoOperacion: TipoOperacion,
         metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO
     ): Promise<void> {
-        for (const detalle of detalles) {
-            if (tipoOperacion === TipoOperacion.COMPRA) {
-                await this.registrarLoteCompra(detalle);
-            } else {
-                await this.actualizarStockVenta(detalle, metodoValoracion);
+        console.log(`🔄 Iniciando procesamiento de lotes: Tipo=${tipoOperacion}, Método=${metodoValoracion}, Detalles=${detalles.length}`);
+        
+        try {
+            for (let i = 0; i < detalles.length; i++) {
+                const detalle = detalles[i];
+                console.log(`📦 Procesando detalle ${i + 1}/${detalles.length}: Inventario=${detalle.inventario?.id}, Cantidad=${detalle.cantidad}`);
+                
+                if (tipoOperacion === TipoOperacion.COMPRA) {
+                    await this.registrarLoteCompra(detalle);
+                } else {
+                    await this.actualizarStockVenta(detalle, metodoValoracion);
+                }
             }
+            
+            console.log(`✅ Procesamiento de lotes completado exitosamente para ${detalles.length} detalles`);
+        } catch (error) {
+            console.error(`❌ Error en procesamiento de lotes:`, error.message);
+            throw error;
         }
     }
 
@@ -37,29 +49,60 @@ export class LoteService {
      * Registrar nuevo lote para compras
      */
     private async registrarLoteCompra(detalle: ComprobanteDetalle): Promise<void> {
+        console.log(`Iniciando creación de lote para detalle: Inventario=${detalle.inventario?.id}, Cantidad=${detalle.cantidad}`);
+        
+        // Validar que el detalle tenga inventario
+        if (!detalle.inventario || !detalle.inventario.id) {
+            throw new Error('El detalle debe tener un inventario válido');
+        }
+
         const inventario = await this.inventarioRepository.findOne({
-            where: { id: detalle.inventario.id }
+            where: { id: detalle.inventario.id },
+            relations: ['producto', 'almacen']
         });
     
         if (!inventario) {
             throw new Error(`Inventario no encontrado: ${detalle.inventario.id}`);
         }
+
+        // Validar que el inventario tenga producto y almacén
+        if (!inventario.producto) {
+            throw new Error(`El inventario ${detalle.inventario.id} no tiene un producto asociado`);
+        }
+        if (!inventario.almacen) {
+            throw new Error(`El inventario ${detalle.inventario.id} no tiene un almacén asociado`);
+        }
+
+        // Validar cantidad y precio
+        const cantidad = Number(detalle.cantidad);
+        const precioUnitario = Number(detalle.precioUnitario);
+        
+        if (cantidad <= 0) {
+            throw new Error('La cantidad debe ser mayor a 0');
+        }
+        if (precioUnitario < 0) {
+            throw new Error('El precio unitario no puede ser negativo');
+        }
     
-        // Crear nuevo lote
+        // Crear nuevo lote con información más detallada
         const lote = this.loteRepository.create({
             inventario: inventario,
-            numeroLote: `LOTE-${Date.now()}-${inventario.id}`,
-            cantidadInicial: Number(detalle.cantidad),
-            cantidadActual: Number(detalle.cantidad),
-            costoUnitario: Number(detalle.precioUnitario),
-            fechaIngreso: new Date()
+            numeroLote: `LOTE-${Date.now()}-${inventario.id}-${inventario.producto.id}`,
+            cantidadInicial: cantidad,
+            cantidadActual: cantidad,
+            costoUnitario: precioUnitario,
+            fechaIngreso: new Date(),
+            observaciones: `Lote creado automáticamente desde compra - ${detalle.descripcion || 'Sin descripción'}`
         });
     
         await this.loteRepository.save(lote);
     
-        // Actualizar stock del inventario - Convertir a números
-        inventario.stockActual = Number(inventario.stockActual) + Number(detalle.cantidad);
+        // Actualizar stock del inventario
+        const stockActual = Number(inventario.stockActual) || 0;
+        inventario.stockActual = stockActual + cantidad;
         await this.inventarioRepository.save(inventario);
+
+        console.log(`✅ Lote creado exitosamente: ID=${lote.id}, Inventario=${inventario.id}, Producto=${inventario.producto.id}, Almacén=${inventario.almacen.id}, Cantidad=${cantidad}, Stock actualizado=${inventario.stockActual}`);
     }
 
     /**
@@ -263,6 +306,68 @@ export class LoteService {
                 }
             }
         }
+    }
+
+    /**
+     * Validar que los lotes se crearon correctamente para una compra
+     */
+    async validarLotesCompra(detalles: ComprobanteDetalle[]): Promise<boolean> {
+        console.log(`🔍 Validando lotes creados para ${detalles.length} detalles`);
+        
+        try {
+            for (const detalle of detalles) {
+                const inventarioId = detalle.inventario.id;
+                const cantidad = Number(detalle.cantidad);
+                const precioUnitario = Number(detalle.precioUnitario);
+                
+                // Buscar el lote más reciente para este inventario por ID (más confiable que fecha)
+                const lote = await this.loteRepository.findOne({
+                    where: { inventario: { id: inventarioId } },
+                    order: { id: 'DESC' }
+                });
+                
+                if (!lote) {
+                    console.error(`❌ No se encontró lote para el inventario ${inventarioId}`);
+                    return false;
+                }
+                
+                // Validar que el lote tenga los datos correctos usando comparación con tolerancia para decimales
+                const cantidadLote = Number(lote.cantidadInicial);
+                const precioLote = Number(lote.costoUnitario);
+                
+                // Usar tolerancia de 0.01 para comparaciones decimales
+                const tolerancia = 0.01;
+                
+                if (Math.abs(cantidadLote - cantidad) > tolerancia) {
+                    console.error(`❌ Cantidad incorrecta en lote ${lote.id}: Esperada=${cantidad}, Actual=${cantidadLote}`);
+                    return false;
+                }
+                
+                if (Math.abs(precioLote - precioUnitario) > tolerancia) {
+                    console.error(`❌ Precio unitario incorrecto en lote ${lote.id}: Esperado=${precioUnitario}, Actual=${precioLote}`);
+                    return false;
+                }
+                
+                console.log(`✅ Lote ${lote.id} validado correctamente para inventario ${inventarioId} (Cantidad: ${cantidadLote}, Precio: ${precioLote})`);
+            }
+            
+            console.log(`✅ Todos los lotes validados correctamente`);
+            return true;
+        } catch (error) {
+            console.error(`❌ Error en validación de lotes:`, error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Obtener lotes recientes (últimos 10)
+     */
+    async findLotesRecientes(): Promise<InventarioLote[]> {
+        return this.loteRepository.find({
+            relations: ['inventario', 'inventario.producto', 'inventario.almacen'],
+            order: { fechaIngreso: 'DESC' },
+            take: 10
+        });
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { LoteService } from '../services/lote.service';
 import { InventarioLote } from '../entities/inventario-lote.entity';
 import { ResponseLoteDto } from '../dto/response-lote.dto';
@@ -27,6 +27,15 @@ export class LoteController {
         @Param('idInventario', ParseIntPipe) idInventario: number
     ): Promise<ResponseLoteDto[]> {
         const lotes = await this.loteService.findLotesDisponibles(idInventario);
+        return plainToInstance(ResponseLoteDto, lotes, { excludeExtraneousValues: true });
+    }
+
+    /**
+     * Obtener lotes recientes (últimos 10)
+     */
+    @Get('recientes')
+    async getLotesRecientes(): Promise<ResponseLoteDto[]> {
+        const lotes = await this.loteService.findLotesRecientes();
         return plainToInstance(ResponseLoteDto, lotes, { excludeExtraneousValues: true });
     }
 
