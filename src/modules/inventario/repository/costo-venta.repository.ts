@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 
 export interface CostoVentaMensualData {
   mes: number;

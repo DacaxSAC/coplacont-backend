@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { UserService } from "./user.service";
 import * as bcrypt from 'bcrypt';
 import { User } from "../entities/user.entity";
+import { Persona } from "../entities/persona.entity";
 import { JwtService } from "@nestjs/jwt";
 import { AuthLoginDto } from "../dto/auth/auth-login.dto";
 import { UserRolService } from "./user-role.service";
@@ -42,7 +43,7 @@ export class AuthService {
   /**
    * Procesa el login del usuario
    * @param authLoginDto Datos de login (email y contraseña)
-   * @returns Respuesta de autenticación con mensaje, email y JWT (si es exitoso)
+   * @returns Respuesta de autenticación con mensaje, email, JWT y datos de persona (si es exitoso)
    */
   async login(authLoginDto : AuthLoginDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.contrasena);
@@ -54,7 +55,7 @@ export class AuthService {
     const roles = await this.userRoleService.findRolesByUser(user);
     const permissions = await this.rolePermissionService.findPermissionsByRoles(roles);
     const payload = this.jwtService.sign(this.buildPayload(user,roles,permissions))
-    return this.buildAuthResponse('Inicio de sesión exitoso', true, user.email, payload)
+    return this.buildAuthResponse('Inicio de sesión exitoso', true, user.email, payload, user.persona, roles)
   }
 
   /**
@@ -176,13 +177,25 @@ export class AuthService {
    * @param jwt Token JWT (opcional)
    * @returns Objeto de respuesta de autenticación
    */
-  private buildAuthResponse (message: string, success: boolean, email?: string, jwt?: string) : AuthResponseDto {
-    const response: AuthResponseDto = { message, success };
-    
-    if (email) response.email = email;
-    if (jwt) response.jwt = jwt;
-    
-    return response;
-  }
+  /**
+    * Construye la respuesta de autenticación
+    * @param message Mensaje de respuesta
+    * @param success Indica si la operación fue exitosa
+    * @param email Email del usuario (opcional)
+    * @param jwt Token JWT (opcional)
+    * @param persona Datos de la persona (opcional)
+    * @param roles Roles del usuario (opcional)
+    * @returns Respuesta de autenticación
+    */
+   private buildAuthResponse (message: string, success: boolean, email?: string, jwt?: string, persona?: Persona, roles?: Role[]) : AuthResponseDto {
+     const response: AuthResponseDto = { message, success };
+     
+     if (email) response.email = email;
+     if (jwt) response.jwt = jwt;
+     if (persona) response.persona = persona;
+     if (roles) response.roles = roles;
+     
+     return response;
+   }
 
 }
