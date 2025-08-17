@@ -13,6 +13,7 @@ import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
 import { MovimientosModule } from './modules/movimientos/movimientos.module';
+import { InventarioModule } from './modules/inventario/inventario.module';
 
 
 @Module({
@@ -32,7 +33,8 @@ import { MovimientosModule } from './modules/movimientos/movimientos.module';
     CategoriaModule,
     AlmacenModule,
     TipoCambioModule,
-    MovimientosModule
+    MovimientosModule,
+    InventarioModule
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService],
