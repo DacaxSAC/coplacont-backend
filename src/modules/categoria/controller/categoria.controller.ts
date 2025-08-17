@@ -58,7 +58,13 @@ export class CategoriaController {
     @Get()
     @ApiOperation({ 
         summary: 'Obtener todas las categorías',
-        description: 'Obtiene la lista de todas las categorías' 
+        description: 'Obtiene la lista de todas las categorías. Por defecto solo retorna categorías activas.' 
+    })
+    @ApiQuery({ 
+        name: 'includeInactive', 
+        required: false, 
+        type: Boolean,
+        description: 'Si es true, incluye categorías inactivas. Por defecto false (solo activas)' 
     })
     @ApiResponse({ 
         status: 200, 
@@ -68,7 +74,7 @@ export class CategoriaController {
     async findAll(
         @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
     ): Promise<ResponseCategoriaDto[]> {
-        return await this.categoriaService.findAll();
+        return await this.categoriaService.findAll(includeInactive || false);
     }
 
     /**

@@ -59,15 +59,21 @@ export class AlmacenController {
     @Get()
     @ApiOperation({ 
         summary: 'Obtener todos los almacenes',
-        description: 'Obtiene la lista de todos los almacenes' 
+        description: 'Obtiene la lista de todos los almacenes. Por defecto solo retorna almacenes activos.' 
+    })
+    @ApiQuery({ 
+        name: 'includeInactive', 
+        required: false, 
+        type: Boolean,
+        description: 'Si es true, incluye almacenes inactivos. Por defecto false (solo activos)' 
     })
     @ApiResponse({ 
         status: 200, 
         description: 'Lista de almacenes obtenida exitosamente',
         type: [ResponseAlmacenDto] 
     })
-    async findAll(): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findAll();
+    async findAll(@Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean): Promise<ResponseAlmacenDto[]> {
+        return await this.almacenService.findAll(includeInactive || false);
     }
 
     /**

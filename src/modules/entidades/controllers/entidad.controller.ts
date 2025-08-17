@@ -6,11 +6,13 @@ import {
   Patch, 
   Post, 
   Delete,
+  Query,
   ParseIntPipe,
+  ParseBoolPipe,
   HttpStatus,
   HttpCode
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { EntidadService } from '../services';
 import { 
   CreateEntidadDto, 
@@ -41,36 +43,60 @@ export class EntidadController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todas las entidades activas' })
+  @ApiOperation({ summary: 'Obtener todas las entidades', description: 'Por defecto solo retorna entidades activas' })
+  @ApiQuery({ 
+    name: 'includeInactive', 
+    required: false, 
+    type: Boolean,
+    description: 'Si es true, incluye entidades inactivas. Por defecto false (solo activas)' 
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Lista de entidades obtenida exitosamente',
     type: [EntidadResponseDto] 
   })
-  findAll(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findAll();
+  findAll(
+    @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
+  ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+    return this.entidadService.findAll(includeInactive || false);
   }
 
   @Get('clients')
-  @ApiOperation({ summary: 'Obtener solo los clientes activos' })
+  @ApiOperation({ summary: 'Obtener solo los clientes', description: 'Por defecto solo retorna clientes activos' })
+  @ApiQuery({ 
+    name: 'includeInactive', 
+    required: false, 
+    type: Boolean,
+    description: 'Si es true, incluye clientes inactivos. Por defecto false (solo activos)' 
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Lista de clientes obtenida exitosamente',
     type: [EntidadResponseDto] 
   })
-  findClients(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findClients();
+  findClients(
+    @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
+  ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+    return this.entidadService.findClients(includeInactive || false);
   }
 
   @Get('providers')
-  @ApiOperation({ summary: 'Obtener solo los proveedores activos' })
+  @ApiOperation({ summary: 'Obtener solo los proveedores', description: 'Por defecto solo retorna proveedores activos' })
+  @ApiQuery({ 
+    name: 'includeInactive', 
+    required: false, 
+    type: Boolean,
+    description: 'Si es true, incluye proveedores inactivos. Por defecto false (solo activos)' 
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Lista de proveedores obtenida exitosamente',
     type: [EntidadResponseDto] 
   })
-  findProviders(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findProviders();
+  findProviders(
+    @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
+  ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+    return this.entidadService.findProviders(includeInactive || false);
   }
 
   @Get(':id')

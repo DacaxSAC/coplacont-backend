@@ -59,13 +59,13 @@ export class ProductoController {
     @Get()
     @ApiOperation({ 
         summary: 'Obtener todos los productos',
-        description: 'Obtiene la lista de todos los productos con sus categorías' 
+        description: 'Obtiene la lista de todos los productos con sus categorías. Por defecto solo retorna productos activos.' 
     })
     @ApiQuery({ 
         name: 'includeInactive', 
         required: false, 
         type: Boolean,
-        description: 'Incluir productos inactivos' 
+        description: 'Si es true, incluye productos inactivos. Por defecto false (solo activos)' 
     })
     @ApiQuery({ 
         name: 'tipo', 
