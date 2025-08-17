@@ -49,12 +49,8 @@ export class CategoriaService {
      * @param includeInactive - Incluir categorías inactivas (opcional)
      * @returns Promise<ResponseCategoriaDto[]> - Lista de categorías
      */
-    async findAll(includeInactive: boolean = false): Promise<ResponseCategoriaDto[]> {
+    async findAll(): Promise<ResponseCategoriaDto[]> {
         const queryBuilder = this.categoriaRepository.createQueryBuilder('categoria');
-
-        if (!includeInactive) {
-            queryBuilder.where('categoria.estado = :estado', { estado: true });
-        }
 
         queryBuilder.orderBy('categoria.nombre', 'ASC');
 
