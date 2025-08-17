@@ -51,11 +51,18 @@ export class AlmacenService {
 
   /**
    * Obtener todos los almacenes
+   * @param includeInactive - Si es true, incluye almacenes inactivos. Por defecto false (solo activos)
    * @returns Promise<ResponseAlmacenDto[]> - Lista de almacenes
    */
-  async findAll(): Promise<ResponseAlmacenDto[]> {
-    const almacenes = await this.almacenRepository
-      .createQueryBuilder('almacen')
+  async findAll(includeInactive: boolean = false): Promise<ResponseAlmacenDto[]> {
+    const queryBuilder = this.almacenRepository
+      .createQueryBuilder('almacen');
+
+    if (!includeInactive) {
+      queryBuilder.where('almacen.estado = :estado', { estado: true });
+    }
+
+    const almacenes = await queryBuilder
       .orderBy('almacen.nombre', 'ASC')
       .getMany();
 

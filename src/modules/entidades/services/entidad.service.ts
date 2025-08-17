@@ -37,12 +37,16 @@ export class EntidadService {
   }
 
   /**
-   * Obtiene todas las personas activas
-   * @returns Respuesta con lista de personas activas
+   * Obtiene todas las personas
+   * @param includeInactive - Si es true, incluye personas inactivas. Por defecto false (solo activas)
+   * @returns Respuesta con lista de personas
    */
-  async findAll(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findAll(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
+      const whereCondition = includeInactive ? {} : { activo: true };
+      
       const persons = await this.personRepository.find({
+        where: whereCondition,
         order: { createdAt: 'DESC' }
       });
       
@@ -77,14 +81,18 @@ export class EntidadService {
 
   /**
    * Obtiene todas las personas que son clientes
-   * @returns Respuesta con lista de clientes activos
+   * @param includeInactive - Si es true, incluye clientes inactivos. Por defecto false (solo activos)
+   * @returns Respuesta con lista de clientes
    */
-  async findClients(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findClients(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
+      const whereCondition: any = { esCliente: true };
+      if (!includeInactive) {
+        whereCondition.activo = true;
+      }
+      
       const clients = await this.personRepository.find({
-        where: { 
-          esCliente: true,
-        },
+        where: whereCondition,
         order: { createdAt: 'DESC' }
       });
       
@@ -97,14 +105,18 @@ export class EntidadService {
 
   /**
    * Obtiene todas las personas que son proveedores
-   * @returns Respuesta con lista de proveedores activos
+   * @param includeInactive - Si es true, incluye proveedores inactivos. Por defecto false (solo activos)
+   * @returns Respuesta con lista de proveedores
    */
-  async findProviders(): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findProviders(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
+      const whereCondition: any = { esProveedor: true };
+      if (!includeInactive) {
+        whereCondition.activo = true;
+      }
+      
       const providers = await this.personRepository.find({
-        where: { 
-          esProveedor: true,
-        },
+        where: whereCondition,
         order: { createdAt: 'DESC' }
       });
       
