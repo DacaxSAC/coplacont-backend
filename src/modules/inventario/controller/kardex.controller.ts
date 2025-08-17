@@ -14,7 +14,7 @@ export class KardexController {
   @Get()
   @ApiOperation({ 
     summary: 'Generar reporte Kardex',
-    description: 'Muestra el detalle de movimientos y saldos del producto seleccionado'
+    description: 'Muestra el detalle de movimientos y saldos del producto seleccionado, incluyendo inventario inicial (cantidad y costo total)'
   })
   @ApiQuery({ 
     name: 'idInventario', 

@@ -105,6 +105,26 @@ export class KardexResponseDto {
   almacen: string;
 
   /**
+   * Cantidad inicial del inventario
+   */
+  @ApiProperty({
+    description: 'Cantidad inicial del inventario al inicio del período',
+    example: '50.0000'
+  })
+  @Expose()
+  inventarioInicialCantidad: string;
+
+  /**
+   * Costo total inicial del inventario
+   */
+  @ApiProperty({
+    description: 'Costo total inicial del inventario al inicio del período',
+    example: '1250.50000000'
+  })
+  @Expose()
+  inventarioInicialCostoTotal: string;
+
+  /**
    * Lista de movimientos del kardex
    */
   @ApiProperty({

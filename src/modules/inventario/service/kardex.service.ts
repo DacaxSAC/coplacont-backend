@@ -55,6 +55,8 @@ export class KardexService {
     const response: KardexResponseDto = {
       producto: primerMovimiento.nombreProducto,
       almacen: primerMovimiento.nombreAlmacen,
+      inventarioInicialCantidad: Number(stockInicial.cantidad || 0).toFixed(4),
+      inventarioInicialCostoTotal: Number(stockInicial.costoTotal || 0).toFixed(8),
       movimientos: movimientosConSaldo,
       cantidadActual: saldoFinal.toFixed(4),
       saldoActual: saldoFinal.toFixed(4),
