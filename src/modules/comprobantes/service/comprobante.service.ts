@@ -55,6 +55,7 @@ export class ComprobanteService {
         
         //Busca entidad dueña del idPersona
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
+        console.log('Entidad relacionada a comprobante:', entidad);
         // Crea instancia de comprobante
         const comprobante = this.comprobanteRepository.create(createComprobanteDto);
         comprobante.persona = entidad;
@@ -67,6 +68,7 @@ export class ComprobanteService {
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
         console.log(`✅ Comprobante creado: ID=${comprobanteSaved.idComprobante}, Correlativo=${comprobanteSaved.correlativo}`);
         
+        let costosUnitarios: number[] = [];
         //Verifica si el comprobante tiene detalles
         if (await this.existDetails(createComprobanteDto)) {
             //Registra detalles
@@ -77,8 +79,8 @@ export class ComprobanteService {
             console.log(`✅ Detalles registrados: ${detallesSaved.length} detalles`);
             
             // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = MetodoValoracion.PROMEDIO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
-            await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
+            const metodoValoracion = MetodoValoracion.FIFO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
+            costosUnitarios = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
             
             // Validar que los lotes se crearon correctamente para compras
             if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
@@ -92,7 +94,7 @@ export class ComprobanteService {
         }
         
         // Crear movimiento con costo promedio ponderado
-        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved);
+        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios);
         this.movimientoService.create(movimientoDto);
         console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
     }

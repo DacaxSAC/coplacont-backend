@@ -21,7 +21,7 @@ export class ComprobanteDetalleService {
         private readonly comprobanteTotalesService: ComprobanteTotalesService,
     ) {}
 
-    @Transactional()
+    @Transactional() 
     async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) : Promise<ComprobanteDetalle[]>{
         console.log(`🔄 Registrando ${createComprobanteDetalleDtos.length} detalles para comprobante ${idComprobante}`);
         
@@ -37,7 +37,6 @@ export class ComprobanteDetalleService {
 
         const detalles = await Promise.all(createComprobanteDetalleDtos.map(async (dto, index) => {
             console.log(`📦 Procesando detalle ${index + 1}: Inventario=${dto.idInventario}, Cantidad=${dto.cantidad}`);
-            console.log(dto);
             const detalle = this.comprobanteDetalleRepository.create(dto);
             detalle.comprobante = comprobante;
             
@@ -52,9 +51,6 @@ export class ComprobanteDetalleService {
                 }
                 detalle.inventario = inventario;
                 
-                // Console.log después de asignar las relaciones
-                console.log('Detalle con relaciones asignadas:', detalle);
-                
                 // Validar que el inventario tenga producto y almacén
                 if (!inventario.producto) {
                     throw new Error(`El inventario ${dto.idInventario} no tiene un producto asociado`);
@@ -62,15 +58,12 @@ export class ComprobanteDetalleService {
                 if (!inventario.almacen) {
                     throw new Error(`El inventario ${dto.idInventario} no tiene un almacén asociado`);
                 }
-                
-                console.log(`✅ Detalle ${index + 1} procesado: Inventario=${inventario.id}, Producto=${inventario.producto.id}, Almacén=${inventario.almacen.id}`);
             } else {
                 throw new Error('Cada detalle debe tener un inventario asociado');
             }
-            
+            console.log('Detalle con relaciones:', detalle);
             return detalle;
         }));
-        console.log(detalles);
 
         const detallesSaved = await this.comprobanteDetalleRepository.save(detalles);
         console.log(`✅ ${detallesSaved.length} detalles guardados exitosamente`);
