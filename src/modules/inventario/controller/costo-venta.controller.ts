@@ -1,7 +1,12 @@
 import { Controller, Get, Query, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CostoVentaService } from '../service/costo-venta.service';
-import { CostoVentaRequestDto, CostoVentaResponseDto } from '../dto/costo-venta';
+import { 
+  CostoVentaRequestDto, 
+  CostoVentaResponseDto,
+  CostoVentaPorInventarioRequestDto,
+  CostoVentaPorInventarioResponseDto
+} from '../dto/costo-venta';
 
 /**
  * Controlador para la gestión de reportes de Estado de Costo de Venta
@@ -188,6 +193,129 @@ export class CostoVentaController {
       };
     } catch (error) {
       throw new BadRequestException(`Error al obtener el resumen: ${error.message}`);
+    }
+  }
+
+  /**
+   * Genera el reporte anual de Estado de Costo de Venta por inventario individual
+   */
+  @Get('reporte-por-inventario')
+  @ApiOperation({ 
+    summary: 'Generar reporte de Estado de Costo de Venta por inventario',
+    description: 'Genera un reporte anual que muestra entradas, salidas e inventario final para cada inventario individual, con sumatorias totales'
+  })
+  @ApiQuery({ 
+    name: 'año', 
+    description: 'Año para el cual generar el reporte',
+    example: 2024,
+    type: Number
+  })
+  @ApiQuery({ 
+    name: 'idAlmacen', 
+    description: 'ID del almacén (opcional, si no se especifica incluye todos los almacenes)',
+    example: 1,
+    required: false,
+    type: Number
+  })
+  @ApiQuery({ 
+    name: 'idProducto', 
+    description: 'ID del producto (opcional, si no se especifica incluye todos los productos)',
+    example: 1,
+    required: false,
+    type: Number
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Reporte de costo de venta por inventario generado exitosamente',
+    type: CostoVentaPorInventarioResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Parámetros inválidos'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'No se encontraron datos para los filtros especificados'
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Error interno del servidor'
+  })
+  async generateCostoVentaPorInventarioReport(
+    @Query(new ValidationPipe({ transform: true })) query: CostoVentaPorInventarioRequestDto
+  ): Promise<CostoVentaPorInventarioResponseDto> {
+    try {
+      return await this.costoVentaService.generateCostoVentaPorInventarioReport(query);
+    } catch (error) {
+      throw new BadRequestException(`Error al generar el reporte por inventario: ${error.message}`);
+    }
+  }
+
+  /**
+   * Exporta el reporte de Estado de Costo de Venta por inventario
+   */
+  @Get('exportar-por-inventario')
+  @ApiOperation({ 
+    summary: 'Exportar reporte de Estado de Costo de Venta por inventario',
+    description: 'Exporta el reporte anual de costo de venta por inventario en formato JSON (extensible a otros formatos)'
+  })
+  @ApiQuery({ 
+    name: 'año', 
+    description: 'Año para el cual exportar el reporte',
+    example: 2024,
+    type: Number
+  })
+  @ApiQuery({ 
+    name: 'idAlmacen', 
+    description: 'ID del almacén (opcional)',
+    example: 1,
+    required: false,
+    type: Number
+  })
+  @ApiQuery({ 
+    name: 'idProducto', 
+    description: 'ID del producto (opcional)',
+    example: 1,
+    required: false,
+    type: Number
+  })
+  @ApiQuery({ 
+    name: 'formato', 
+    description: 'Formato de exportación',
+    example: 'json',
+    enum: ['json'],
+    required: false,
+    type: String
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Reporte por inventario exportado exitosamente'
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Parámetros inválidos o formato no soportado'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'No se encontraron datos para los filtros especificados'
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Error interno del servidor'
+  })
+  async exportCostoVentaPorInventarioReport(
+    @Query(new ValidationPipe({ transform: true })) query: CostoVentaPorInventarioRequestDto & { formato?: string }
+  ): Promise<any> {
+    try {
+      const formato = query.formato || 'json';
+      const { formato: _, ...requestData } = query;
+      
+      return await this.costoVentaService.exportCostoVentaPorInventarioReport(
+        requestData as CostoVentaPorInventarioRequestDto, 
+        formato as 'json' | 'excel'
+      );
+    } catch (error) {
+      throw new BadRequestException(`Error al exportar el reporte por inventario: ${error.message}`);
     }
   }
 }

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CostoVentaRepository, CostoVentaFiltros } from '../repository/costo-venta.repository';
+import { CostoVentaRepository, CostoVentaFiltros, CostoVentaPorInventarioFiltros } from '../repository/costo-venta.repository';
 import {
   CostoVentaRequestDto,
   CostoVentaResponseDto,
   CostoVentaMensualDto,
-  CostoVentaSumatoriaDto
+  CostoVentaSumatoriaDto,
+  CostoVentaPorInventarioRequestDto,
+  CostoVentaPorInventarioResponseDto,
+  CostoVentaInventarioDto,
+  CostoVentaInventarioSumatoriaDto
 } from '../dto/costo-venta';
 
 /**
@@ -135,6 +139,126 @@ export class CostoVentaService {
     formato: 'json' | 'excel' = 'json'
   ): Promise<any> {
     const reporte = await this.generateCostoVentaReport(request);
+
+    switch (formato) {
+      case 'json':
+        return reporte;
+      case 'excel':
+        // TODO: Implementar exportación a Excel
+        throw new Error('Exportación a Excel no implementada aún');
+      default:
+        throw new Error(`Formato de exportación '${formato}' no soportado`);
+    }
+  }
+
+  /**
+   * Genera el reporte anual de Estado de Costo de Venta por inventario individual
+   */
+  async generateCostoVentaPorInventarioReport(
+    request: CostoVentaPorInventarioRequestDto
+  ): Promise<CostoVentaPorInventarioResponseDto> {
+    try {
+      // Validar año
+      this.validarAño(request.año);
+
+      // Preparar filtros para el repositorio
+      const filtros: CostoVentaPorInventarioFiltros = {
+        año: request.año,
+        idAlmacen: request.idAlmacen,
+        idProducto: request.idProducto
+      };
+
+      // Obtener datos por inventario del repositorio
+      const datosInventarioRaw = await this.costoVentaRepository.getCostoVentaPorInventario(filtros);
+
+      if (datosInventarioRaw.length === 0) {
+        throw new NotFoundException(
+          `No se encontraron datos para el año ${request.año}` +
+          (request.idAlmacen ? ` en el almacén ${request.idAlmacen}` : '') +
+          (request.idProducto ? ` para el producto ${request.idProducto}` : '')
+        );
+      }
+
+      // Transformar datos al formato del DTO
+       const datosInventario: CostoVentaInventarioDto[] = datosInventarioRaw.map(dato => ({
+         idInventario: dato.idInventario,
+         nombreProducto: dato.nombreProducto,
+         nombreAlmacen: dato.nombreAlmacen,
+         nombreProductoAlmacen: `${dato.nombreProducto} - ${dato.nombreAlmacen}`,
+         entradasTotales: Number(dato.entradas).toFixed(2),
+         salidasTotales: Number(dato.salidas).toFixed(2),
+         inventarioFinal: Number(dato.inventarioFinal).toFixed(2)
+       }));
+
+      // Calcular sumatorias
+      const sumatorias = this.calcularSumatoriasPorInventario(datosInventarioRaw);
+
+      // Obtener información adicional para el reporte
+      let nombreAlmacen: string | undefined;
+      let nombreProducto: string | undefined;
+
+      if (request.idAlmacen) {
+        const almacenInfo = await this.costoVentaRepository.getAlmacenInfo(request.idAlmacen);
+        nombreAlmacen = almacenInfo?.nombre;
+      }
+
+      if (request.idProducto) {
+        const productoInfo = await this.costoVentaRepository.getProductoInfo(request.idProducto);
+        nombreProducto = productoInfo?.nombre;
+      }
+
+      return {
+          año: request.año,
+          almacen: nombreAlmacen,
+          producto: nombreProducto,
+          datosInventarios: datosInventario,
+          sumatorias,
+          fechaGeneracion: new Date()
+        };
+
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Error al generar el reporte de costo de venta por inventario: ${error.message}`);
+    }
+  }
+
+  /**
+   * Calcula las sumatorias totales a partir de los datos por inventario
+   */
+  private calcularSumatoriasPorInventario(datosInventario: any[]): CostoVentaInventarioSumatoriaDto {
+    const totalEntradasAnual = datosInventario.reduce(
+      (sum, dato) => sum + Number(dato.entradas),
+      0
+    );
+
+    const totalSalidasAnual = datosInventario.reduce(
+      (sum, dato) => sum + Number(dato.salidas),
+      0
+    );
+
+    const totalInventarioFinalAnual = datosInventario.reduce(
+      (sum, dato) => sum + Number(dato.inventarioFinal),
+      0
+    );
+
+    return {
+       totalEntradasAnual: totalEntradasAnual.toFixed(2),
+       totalSalidasAnual: totalSalidasAnual.toFixed(2),
+       totalInventarioFinalAnual: totalInventarioFinalAnual.toFixed(2),
+       cantidadInventarios: datosInventario.length
+     };
+  }
+
+  /**
+   * Exporta el reporte por inventario en formato JSON (puede extenderse para otros formatos)
+   */
+  async exportCostoVentaPorInventarioReport(
+    request: CostoVentaPorInventarioRequestDto,
+    formato: 'json' | 'excel' = 'json'
+  ): Promise<any> {
+    const reporte = await this.generateCostoVentaPorInventarioReport(request);
 
     switch (formato) {
       case 'json':
