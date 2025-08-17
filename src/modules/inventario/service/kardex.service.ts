@@ -30,14 +30,30 @@ export class KardexService {
       fechaFinDate
     );
 
-    if (movimientosData.length === 0) {
-      throw new Error('No se encontraron movimientos para el inventario especificado');
-    }
-
     // Obtener stock inicial si hay fecha de inicio
     let stockInicial = { cantidad: 0, costoTotal: 0 };
     if (fechaInicioDate) {
       stockInicial = await this.kardexRepository.getStockInicial(idInventario, fechaInicioDate);
+    }
+
+    // Si no hay movimientos, obtener información del inventario directamente
+    if (movimientosData.length === 0) {
+      const inventario = await this.inventarioRepository.findById(idInventario);
+
+      if (!inventario) {
+        throw new Error('Inventario no encontrado');
+      }
+
+      return {
+        producto: inventario.producto?.nombre || 'Producto no encontrado',
+        almacen: inventario.almacen?.nombre || 'Almacén no encontrado',
+        inventarioInicialCantidad: Number(stockInicial.cantidad || 0).toFixed(4),
+        inventarioInicialCostoTotal: Number(stockInicial.costoTotal || 0).toFixed(8),
+        movimientos: [],
+        cantidadActual: Number(stockInicial.cantidad || 0).toFixed(4),
+        saldoActual: Number(stockInicial.costoTotal || 0).toFixed(8),
+        costoFinal: Number(stockInicial.costoTotal || 0).toFixed(8)
+      };
     }
 
     // Calcular saldos acumulados
