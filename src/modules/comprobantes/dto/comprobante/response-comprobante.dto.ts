@@ -12,8 +12,6 @@ export class ResponseComprobanteDto {
     @Expose()
     correlativo: string;
     @Expose()
-    personaId: number;
-    @Expose()
     tipoOperacion: TipoOperacion;
     @Expose()
     tipoComprobante: TipoComprobante;

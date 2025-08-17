@@ -7,6 +7,7 @@ import { Correlativo } from "./entities/correlativo";
 import { ComprobanteController } from "./controller/comprobante.controller";
 import { ComprasController } from "./controller/compras.controller";
 import { VentasController } from "./controller/ventas.controller";
+import { TestComprobanteController } from "./controller/test-comprobante.controller";
 import { ComprobanteService } from "./service/comprobante.service";
 import { ComprasService } from "./service/compras.service";
 import { VentasService } from "./service/ventas.service";
@@ -23,7 +24,7 @@ import { ComprobanteTotalesService } from "./service/comprobante-totales.service
     MovimientosModule,
     InventarioModule
   ],
-  controllers: [ComprobanteController, ComprasController, VentasController],
+  controllers: [ComprobanteController, ComprasController, VentasController, TestComprobanteController],
   providers: [
     ComprobanteService, 
     ComprasService, 
