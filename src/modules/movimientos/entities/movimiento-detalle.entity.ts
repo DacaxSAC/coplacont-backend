@@ -5,10 +5,12 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     ManyToOne,
+    OneToMany,
     JoinColumn
 } from 'typeorm';
 import { Movimiento } from './movimiento.entity';
 import { Inventario } from 'src/modules/inventario/entities';
+import { DetalleSalida } from './detalle-salida.entity';
 
 /**
  * Entidad para detalles de movimientos de inventario
@@ -86,4 +88,10 @@ export class MovimientoDetalle {
     @ManyToOne(() => Inventario)
     @JoinColumn({ name: 'id_inventario' })
     inventario: Inventario;
+
+    // Relación con DetalleSalida (solo para movimientos de salida)
+    @OneToMany(() => DetalleSalida, detalleSalida => detalleSalida.movimientoDetalle, {
+        cascade: true
+    })
+    detallesSalida?: DetalleSalida[];
 }

@@ -69,6 +69,7 @@ export class ComprobanteService {
         console.log(`✅ Comprobante creado: ID=${comprobanteSaved.idComprobante}, Correlativo=${comprobanteSaved.correlativo}`);
         
         let costosUnitarios: number[] = [];
+        let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
         //Verifica si el comprobante tiene detalles
         if (await this.existDetails(createComprobanteDto)) {
             //Registra detalles
@@ -80,7 +81,9 @@ export class ComprobanteService {
             
             // Procesar lotes según el tipo de operación y método de valoración
             const metodoValoracion = MetodoValoracion.FIFO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
-            costosUnitarios = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
+            const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
+            costosUnitarios = costoUnitario;
+            precioYcantidadPorLote = lotes;
             
             // Validar que los lotes se crearon correctamente para compras
             if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
@@ -94,7 +97,7 @@ export class ComprobanteService {
         }
         
         // Crear movimiento con costo promedio ponderado
-        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios);
+        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios, precioYcantidadPorLote);
         this.movimientoService.create(movimientoDto);
         console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
     }

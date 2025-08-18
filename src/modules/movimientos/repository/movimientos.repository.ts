@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Movimiento } from '../entities/movimiento.entity';
 import { MovimientoDetalle } from '../entities/movimiento-detalle.entity';
+import { DetalleSalida } from '../entities/detalle-salida.entity';
 import { CreateMovimientoDto } from '../dto/create-movimiento.dto';
 import { TipoMovimiento } from '../enum/tipo-movimiento.enum';
 import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
@@ -21,6 +22,8 @@ export class MovimientosRepository {
         private readonly movimientoRepository: Repository<Movimiento>,
         @InjectRepository(MovimientoDetalle)
         private readonly movimientoDetalleRepository: Repository<MovimientoDetalle>,
+        @InjectRepository(DetalleSalida)
+        private readonly detalleSalidaRepository: Repository<DetalleSalida>,
         @InjectRepository(Producto)
         private readonly productoRepository: Repository<Producto>,
         @InjectRepository(Almacen)
@@ -50,9 +53,10 @@ export class MovimientosRepository {
             const savedMovimiento = await manager.save(Movimiento, movimiento);
 
             // Crear los detalles
-            const detalles = createMovimientoDto.detalles.map(detalle => {
+            const detalles: MovimientoDetalle[] = [];
+            for (const detalle of createMovimientoDto.detalles) {
                 const costoTotal = detalle.costoUnitario ? detalle.cantidad * detalle.costoUnitario : undefined;
-                return manager.create(MovimientoDetalle, {
+                const movimientoDetalle = manager.create(MovimientoDetalle, {
                     idMovimiento: savedMovimiento.id,
                     idInventario: detalle.idInventario,
                     cantidad: detalle.cantidad,
@@ -60,14 +64,36 @@ export class MovimientosRepository {
                     costoTotal: costoTotal,
                     idLote: detalle.idLote
                 });
-            });
-
-            await manager.save(MovimientoDetalle, detalles);
+                
+                const savedDetalle = await manager.save(MovimientoDetalle, movimientoDetalle);
+                detalles.push(savedDetalle);
+                
+                // Si hay detalles de salida, crearlos
+                if (detalle.detallesSalida && detalle.detallesSalida.length > 0) {
+                    for (const detalleSalida of detalle.detallesSalida) {
+                        const detalleSalidaEntity = manager.create(DetalleSalida, {
+                            idMovimientoDetalle: savedDetalle.id,
+                            idLote: detalleSalida.idLote,
+                            costoUnitarioDeLote: detalleSalida.costoUnitarioDeLote,
+                            cantidad: detalleSalida.cantidad
+                        });
+                        
+                        await manager.save(DetalleSalida, detalleSalidaEntity);
+                    }
+                }
+            }
 
             // Retornar el movimiento con sus detalles
             const result = await manager.findOne(Movimiento, {
                 where: { id: savedMovimiento.id },
-                relations: ['detalles', 'detalles.inventario', 'detalles.inventario.producto', 'detalles.inventario.almacen', 'comprobante']
+                relations: [
+                    'detalles', 
+                    'detalles.inventario', 
+                    'detalles.inventario.producto', 
+                    'detalles.inventario.almacen', 
+                    'detalles.detallesSalida',
+                    'comprobante'
+                ]
             });
             
             if (!result) {

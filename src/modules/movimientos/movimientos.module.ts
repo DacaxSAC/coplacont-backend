@@ -4,8 +4,7 @@ import { MovimientosController } from './controller/movimientos.controller';
 import { MovimientosService } from './service/movimientos.service';
 import { MovimientosRepository } from './repository/movimientos.repository';
 import { MovimientoFactory } from './factory/MovimientoFactory';
-import { Movimiento } from './entities/movimiento.entity';
-import { MovimientoDetalle } from './entities/movimiento-detalle.entity';
+import { Movimiento, MovimientoDetalle, DetalleSalida } from './entities';
 // Importar entidades de otros módulos
 import { Producto } from '../productos/entities/producto.entity';
 import { Almacen } from '../almacen/entities/almacen.entity';
@@ -21,6 +20,7 @@ import { InventarioModule } from '../inventario/inventario.module';
         TypeOrmModule.forFeature([
             Movimiento,
             MovimientoDetalle,
+            DetalleSalida,
             // Agregar entidades necesarias para los repositorios
             Producto,
             Almacen,
