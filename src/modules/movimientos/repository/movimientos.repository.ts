@@ -110,7 +110,14 @@ export class MovimientosRepository {
     async findById(id: number): Promise<Movimiento | null> {
         return await this.movimientoRepository.findOne({
             where: { id },
-            relations: ['detalles', 'detalles.inventario', 'detalles.inventario.producto', 'detalles.inventario.almacen', 'comprobante']
+            relations: [
+                'detalles', 
+                'detalles.inventario', 
+                'detalles.inventario.producto', 
+                'detalles.inventario.almacen', 
+                'detalles.detallesSalida',
+                'comprobante'
+            ]
         });
     }
 
@@ -119,7 +126,14 @@ export class MovimientosRepository {
      */
     async findAll(): Promise<Movimiento[]> {
         return await this.movimientoRepository.find({
-            relations: ['detalles', 'detalles.inventario', 'detalles.inventario.producto', 'detalles.inventario.almacen', 'comprobante'],
+            relations: [
+                'detalles', 
+                'detalles.inventario', 
+                'detalles.inventario.producto', 
+                'detalles.inventario.almacen', 
+                'detalles.detallesSalida',
+                'comprobante'
+            ],
             order: { fechaCreacion: 'DESC' }
         });
     }
@@ -130,7 +144,14 @@ export class MovimientosRepository {
     async findByTipo(tipo: TipoMovimiento): Promise<Movimiento[]> {
         return await this.movimientoRepository.find({
             where: { tipo },
-            relations: ['detalles', 'detalles.inventario', 'detalles.inventario.producto', 'detalles.inventario.almacen', 'comprobante'],
+            relations: [
+                'detalles', 
+                'detalles.inventario', 
+                'detalles.inventario.producto', 
+                'detalles.inventario.almacen', 
+                'detalles.detallesSalida',
+                'comprobante'
+            ],
             order: { fechaCreacion: 'DESC' }
         });
     }
@@ -141,7 +162,14 @@ export class MovimientosRepository {
     async findByEstado(estado: EstadoMovimiento): Promise<Movimiento[]> {
         return await this.movimientoRepository.find({
             where: { estado },
-            relations: ['detalles', 'detalles.inventario', 'detalles.inventario.producto', 'detalles.inventario.almacen', 'comprobante'],
+            relations: [
+                'detalles', 
+                'detalles.inventario', 
+                'detalles.inventario.producto', 
+                'detalles.inventario.almacen', 
+                'detalles.detallesSalida',
+                'comprobante'
+            ],
             order: { fechaCreacion: 'DESC' }
         });
     }

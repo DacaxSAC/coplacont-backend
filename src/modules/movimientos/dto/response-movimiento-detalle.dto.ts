@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { ResponseInventarioDto } from 'src/modules/inventario/dto';
+import { ResponseDetalleSalidaDto } from './response-detalle-salida.dto';
 
 /**
  * DTO de respuesta para detalle de movimiento
@@ -88,4 +89,16 @@ export class ResponseMovimientoDetalleDto {
     })
     @Expose()
     fechaActualizacion: Date;
+
+    /**
+     * Detalles de salida
+     */
+    @ApiProperty({
+        description: 'Detalles de salida del movimiento',
+        type: [ResponseDetalleSalidaDto],
+        required: false
+    })
+    @Expose()
+    @Type(() => ResponseDetalleSalidaDto)
+    detallesSalida?: ResponseDetalleSalidaDto[];
 }
