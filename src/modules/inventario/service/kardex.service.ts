@@ -30,6 +30,8 @@ export class KardexService {
       fechaFinDate
     );
 
+
+
     // Obtener stock inicial si hay fecha de inicio
     let stockInicial = { cantidad: 0, costoTotal: 0 };
     if (fechaInicioDate) {
@@ -115,7 +117,7 @@ export class KardexService {
       // Calcular costo unitario promedio
       const costoUnitarioPromedio = saldoAcumulado > 0 ? costoTotalAcumulado / saldoAcumulado : 0;
 
-      return {
+      const movimientoCalculado = {
         fecha: this.formatDate(movimiento.fecha),
         tipo: isEntrada ? 'Entrada' : 'Salida',
         tComprob: movimiento.tipoComprobante,
@@ -125,6 +127,18 @@ export class KardexService {
         costoUnitario: Number(costoUnitario.toFixed(4)),
         costoTotal: Number(costoTotal.toFixed(8))
       };
+
+      // Agregar detalles de salida si es un movimiento de salida y tiene detalles
+      if (!isEntrada && movimiento.detallesSalida && movimiento.detallesSalida.length > 0) {
+        movimientoCalculado['detallesSalida'] = movimiento.detallesSalida.map(detalle => ({
+          id: detalle.id,
+          idLote: detalle.idLote,
+          costoUnitarioDeLote: Number(Number(detalle.costoUnitarioDeLote).toFixed(4)),
+          cantidad: Number(Number(detalle.cantidad).toFixed(4))
+        }));
+      }
+
+      return movimientoCalculado;
     });
 
     return {

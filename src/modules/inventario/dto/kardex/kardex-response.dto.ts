@@ -1,5 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+
+/**
+ * DTO para los detalles de salida en el reporte Kardex
+ */
+export class KardexDetalleSalidaDto {
+  @ApiProperty({
+    description: 'ID del detalle de salida',
+    example: 1
+  })
+  @Expose()
+  id: number;
+
+  @ApiProperty({
+    description: 'ID del lote utilizado',
+    example: 5
+  })
+  @Expose()
+  idLote: number;
+
+  @ApiProperty({
+    description: 'Costo unitario específico del lote',
+    example: 25.50
+  })
+  @Expose()
+  costoUnitarioDeLote: number;
+
+  @ApiProperty({
+    description: 'Cantidad utilizada del lote',
+    example: 10.5
+  })
+  @Expose()
+  cantidad: number;
+}
 
 export class KardexReportMovementDto {
   /**
@@ -81,6 +114,18 @@ export class KardexReportMovementDto {
   })
   @Expose()
   costoTotal: number;
+
+  /**
+   * Detalles de salida (solo para movimientos de tipo SALIDA)
+   */
+  @ApiProperty({
+    description: 'Detalles de salida con información de lotes utilizados',
+    type: [KardexDetalleSalidaDto],
+    required: false
+  })
+  @Expose()
+  @Type(() => KardexDetalleSalidaDto)
+  detallesSalida?: KardexDetalleSalidaDto[];
 }
 
 export class KardexResponseDto {

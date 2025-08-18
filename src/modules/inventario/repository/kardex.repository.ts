@@ -4,6 +4,13 @@ import { DataSource } from 'typeorm';
 import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 
+export interface DetalleSalidaData {
+  id: number;
+  idLote: number;
+  costoUnitarioDeLote: number;
+  cantidad: number;
+}
+
 export interface KardexMovementData {
   fecha: Date;
   tipoOperacion: TipoOperacion;
@@ -16,6 +23,7 @@ export interface KardexMovementData {
   idInventario: number;
   nombreProducto: string;
   nombreAlmacen: string;
+  detallesSalida?: DetalleSalidaData[];
 }
 
 @Injectable()
@@ -28,6 +36,7 @@ export class KardexRepository {
   /**
    * Obtiene los movimientos del kardex para un producto específico en un almacén
    * Usa consulta SQL directa para evitar dependencias circulares
+   * Incluye detalles de salida cuando el movimiento es de tipo SALIDA
    */
   async getKardexMovements(
     idInventario: number,
@@ -40,13 +49,14 @@ export class KardexRepository {
         c."tipoOperacion" as "tipoOperacion",
         COALESCE(m.tipo, 'ENTRADA') as "tipoMovimiento",
         c."tipoComprobante" as "tipoComprobante",
-        c.numero as "numeroComprobante",
+        CONCAT(c.serie, '-', c.numero) as "numeroComprobante",
         COALESCE(md.cantidad, cd.cantidad) as cantidad,
         COALESCE(md.costo_unitario, cd."precioUnitario") as "costoUnitario",
         COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario") as "costoTotal",
         i.id as "idInventario",
         p.nombre as "nombreProducto",
-        a.nombre as "nombreAlmacen"
+        a.nombre as "nombreAlmacen",
+        md.id as "idMovimientoDetalle"
       FROM comprobante c
       INNER JOIN comprobante_detalle cd ON c."idComprobante" = cd.id_comprobante
       INNER JOIN inventario i ON cd.id_inventario = i.id
@@ -74,8 +84,37 @@ export class KardexRepository {
     
     sql += ` ORDER BY c."fechaEmision" ASC, c."idComprobante" ASC`;
     
-    const result = await this.dataSource.query(sql, params);
-    return result;
+    const movimientos = await this.dataSource.query(sql, params);
+    
+    // Obtener detalles de salida para movimientos de tipo SALIDA
+    const movimientosConDetalles = await Promise.all(
+      movimientos.map(async (movimiento) => {
+        if (movimiento.tipoMovimiento === 'SALIDA' && movimiento.idMovimientoDetalle) {
+          const detallesSalidaSql = `
+            SELECT 
+              ds.id,
+              ds.id_lote as "idLote",
+              ds.costo_unitario_de_lote as "costoUnitarioDeLote",
+              ds.cantidad
+            FROM detalle_salidas ds
+            WHERE ds.id_movimiento_detalle = $1
+          `;
+          
+          const detallesSalida = await this.dataSource.query(detallesSalidaSql, [movimiento.idMovimientoDetalle]);
+          
+          return {
+            ...movimiento,
+            detallesSalida: detallesSalida.length > 0 ? detallesSalida : undefined
+          };
+        }
+        
+        // Remover el campo idMovimientoDetalle del resultado final
+        const { idMovimientoDetalle, ...movimientoSinId } = movimiento;
+        return movimientoSinId;
+      })
+    );
+    
+    return movimientosConDetalles;
   }
 
   /**
