@@ -19,5 +19,7 @@ export class Persona {
     @Column({nullable: true})
     dni: string;
     @Column({nullable: true})
+    direccion: string;
+    @Column({nullable: true})
     createdAt : Date;
 }

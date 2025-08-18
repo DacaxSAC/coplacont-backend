@@ -25,13 +25,28 @@ export class UserService {
 
 
   async findById(id: number): Promise<ResponseUserDto> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    return plainToInstance(ResponseUserDto, user, { excludeExtraneousValues: true })
+    const user = await this.userRepository.findOne({ 
+      where: { id },
+      relations: ['persona', 'userRoles', 'userRoles.role']
+    });
+    const userDto = plainToInstance(ResponseUserDto, user, { excludeExtraneousValues: true });
+    if (user?.userRoles) {
+      userDto.roles = user.userRoles.map(ur => ur.role.nombre);
+    }
+    return userDto;
   }
 
   async findAll(): Promise<ResponseUserDto[]> {
-    const users = await this.userRepository.find();
-    return plainToInstance(ResponseUserDto, users, { excludeExtraneousValues: true, });
+    const users = await this.userRepository.find({
+      relations: ['persona', 'userRoles', 'userRoles.role']
+    });
+    const usersDto = plainToInstance(ResponseUserDto, users, { excludeExtraneousValues: true, });
+    return usersDto.map((userDto, index) => {
+      if (users[index]?.userRoles) {
+        userDto.roles = users[index].userRoles.map(ur => ur.role.nombre);
+      }
+      return userDto;
+    });
   }
 
   /**
@@ -79,7 +94,28 @@ export class UserService {
 
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<void> {
-    await this.userRepository.update(id, updateUserDto);
+    // Buscar el usuario con su persona asociada
+    const user = await this.userRepository.findOne({ 
+      where: { id },
+      relations: ['persona']
+    });
+
+    if (!user) {
+      throw new Error(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Extraer los datos de persona del DTO
+    const { persona, ...userUpdateData } = updateUserDto;
+
+    // Actualizar los datos del usuario (email, habilitado)
+    if (Object.keys(userUpdateData).length > 0) {
+      await this.userRepository.update(id, userUpdateData);
+    }
+
+    // Actualizar los datos de la persona si se proporcionaron
+    if (persona && user.persona) {
+      await this.personaService.update(user.persona.id, persona);
+    }
   }
 
   async softDelete(id: number): Promise<void> {
