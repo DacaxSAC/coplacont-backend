@@ -26,7 +26,8 @@ export class ComprasService {
                 'persona', 
                 'detalles', 
                 'detalles.inventario'
-            ]
+            ],
+            order: { fechaRegistro: 'DESC' }
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,
