@@ -62,8 +62,8 @@ export class Comprobante {
     numero: string;
 
     //manual
-    @Column({ type: 'date', nullable: false })
-    fechaVencimiento: Date;
+    @Column({ type: 'date', nullable: true })
+    fechaVencimiento?: Date;
 
     @Column({ length: 6 , nullable: true })
     periodo: string;
