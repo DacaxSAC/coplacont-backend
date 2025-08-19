@@ -80,7 +80,7 @@ export class ComprobanteService {
             console.log(`✅ Detalles registrados: ${detallesSaved.length} detalles`);
             
             // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = MetodoValoracion.FIFO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
+            const metodoValoracion = MetodoValoracion.PROMEDIO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
             const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
             costosUnitarios = costoUnitario;
             precioYcantidadPorLote = lotes;

@@ -51,17 +51,12 @@ export class MovimientoFactory {
                 // Para compras (entradas), usar el precio unitario original del comprobante
                 costoUnitario = detalle.precioUnitario;
             } else {
-                // Para ventas (salidas), calcular el costo unitario promedio ponderado
-                const costoUnitarioPromedio = await this.inventarioLoteService.getCostoPromedioPonderado(detalle.inventario.id);
-                console.log('Estamos en la parte donde registramos el detalle de un movimiento');
-                console.log('TIPO: SALIDA');
-                console.log('Antes de modificar la base de datos, este seria el detalle del detalle de movimiento de SALIDA');
-                console.log(precioYcantidadPorLote);
-                //FIFO
-                //const costoUnitarioPromedio = costosUnitarios[indice]/detalle.cantidad;
-                console.log(costoUnitarioPromedio);
-                // Si no hay costo promedio (inventario sin lotes), usar el precio unitario del comprobante
-                costoUnitario = costoUnitarioPromedio > 0 ? costoUnitarioPromedio : detalle.precioUnitario;
+                // Para ventas (salidas), usar el costo unitario calculado por el método de valoración
+                const costoUnitarioCalculado = costosUnitarios[indice];
+                console.log('Costo unitario calculado por método de valoración:');
+                console.log(costoUnitarioCalculado);
+                // Si no hay costo calculado, usar el precio unitario del comprobante como fallback
+                costoUnitario = costoUnitarioCalculado > 0 ? costoUnitarioCalculado : detalle.precioUnitario;
                 
                 // Obtener los lotes correspondientes a este detalle
                 const lotesParaEsteDetalle: CreateDetalleSalidaDto[] = [];

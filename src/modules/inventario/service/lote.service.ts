@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Inventario, InventarioLote } from '../entities';
 import { ComprobanteDetalle } from '../../comprobantes/entities/comprobante-detalle';
 import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
@@ -21,7 +21,7 @@ export class LoteService {
   async procesarLotesComprobante(
     detalles: ComprobanteDetalle[],
     tipoOperacion: TipoOperacion,
-    metodoValoracion: MetodoValoracion = MetodoValoracion.FIFO,
+    metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
   ): Promise<{costoUnitario: number[], lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
     console.log(
       `🔄 Iniciando procesamiento de lotes: Tipo=${tipoOperacion}, Método=${metodoValoracion}, Detalles=${detalles.length}`,
@@ -141,7 +141,7 @@ export class LoteService {
    */
   private async actualizarStockVenta(
     detalle: ComprobanteDetalle,
-    metodoValoracion: MetodoValoracion = MetodoValoracion.FIFO,
+    metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
   ): Promise<{costoUnitario: number, lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
     console.log('----------------------------------------');
     console.log('----------------------------------------');
@@ -192,10 +192,16 @@ export class LoteService {
           await this.actualizarLotesLIFO(inventario.id, cantidadNum);
           break;
         case MetodoValoracion.PROMEDIO:
-          await this.actualizarLotesPromedio(inventario.id, cantidadNum);
+          const {costoUnitario: costoPromedio, lotes: lotesPromedio} = await this.actualizarLotesPromedio(inventario.id, cantidadNum);
+          costoUnitarioPorAlgoritmoCosteo = costoPromedio;
+          lotes = lotesPromedio;
+          console.log(`🔍 PROMEDIO - Costo unitario calculado: ${costoUnitarioPorAlgoritmoCosteo}`);
+          console.log(`🔍 PROMEDIO - Lotes afectados:`, lotes);
           break;
         default:
-          await this.actualizarLotesPromedio(inventario.id, cantidadNum);
+          const {costoUnitario: costoPromedioDefault, lotes: lotesPromedioDefault} = await this.actualizarLotesPromedio(inventario.id, cantidadNum);
+          costoUnitarioPorAlgoritmoCosteo = costoPromedioDefault;
+          lotes = lotesPromedioDefault;
       }
     }
 
@@ -379,19 +385,13 @@ export class LoteService {
   private async actualizarLotesPromedio(
     inventarioId: number,
     cantidad: number,
-  ): Promise<void> {
-    console.log('----------------------------------------');
-    console.log('----------------------------------------');
-    console.log('PROMEDIO - SELECCIÓN DE LOTES');
-    console.log('----------------------------------------');
-    console.log('----------------------------------------');
-
+  ): Promise<{
+    costoUnitario: number;
+    lotes: { idLote: number; costoUnitarioDeLote: number; cantidad: number }[];
+  }> {
     console.log(
-      `🔍 Buscando lotes para inventario ${inventarioId} con cantidad requerida ${cantidad}`,
+      `🔄 Iniciando actualización de lotes con método PROMEDIO: Inventario=${inventarioId}, Cantidad=${cantidad}`,
     );
-
-    // Ejecutar debug para diagnosticar el problema
-    //await this.debugLotes(inventarioId);
 
     // Obtener lotes de forma más simple
     const lotes = await this.loteRepository.find({
@@ -426,19 +426,23 @@ export class LoteService {
     let cantidadTotal = 0;
     let valorTotal = 0;
 
+    console.log(`🔍 Calculando costo promedio ponderado:`);
     for (const lote of lotesDisponibles) {
       const cantidadLote = Number(lote.cantidadActual);
       const costoLote = Number(lote.costoUnitario);
+      const subtotal = cantidadLote * costoLote;
       cantidadTotal += cantidadLote;
-      valorTotal += cantidadLote * costoLote;
+      valorTotal += subtotal;
       console.log(
-        `📊 Lote ${lote.id}: Cantidad=${cantidadLote}, Costo=${costoLote}, Subtotal=${cantidadLote * costoLote}`,
+        `📊 Lote ${lote.id}: Cantidad=${cantidadLote}, Costo=${costoLote}, Subtotal=${subtotal}`,
       );
     }
 
+    const costoPromedioPonderado = cantidadTotal > 0 ? valorTotal / cantidadTotal : 0;
     console.log(
-      `📊 Totales: Cantidad=${cantidadTotal}, Valor=${valorTotal}, Promedio=${valorTotal / cantidadTotal}`,
+      `📊 Totales: Cantidad=${cantidadTotal}, Valor=${valorTotal}, Promedio=${costoPromedioPonderado}`,
     );
+    console.log(`💰 Costo promedio ponderado calculado: ${costoPromedioPonderado}`);
 
     if (cantidadTotal < cantidad) {
       throw new Error(
@@ -446,63 +450,81 @@ export class LoteService {
       );
     }
 
-    // Distribuir proporcionalmente la cantidad a descontar
+    // Variables para el retorno
+    let costoTotalConsumido = 0;
+    let precioYcantidadPorLote: {
+      idLote: number;
+      costoUnitarioDeLote: number;
+      cantidad: number;
+    }[] = [];
+
+    // Distribuir la cantidad usando FIFO pero con costo promedio ponderado
     let cantidadPendiente = cantidad;
-    console.log(`🔄 Iniciando distribución de ${cantidad} unidades`);
+    console.log(`🎯 Iniciando distribución FIFO con costo promedio: ${costoPromedioPonderado}`);
+    console.log(`🔄 Iniciando distribución FIFO de ${cantidad} unidades con costo promedio ${costoPromedioPonderado}`);
 
     for (const lote of lotesDisponibles) {
       if (cantidadPendiente <= 0) break;
 
       const cantidadLote = Number(lote.cantidadActual);
-      const proporcion = cantidadLote / cantidadTotal;
-      const cantidadADescontar = Math.min(
-        Math.round(cantidad * proporcion),
-        cantidadLote,
-        cantidadPendiente,
-      );
+      const cantidadADescontar = Math.min(cantidadLote, cantidadPendiente);
 
       console.log(
-        `📦 Lote ${lote.id}: Proporción=${proporcion.toFixed(4)}, A descontar=${cantidadADescontar}`,
+        `🔄 Procesando lote ${lote.id}: Cantidad disponible=${cantidadLote}, A consumir=${cantidadADescontar}`,
+      );
+      console.log(
+        `📦 Lote ${lote.id}: Disponible=${cantidadLote}, A descontar=${cantidadADescontar}`,
       );
 
       if (cantidadADescontar > 0) {
+        // Actualizar el lote
         lote.cantidadActual = cantidadLote - cantidadADescontar;
         cantidadPendiente -= cantidadADescontar;
+        
+        // Registrar lote afectado para el retorno (usando costo promedio ponderado)
+        precioYcantidadPorLote.push({
+          idLote: lote.id,
+          costoUnitarioDeLote: costoPromedioPonderado, // Usar costo promedio ponderado
+          cantidad: cantidadADescontar,
+        });
+        
+        // Calcular costo total usando el costo promedio ponderado
+        costoTotalConsumido += cantidadADescontar * costoPromedioPonderado;
+        
         await this.loteRepository.save(lote);
+        console.log(
+          `📦 Lote ${lote.id} actualizado: Consumido=${cantidadADescontar}, Restante en lote=${lote.cantidadActual}, Costo total acumulado=${costoTotalConsumido}`,
+        );
         console.log(
           `✅ Lote ${lote.id} actualizado: ${cantidadLote} -> ${lote.cantidadActual}`,
         );
-      }
-    }
-    console.log(lotesDisponibles);
-
-    // Si queda cantidad pendiente, descontarla de los primeros lotes disponibles
-    if (cantidadPendiente > 0) {
-      console.log(
-        `⚠️ Cantidad pendiente: ${cantidadPendiente}, distribuyendo de lotes restantes`,
-      );
-      for (const lote of lotesDisponibles) {
-        if (cantidadPendiente <= 0) break;
-
-        const cantidadDisponible = Number(lote.cantidadActual);
-        if (cantidadDisponible > 0) {
-          const cantidadADescontar = Math.min(
-            cantidadDisponible,
-            cantidadPendiente,
-          );
-          lote.cantidadActual = cantidadDisponible - cantidadADescontar;
-          cantidadPendiente -= cantidadADescontar;
-          await this.loteRepository.save(lote);
-          console.log(
-            `✅ Lote ${lote.id} ajustado: ${cantidadDisponible} -> ${lote.cantidadActual}`,
-          );
-        }
       }
     }
 
     console.log(
       `✅ Distribución completada. Cantidad pendiente: ${cantidadPendiente}`,
     );
+    
+    if (cantidadPendiente > 0) {
+      throw new Error(
+        `No se pudo distribuir toda la cantidad. Pendiente: ${cantidadPendiente}`,
+      );
+    }
+    
+    // El costo unitario final es el costo promedio ponderado
+    const costoUnitarioFinal = costoPromedioPonderado;
+    
+    console.log(`💰 Resumen final PROMEDIO:`);
+    console.log(`  - Costo unitario final: ${costoUnitarioFinal}`);
+    console.log(`  - Costo total consumido: ${costoTotalConsumido}`);
+    console.log(`  - Cantidad total procesada: ${cantidad}`);
+    console.log(`  - Lotes afectados: ${precioYcantidadPorLote.length}`);
+    console.log(`  - Detalle de lotes:`, precioYcantidadPorLote);
+    
+    return {
+      costoUnitario: costoUnitarioFinal,
+      lotes: precioYcantidadPorLote,
+    };
   }
 
   /**
