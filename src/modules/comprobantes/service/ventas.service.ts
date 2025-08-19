@@ -22,7 +22,8 @@ export class VentasService {
     async findAll(): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
             where: { tipoOperacion: TipoOperacion.VENTA },
-            relations: ['totales', 'persona', 'detalles']
+            relations: ['totales', 'persona', 'detalles'],
+            order: { fechaRegistro: 'DESC' }
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,

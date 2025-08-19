@@ -22,7 +22,7 @@ export class Categoria {
      * Descripción detallada de la categoría
      */
     @Column({ length: 255, nullable: true })
-    descripcion: string;
+    descripcion?: string;
 
     /**
      * Tipo de categoría (PRODUCTO o SERVICIO)

@@ -15,8 +15,8 @@ export class Producto {
     /**
      * Nombre del producto
      */
-    @Column({ length: 255, nullable: true })
-    nombre?: string;
+    @Column({ length: 255, nullable: false })
+    nombre: string;
 
     /**
      * Relación muchos a uno con categoría
@@ -34,8 +34,8 @@ export class Producto {
     /**
      * Descripción del producto
      */
-    @Column({ length: 255, nullable: false })
-    descripcion: string;
+    @Column({ length: 255, nullable: true })
+    descripcion?: string;
 
     /**
      * Unidad de medida del producto (kg, unidad, litro, etc.)
