@@ -33,6 +33,14 @@ class PersonaResponseDto {
     @Expose()
     @ApiProperty({ description: 'DNI' })
     dni: string;
+
+    @Expose()
+    @ApiProperty({ description: 'Tipo de documento', required: false })
+    tipoDocumento?: string;
+
+    @Expose()
+    @ApiProperty({ description: 'Dirección', required: false })
+    direccion?: string;
 }
 
 export class ResponseUserDto {

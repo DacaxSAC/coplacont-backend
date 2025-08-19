@@ -18,6 +18,8 @@ export class Persona {
     telefono: string;
     @Column({nullable: true})
     dni: string;
+    @Column({nullable: true, default: 'DNI'})
+    tipoDocumento: string;
     @Column({nullable: true})
     direccion: string;
     @Column({nullable: true})
