@@ -39,6 +39,19 @@ export class Inventario {
     stockActual: number;
 
     /**
+     * Costo promedio ponderado actual del inventario
+     * Se actualiza solo con las entradas de mercancía
+     */
+    @Column({
+        type: 'decimal',
+        precision: 12,
+        scale: 4,
+        default: 0,
+        comment: 'Costo promedio ponderado actual del inventario'
+    })
+    costoPromedioActual: number;
+
+    /**
      * Fecha de creación del registro
      */
     @CreateDateColumn({

@@ -40,16 +40,28 @@ export class LoteService {
         if (tipoOperacion === TipoOperacion.COMPRA) {
           await this.registrarLoteCompra(detalle);
         } else {
-          const {costoUnitario, lotes} = await this.actualizarStockVenta(
-            detalle,
-            metodoValoracion,
-          );
-          costosUnitariosDeDetalles.push(costoUnitario);
+          // Para ventas y otras operaciones (salidas)
+          if (metodoValoracion === MetodoValoracion.PROMEDIO) {
+            // Para promedio ponderado, usar el costo promedio existente
+            const resultadoVenta = await this.usarPromedioExistente(
+              detalle.inventario.id,
+              Number(detalle.cantidad),
+            );
+            costosUnitariosDeDetalles.push(resultadoVenta.costoUnitario);
+            lotesUsados.push(...resultadoVenta.lotes);
+          } else {
+            // Para otros métodos (FIFO, LIFO), usar la lógica original
+            const {costoUnitario, lotes} = await this.actualizarStockVenta(
+              detalle,
+              metodoValoracion,
+            );
+            costosUnitariosDeDetalles.push(costoUnitario);
+            lotesUsados.push(...lotes);
+          }
           console.log(
-            `Costo unitario calculado: ${costoUnitario} de detalle ${i + 1}`,
+            `Costo unitario calculado: ${costosUnitariosDeDetalles[costosUnitariosDeDetalles.length - 1]} de detalle ${i + 1}`,
             detalle,
           );
-          lotesUsados.push(...lotes);
           console.log(
             `Lotes usados: ${lotesUsados} de detalle ${i + 1}`,
             detalle,
@@ -69,6 +81,51 @@ export class LoteService {
   /**
    * Registrar nuevo lote para compras
    */
+  /**
+   * Calcular nuevo costo promedio ponderado con entrada de mercancía
+   * Solo se ejecuta en compras para recalcular el promedio
+   */
+  private async calcularNuevoPromedioConEntrada(
+    inventarioId: number,
+    cantidadNueva: number,
+    costoNuevo: number
+  ): Promise<number> {
+    console.log(
+      `🔄 Calculando nuevo promedio con entrada: Inventario=${inventarioId}, Cantidad=${cantidadNueva}, Costo=${costoNuevo}`
+    );
+
+    // Obtener lotes existentes con stock
+    const lotesExistentes = await this.loteRepository.find({
+      where: { 
+        inventario: { id: inventarioId },
+        cantidadActual: MoreThan(0)
+      },
+      order: { fechaIngreso: 'ASC' }
+    });
+
+    let cantidadTotalExistente = 0;
+    let valorTotalExistente = 0;
+
+    // Calcular totales de inventario existente
+    for (const lote of lotesExistentes) {
+      const cantidad = Number(lote.cantidadActual);
+      const costo = Number(lote.costoUnitario);
+      cantidadTotalExistente += cantidad;
+      valorTotalExistente += cantidad * costo;
+    }
+
+    // Calcular nuevo promedio ponderado incluyendo la nueva entrada
+    const cantidadTotalNueva = cantidadTotalExistente + cantidadNueva;
+    const valorTotalNuevo = valorTotalExistente + (cantidadNueva * costoNuevo);
+    const nuevoCostoPromedio = cantidadTotalNueva > 0 ? valorTotalNuevo / cantidadTotalNueva : 0;
+
+    console.log(
+      `📊 Cálculo promedio: Existente(${cantidadTotalExistente} x ${valorTotalExistente/cantidadTotalExistente || 0}) + Nuevo(${cantidadNueva} x ${costoNuevo}) = ${nuevoCostoPromedio}`
+    );
+
+    return parseFloat(nuevoCostoPromedio.toFixed(4));
+  }
+
   private async registrarLoteCompra(
     detalle: ComprobanteDetalle,
   ): Promise<void> {
@@ -113,6 +170,13 @@ export class LoteService {
       throw new Error('El precio unitario no puede ser negativo');
     }
 
+    // Calcular nuevo costo promedio ponderado con la entrada
+    const nuevoCostoPromedio = await this.calcularNuevoPromedioConEntrada(
+      inventario.id,
+      cantidad,
+      precioUnitario
+    );
+
     // Crear nuevo lote con información más detallada
     const lote = this.loteRepository.create({
       inventario: inventario,
@@ -126,13 +190,14 @@ export class LoteService {
 
     await this.loteRepository.save(lote);
 
-    // Actualizar stock del inventario
+    // Actualizar stock e inventario con el nuevo costo promedio
     const stockActual = Number(inventario.stockActual) || 0;
     inventario.stockActual = stockActual + cantidad;
+    inventario.costoPromedioActual = nuevoCostoPromedio;
     await this.inventarioRepository.save(inventario);
 
     console.log(
-      `✅ Lote creado exitosamente: ID=${lote.id}, Inventario=${inventario.id}, Producto=${inventario.producto.id}, Almacén=${inventario.almacen.id}, Cantidad=${cantidad}, Stock actualizado=${inventario.stockActual}`,
+      `✅ Lote creado exitosamente: ID=${lote.id}, Inventario=${inventario.id}, Producto=${inventario.producto.id}, Almacén=${inventario.almacen.id}, Cantidad=${cantidad}, Stock actualizado=${inventario.stockActual}, Nuevo costo promedio=${nuevoCostoPromedio}`,
     );
   }
 
@@ -380,7 +445,111 @@ export class LoteService {
   }
 
   /**
-   * Actualizar lotes usando promedio ponderado
+   * Usar costo promedio existente para salidas
+   * No recalcula el promedio, usa el último calculado
+   */
+  private async usarPromedioExistente(
+    inventarioId: number,
+    cantidad: number
+  ): Promise<{
+    costoUnitario: number;
+    lotes: { idLote: number; costoUnitarioDeLote: number; cantidad: number }[];
+  }> {
+    console.log(
+      `🔄 Usando costo promedio existente para salida: Inventario=${inventarioId}, Cantidad=${cantidad}`
+    );
+
+    // Obtener el inventario para acceder al costo promedio actual
+    const inventario = await this.inventarioRepository.findOne({
+      where: { id: inventarioId }
+    });
+
+    if (!inventario) {
+      throw new Error(`Inventario no encontrado: ${inventarioId}`);
+    }
+
+    const costoPromedioActual = Number(inventario.costoPromedioActual) || 0;
+    console.log(`💰 Costo promedio actual del inventario: ${costoPromedioActual}`);
+
+    // Obtener lotes disponibles para distribución física (FIFO)
+    const lotesDisponibles = await this.loteRepository.find({
+      where: { 
+        inventario: { id: inventarioId },
+        cantidadActual: MoreThan(0)
+      },
+      order: { fechaIngreso: 'ASC' }
+    });
+
+    if (lotesDisponibles.length === 0) {
+      throw new Error(
+        `No hay lotes disponibles para la venta. Inventario: ${inventarioId}`
+      );
+    }
+
+    // Verificar stock suficiente
+    const stockTotal = lotesDisponibles.reduce(
+      (total, lote) => total + Number(lote.cantidadActual), 0
+    );
+
+    if (stockTotal < cantidad) {
+      throw new Error(
+        `Stock insuficiente. Disponible: ${stockTotal}, Requerido: ${cantidad}`
+      );
+    }
+
+    // Distribuir cantidad usando FIFO pero con costo promedio existente
+    let cantidadPendiente = cantidad;
+    let lotesAfectados: {
+      idLote: number;
+      costoUnitarioDeLote: number;
+      cantidad: number;
+    }[] = [];
+
+    console.log(`🎯 Distribuyendo ${cantidad} unidades con costo promedio fijo: ${costoPromedioActual}`);
+
+    for (const lote of lotesDisponibles) {
+      if (cantidadPendiente <= 0) break;
+
+      const cantidadLote = Number(lote.cantidadActual);
+      const cantidadADescontar = Math.min(cantidadLote, cantidadPendiente);
+
+      if (cantidadADescontar > 0) {
+        // Actualizar el lote físicamente
+        lote.cantidadActual = cantidadLote - cantidadADescontar;
+        cantidadPendiente -= cantidadADescontar;
+
+        // Registrar lote afectado usando el costo promedio existente
+        lotesAfectados.push({
+          idLote: lote.id,
+          costoUnitarioDeLote: costoPromedioActual, // Usar costo promedio fijo
+          cantidad: cantidadADescontar
+        });
+
+        await this.loteRepository.save(lote);
+        console.log(
+          `📦 Lote ${lote.id} actualizado: Consumido=${cantidadADescontar}, Restante=${lote.cantidadActual}, Costo aplicado=${costoPromedioActual}`
+        );
+      }
+    }
+
+    if (cantidadPendiente > 0) {
+      throw new Error(
+        `No se pudo distribuir toda la cantidad. Pendiente: ${cantidadPendiente}`
+      );
+    }
+
+    console.log(`✅ Salida procesada con costo promedio fijo: ${costoPromedioActual}`);
+    console.log(`📊 Lotes afectados: ${lotesAfectados.length}`);
+
+    return {
+      costoUnitario: costoPromedioActual,
+      lotes: lotesAfectados
+    };
+  }
+
+  /**
+   * Actualizar lotes usando promedio ponderado (MÉTODO OBSOLETO)
+   * Mantenido para compatibilidad, pero ahora usa usarPromedioExistente
    */
   private async actualizarLotesPromedio(
     inventarioId: number,
@@ -390,141 +559,11 @@ export class LoteService {
     lotes: { idLote: number; costoUnitarioDeLote: number; cantidad: number }[];
   }> {
     console.log(
-      `🔄 Iniciando actualización de lotes con método PROMEDIO: Inventario=${inventarioId}, Cantidad=${cantidad}`,
-    );
-
-    // Obtener lotes de forma más simple
-    const lotes = await this.loteRepository.find({
-      where: { inventario: { id: inventarioId } },
-      order: { fechaIngreso: 'ASC' },
-    });
-
-    console.log(`📦 Lotes encontrados: ${lotes.length}`);
-    console.log(lotes);
-
-    lotes.forEach((lote, index) => {
-      console.log(
-        `  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}`,
-      );
-    });
-
-    // Filtrar lotes con stock disponible
-    const lotesDisponibles = lotes.filter(
-      (lote) => Number(lote.cantidadActual) > 0,
-    );
-    console.log(
-      `✅ Lotes disponibles después de filtro: ${lotesDisponibles.length}`,
-    );
-
-    if (lotesDisponibles.length === 0) {
-      throw new Error(
-        `No hay lotes disponibles para la venta. Inventario: ${inventarioId}, Lotes totales: ${lotes.length}`,
-      );
-    }
-
-    // Calcular totales para el promedio ponderado
-    let cantidadTotal = 0;
-    let valorTotal = 0;
-
-    console.log(`🔍 Calculando costo promedio ponderado:`);
-    for (const lote of lotesDisponibles) {
-      const cantidadLote = Number(lote.cantidadActual);
-      const costoLote = Number(lote.costoUnitario);
-      const subtotal = cantidadLote * costoLote;
-      cantidadTotal += cantidadLote;
-      valorTotal += subtotal;
-      console.log(
-        `📊 Lote ${lote.id}: Cantidad=${cantidadLote}, Costo=${costoLote}, Subtotal=${subtotal}`,
-      );
-    }
-
-    const costoPromedioPonderado = cantidadTotal > 0 ? valorTotal / cantidadTotal : 0;
-    console.log(
-      `📊 Totales: Cantidad=${cantidadTotal}, Valor=${valorTotal}, Promedio=${costoPromedioPonderado}`,
-    );
-    console.log(`💰 Costo promedio ponderado calculado: ${costoPromedioPonderado}`);
-
-    if (cantidadTotal < cantidad) {
-      throw new Error(
-        `Stock insuficiente. Disponible: ${cantidadTotal}, Requerido: ${cantidad}`,
-      );
-    }
-
-    // Variables para el retorno
-    let costoTotalConsumido = 0;
-    let precioYcantidadPorLote: {
-      idLote: number;
-      costoUnitarioDeLote: number;
-      cantidad: number;
-    }[] = [];
-
-    // Distribuir la cantidad usando FIFO pero con costo promedio ponderado
-    let cantidadPendiente = cantidad;
-    console.log(`🎯 Iniciando distribución FIFO con costo promedio: ${costoPromedioPonderado}`);
-    console.log(`🔄 Iniciando distribución FIFO de ${cantidad} unidades con costo promedio ${costoPromedioPonderado}`);
-
-    for (const lote of lotesDisponibles) {
-      if (cantidadPendiente <= 0) break;
-
-      const cantidadLote = Number(lote.cantidadActual);
-      const cantidadADescontar = Math.min(cantidadLote, cantidadPendiente);
-
-      console.log(
-        `🔄 Procesando lote ${lote.id}: Cantidad disponible=${cantidadLote}, A consumir=${cantidadADescontar}`,
-      );
-      console.log(
-        `📦 Lote ${lote.id}: Disponible=${cantidadLote}, A descontar=${cantidadADescontar}`,
-      );
-
-      if (cantidadADescontar > 0) {
-        // Actualizar el lote
-        lote.cantidadActual = cantidadLote - cantidadADescontar;
-        cantidadPendiente -= cantidadADescontar;
-        
-        // Registrar lote afectado para el retorno (usando costo promedio ponderado)
-        precioYcantidadPorLote.push({
-          idLote: lote.id,
-          costoUnitarioDeLote: costoPromedioPonderado, // Usar costo promedio ponderado
-          cantidad: cantidadADescontar,
-        });
-        
-        // Calcular costo total usando el costo promedio ponderado
-        costoTotalConsumido += cantidadADescontar * costoPromedioPonderado;
-        
-        await this.loteRepository.save(lote);
-        console.log(
-          `📦 Lote ${lote.id} actualizado: Consumido=${cantidadADescontar}, Restante en lote=${lote.cantidadActual}, Costo total acumulado=${costoTotalConsumido}`,
-        );
-        console.log(
-          `✅ Lote ${lote.id} actualizado: ${cantidadLote} -> ${lote.cantidadActual}`,
-        );
-      }
-    }
-
-    console.log(
-      `✅ Distribución completada. Cantidad pendiente: ${cantidadPendiente}`,
+      `🔄 MÉTODO OBSOLETO: Redirigiendo a usarPromedioExistente para mantener compatibilidad`,
     );
     
-    if (cantidadPendiente > 0) {
-      throw new Error(
-        `No se pudo distribuir toda la cantidad. Pendiente: ${cantidadPendiente}`,
-      );
-    }
-    
-    // El costo unitario final es el costo promedio ponderado
-    const costoUnitarioFinal = costoPromedioPonderado;
-    
-    console.log(`💰 Resumen final PROMEDIO:`);
-    console.log(`  - Costo unitario final: ${costoUnitarioFinal}`);
-    console.log(`  - Costo total consumido: ${costoTotalConsumido}`);
-    console.log(`  - Cantidad total procesada: ${cantidad}`);
-    console.log(`  - Lotes afectados: ${precioYcantidadPorLote.length}`);
-    console.log(`  - Detalle de lotes:`, precioYcantidadPorLote);
-    
-    return {
-      costoUnitario: costoUnitarioFinal,
-      lotes: precioYcantidadPorLote,
-    };
+    // Redirigir al nuevo método que usa el costo promedio existente
+    return await this.usarPromedioExistente(inventarioId, cantidad);
   }
 
   /**
