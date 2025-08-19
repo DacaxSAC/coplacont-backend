@@ -15,7 +15,7 @@ export class Producto {
     /**
      * Nombre del producto
      */
-    @Column({ length: 255, nullable: false })
+    @Column({ length: 255, nullable: false , unique: true})
     nombre: string;
 
     /**
