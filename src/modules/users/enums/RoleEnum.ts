@@ -1,6 +1,5 @@
 export enum RolEnum {
     ADMIN = 'ADMIN',
-    CONTADOR = 'CONTADOR',
-    CONTRIBUYENTE = 'CONTRIBUYENTE',
+    EMPRESA = 'EMPRESA',
   }
   

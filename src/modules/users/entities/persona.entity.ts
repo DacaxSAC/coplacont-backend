@@ -1,27 +1,32 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { User } from "./user.entity";
 
 @Entity()
 export class Persona {
     @PrimaryGeneratedColumn()
     id: number;
-    @Column({nullable: true})
-    primerNombre: string;
-    @Column({nullable: true})
-    segundoNombre: string;
-    @Column({nullable: true})
-    primerApellido: string;
-    @Column({nullable: true})
-    segundoApellido: string;
-    @Column({nullable: true})
-    fechaNacimiento: Date;
-    @Column({nullable: true})
+    
+    @Column()
+    nombreEmpresa: string;
+    
+    @Column({ unique: true })
+    ruc: string;
+    
+    @Column({ nullable: true })
+    razonSocial: string;
+    
+    @Column({ nullable: true })
     telefono: string;
-    @Column({nullable: true})
-    dni: string;
-    @Column({nullable: true, default: 'DNI'})
-    tipoDocumento: string;
-    @Column({nullable: true})
+    
+    @Column({ nullable: true })
     direccion: string;
-    @Column({nullable: true})
-    createdAt : Date;
+    
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createdAt: Date;
+    
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    updatedAt: Date;
+    
+    @OneToMany(() => User, user => user.persona)
+    usuarios: User[];
 }

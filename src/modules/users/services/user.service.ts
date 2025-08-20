@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { Persona } from '../entities/persona.entity';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UpdateUserDto } from '../dto/user/update-user.dto';
 import { plainToInstance } from 'class-transformer';
@@ -55,7 +56,22 @@ export class UserService {
    * @returns Usuario creado
    */
   async create(createUserDto: CreateUserDto): Promise<ResponseUserDto> {
-    const persona = await this.personaService.create(createUserDto.createPersonaDto);
+    let persona: Persona | null = null;
+    let nombreCompleto = 'Usuario';
+    
+    // Si se proporciona createPersonaDto, crear nueva empresa
+    if (createUserDto.createPersonaDto) {
+      persona = await this.personaService.create(createUserDto.createPersonaDto);
+      nombreCompleto = createUserDto.createPersonaDto.nombreEmpresa;
+    }
+    // Si se proporciona idPersona, buscar empresa existente
+    else if (createUserDto.idPersona) {
+      persona = await this.personaService.findById(createUserDto.idPersona);
+      if (!persona) {
+        throw new Error(`Empresa con ID ${createUserDto.idPersona} no encontrada`);
+      }
+      nombreCompleto = persona.nombreEmpresa;
+    }
     
     const passwordPlano = this.generarPasswordAutogenerada();
     const passwordHasheada = await hash(passwordPlano, 10);
@@ -63,7 +79,8 @@ export class UserService {
     const user = this.userRepository.create({
       email: createUserDto.email,
       contrasena: passwordHasheada,
-      persona: persona,
+      persona: persona || undefined,
+      esPrincipal: createUserDto.esPrincipal || false,
     });
     
     const userSaved = await this.userRepository.save(user);
@@ -76,7 +93,7 @@ export class UserService {
      try {
        await this.emailService.sendWelcomeEmailWithCredentials(
          createUserDto.email,
-         `${persona.primerNombre} ${persona.primerApellido}`,
+         nombreCompleto,
          passwordPlano
        );
      } catch (error) {

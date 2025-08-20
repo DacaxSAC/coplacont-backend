@@ -17,6 +17,10 @@ export class PersonaService {
         return await this.personaRepository.save(persona);
     }
 
+    async findById(id: number): Promise<Persona | null> {
+        return await this.personaRepository.findOne({ where: { id } });
+    }
+
     async update(id: number, updatePersonaData: Partial<Persona>): Promise<Persona> {
         await this.personaRepository.update(id, updatePersonaData);
         const persona = await this.personaRepository.findOne({ where: { id } });
