@@ -12,7 +12,7 @@ import { Inventario } from '../../inventario/entities/inventario.entity';
 /**
  * Entidad InventarioLote
  * Representa un lote específico de productos en inventario
- * Necesario para el cálculo de costos en el Kardex (FIFO/LIFO)
+ * Necesario para el cálculo de costos en el Kardex (FIFO/PROMEDIO)
  */
 @Entity('inventario_lote')
 export class InventarioLote {

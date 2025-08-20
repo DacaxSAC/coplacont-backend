@@ -23,19 +23,12 @@ export class LoteService {
     tipoOperacion: TipoOperacion,
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
   ): Promise<{costoUnitario: number[], lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
-    console.log(
-      `🔄 Iniciando procesamiento de lotes: Tipo=${tipoOperacion}, Método=${metodoValoracion}, Detalles=${detalles.length}`,
-    );
     let costosUnitariosDeDetalles: number[] = [];
     let lotesUsados: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
 
     try {
       for (let i = 0; i < detalles.length; i++) {
         const detalle = detalles[i];
-        console.log(
-          `📦 Procesando detalle de lote ${i + 1}/${detalles.length}: Inventario=${detalle.inventario?.id}, Cantidad=${detalle.cantidad}`,
-        );
-        console.log(detalle);
 
         if (tipoOperacion === TipoOperacion.COMPRA) {
           await this.registrarLoteCompra(detalle);
@@ -50,7 +43,7 @@ export class LoteService {
             costosUnitariosDeDetalles.push(resultadoVenta.costoUnitario);
             lotesUsados.push(...resultadoVenta.lotes);
           } else {
-            // Para otros métodos (FIFO, LIFO), usar la lógica original
+            // Para el método FIFO, usar la lógica original
             const {costoUnitario, lotes} = await this.actualizarStockVenta(
               detalle,
               metodoValoracion,
@@ -68,9 +61,6 @@ export class LoteService {
           );
         }
       }
-      console.log(
-        `✅ Procesamiento de lotes completado exitosamente para ${detalles.length} detalles`,
-      );
     } catch (error) {
       console.error(`❌ Error en procesamiento de lotes:`, error.message);
       throw error;
@@ -129,9 +119,6 @@ export class LoteService {
   private async registrarLoteCompra(
     detalle: ComprobanteDetalle,
   ): Promise<void> {
-    console.log(
-      `Iniciando creación de lote para detalle: Inventario=${detalle.inventario?.id}, Cantidad=${detalle.cantidad}`,
-    );
 
     // Validar que el detalle tenga inventario
     if (!detalle.inventario || !detalle.inventario.id) {
@@ -208,14 +195,8 @@ export class LoteService {
     detalle: ComprobanteDetalle,
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
   ): Promise<{costoUnitario: number, lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
-    console.log('----------------------------------------');
-    console.log('----------------------------------------');
-    console.log('SECCION DE ACTUALIZAR LOTES');
-    console.log('----------------------------------------');
-    console.log('----------------------------------------');
 
     //Buscamos el inventario que pertenece el detalle
-    console.log('Inventario del detalle:', detalle.inventario);
     const inventario = await this.inventarioRepository.findOne({
       where: { id: detalle.inventario.id },
     });
@@ -253,9 +234,7 @@ export class LoteService {
           costoUnitarioPorAlgoritmoCosteo=costoUnitario;
           lotes=lotesFIFO;
           break;
-        case MetodoValoracion.LIFO:
-          await this.actualizarLotesLIFO(inventario.id, cantidadNum);
-          break;
+
         case MetodoValoracion.PROMEDIO:
           const {costoUnitario: costoPromedio, lotes: lotesPromedio} = await this.actualizarLotesPromedio(inventario.id, cantidadNum);
           costoUnitarioPorAlgoritmoCosteo = costoPromedio;
@@ -308,6 +287,10 @@ export class LoteService {
   /**
    * Actualizar lotes usando lógica FIFO
    */
+  /**
+   * Actualizar lotes usando lógica FIFO (First In, First Out)
+   * Calcula el costo unitario promedio ponderado de los lotes consumidos
+   */
   private async actualizarLotesFIFO(
     inventarioId: number,
     cantidad: number,
@@ -315,12 +298,9 @@ export class LoteService {
     costoUnitario: number;
     lotes: { idLote: number; costoUnitarioDeLote: number; cantidad: number }[];
   }> {
-    let costoUnitarioPorAlgoritmoCosteoFIFO = 0;
-    let precioYcantidadPorLote: {
-      idLote: number;
-      costoUnitarioDeLote: number;
-      cantidad: number;
-    }[] = [];
+    console.log(
+      `🔄 FIFO: Procesando salida - Inventario=${inventarioId}, Cantidad=${cantidad}`
+    );
 
     // Obtener lotes ordenados por fecha de ingreso (FIFO)
     const lotes = await this.loteRepository
@@ -331,8 +311,7 @@ export class LoteService {
       .orderBy('lote.fechaIngreso', 'ASC')
       .getMany();
 
-    console.log('----------------------------------------');
-    console.log('Lotes encontrados:', lotes);
+    console.log(`📦 FIFO: Lotes disponibles encontrados: ${lotes.length}`);
 
     if (lotes.length === 0) {
       throw new Error(
@@ -340,7 +319,25 @@ export class LoteService {
       );
     }
 
+    // Verificar stock suficiente
+    const stockTotal = lotes.reduce(
+      (total, lote) => total + Number(lote.cantidadActual), 0
+    );
+
+    if (stockTotal < cantidad) {
+      throw new Error(
+        `FIFO: Stock insuficiente. Disponible: ${stockTotal}, Requerido: ${cantidad}`
+      );
+    }
+
     let cantidadPendiente = cantidad;
+    let costoTotalAcumulado = 0;
+    let cantidadTotalConsumida = 0;
+    let lotesAfectados: {
+      idLote: number;
+      costoUnitarioDeLote: number;
+      cantidad: number;
+    }[] = [];
 
     for (const lote of lotes) {
       if (cantidadPendiente <= 0) break;
@@ -351,98 +348,53 @@ export class LoteService {
         cantidadPendiente,
       );
 
-      lote.cantidadActual = Number(lote.cantidadActual) - cantidadADescontar;
-      cantidadPendiente -= cantidadADescontar;
-      precioYcantidadPorLote.push({
-        idLote: lote.id,
-        costoUnitarioDeLote: lote.costoUnitario,
-        cantidad: cantidadADescontar,
-      });
+      if (cantidadADescontar > 0) {
+        // Actualizar el lote físicamente
+        lote.cantidadActual = Number(lote.cantidadActual) - cantidadADescontar;
+        cantidadPendiente -= cantidadADescontar;
 
-      let costoPorCantidadDescontada = cantidadADescontar * lote.costoUnitario;
-      costoUnitarioPorAlgoritmoCosteoFIFO += costoPorCantidadDescontada;
+        // Acumular para cálculo de costo promedio ponderado
+        const costoUnitarioLote = Number(lote.costoUnitario);
+        costoTotalAcumulado += cantidadADescontar * costoUnitarioLote;
+        cantidadTotalConsumida += cantidadADescontar;
 
-      await this.loteRepository.save(lote);
+        // Registrar lote afectado
+        lotesAfectados.push({
+          idLote: lote.id,
+          costoUnitarioDeLote: costoUnitarioLote,
+          cantidad: cantidadADescontar,
+        });
+
+        await this.loteRepository.save(lote);
+        
+        console.log(
+          `📦 FIFO: Lote ${lote.id} procesado - Consumido: ${cantidadADescontar}, Costo: ${costoUnitarioLote}, Restante: ${lote.cantidadActual}`
+        );
+      }
     }
 
     if (cantidadPendiente > 0) {
       throw new Error(
-        `FIFO: No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`,
+        `FIFO: No se pudo distribuir toda la cantidad. Pendiente: ${cantidadPendiente}`
       );
     }
 
+    // Calcular costo unitario promedio ponderado de los lotes consumidos
+    const costoUnitarioPromedioPonderado = cantidadTotalConsumida > 0 
+      ? costoTotalAcumulado / cantidadTotalConsumida 
+      : 0;
+
+    console.log(
+      `✅ FIFO: Procesamiento completado - Costo promedio ponderado: ${costoUnitarioPromedioPonderado.toFixed(4)}, Lotes afectados: ${lotesAfectados.length}`
+    );
+
     return {
-    costoUnitario: costoUnitarioPorAlgoritmoCosteoFIFO,
-    lotes: precioYcantidadPorLote
+      costoUnitario: parseFloat(costoUnitarioPromedioPonderado.toFixed(4)),
+      lotes: lotesAfectados
     };
   }
 
-  /**
-   * Actualizar lotes usando lógica LIFO (Last In, First Out)
-   */
-  private async actualizarLotesLIFO(
-    inventarioId: number,
-    cantidad: number,
-  ): Promise<void> {
-    console.log(
-      `🔍 LIFO: Buscando lotes para inventario ${inventarioId} con cantidad requerida ${cantidad}`,
-    );
 
-    // Obtener lotes ordenados por fecha de ingreso descendente (LIFO)
-    const lotes = await this.loteRepository
-      .createQueryBuilder('lote')
-      .leftJoinAndSelect('lote.inventario', 'inventario')
-      .where('inventario.id = :inventarioId', { inventarioId })
-      .andWhere('lote.cantidadActual > 0')
-      .orderBy('lote.fechaIngreso', 'DESC')
-      .getMany();
-
-    console.log(`📦 LIFO: Lotes encontrados: ${lotes.length}`);
-    lotes.forEach((lote, index) => {
-      console.log(
-        `  Lote ${index + 1}: ID=${lote.id}, Cantidad=${lote.cantidadActual}, Costo=${lote.costoUnitario}, Fecha=${lote.fechaIngreso}`,
-      );
-    });
-
-    if (lotes.length === 0) {
-      throw new Error(
-        `LIFO: No hay lotes disponibles para la venta. Inventario: ${inventarioId}`,
-      );
-    }
-
-    let cantidadPendiente = cantidad;
-    console.log(`🔄 LIFO: Iniciando descuento de ${cantidad} unidades`);
-
-    for (const lote of lotes) {
-      if (cantidadPendiente <= 0) break;
-      if (Number(lote.cantidadActual) <= 0) continue;
-
-      const cantidadADescontar = Math.min(
-        Number(lote.cantidadActual),
-        cantidadPendiente,
-      );
-
-      console.log(
-        `📦 LIFO: Lote ${lote.id}: Descontando ${cantidadADescontar} de ${lote.cantidadActual}`,
-      );
-
-      lote.cantidadActual = Number(lote.cantidadActual) - cantidadADescontar;
-      cantidadPendiente -= cantidadADescontar;
-
-      await this.loteRepository.save(lote);
-      console.log(
-        `✅ LIFO: Lote ${lote.id} actualizado: ${lote.cantidadActual}, Pendiente: ${cantidadPendiente}`,
-      );
-    }
-
-    if (cantidadPendiente > 0) {
-      throw new Error(
-        `LIFO: No hay suficientes lotes para cubrir la cantidad requerida. Faltante: ${cantidadPendiente}`,
-      );
-    }
-
-    console.log(`✅ LIFO: Descuento completado exitosamente`);
-  }
 
   /**
    * Usar costo promedio existente para salidas

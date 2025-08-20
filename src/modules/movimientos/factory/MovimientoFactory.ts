@@ -1,17 +1,14 @@
 import { Comprobante } from "src/modules/comprobantes/entities/comprobante";
-import { CreateMovimientoDetalleDto, CreateMovimientoDto, ResponseMovimientoDto, CreateDetalleSalidaDto } from "../dto";
+import { CreateMovimientoDetalleDto, CreateMovimientoDto, CreateDetalleSalidaDto } from "../dto";
 import { TipoOperacion } from "src/modules/comprobantes/enum/tipo-operacion.enum";
 import { EstadoMovimiento, TipoMovimiento } from "../enum";
 import { Injectable } from "@nestjs/common";
 import { ComprobanteDetalle } from "src/modules/comprobantes/entities/comprobante-detalle";
-import { InventarioLoteService } from "src/modules/inventario/service/inventario-lote.service";
 
 @Injectable()
 export class MovimientoFactory {
 
-    constructor(
-        private readonly inventarioLoteService: InventarioLoteService
-    ) {}
+    constructor() {}
 
     /**
      * Crea un movimiento desde un comprobante
@@ -19,8 +16,6 @@ export class MovimientoFactory {
      * Para compras usa el precio unitario original del comprobante
      */
     async createMovimientoFromComprobante(comprobante : Comprobante, costosUnitarios: number[], precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]): Promise<CreateMovimientoDto> {
-        console.log('Comprobante')
-        console.log(comprobante.detalles);
         const detalles = await this.createMovimientosDetallesFromDetallesComprobante(comprobante.detalles, comprobante.tipoOperacion, costosUnitarios, precioYcantidadPorLote);
         
         return {
@@ -51,10 +46,7 @@ export class MovimientoFactory {
                 // Para compras (entradas), usar el precio unitario original del comprobante
                 costoUnitario = detalle.precioUnitario;
             } else {
-                // Para ventas (salidas), usar el costo unitario calculado por el método de valoración
                 const costoUnitarioCalculado = costosUnitarios[indice];
-                console.log('Costo unitario calculado por método de valoración:');
-                console.log(costoUnitarioCalculado);
                 // Si no hay costo calculado, usar el precio unitario del comprobante como fallback
                 costoUnitario = costoUnitarioCalculado > 0 ? costoUnitarioCalculado : detalle.precioUnitario;
                 
@@ -81,8 +73,7 @@ export class MovimientoFactory {
                         precioYcantidadPorLote[indiceLote].cantidad -= cantidadAUsar;
                     }
                 }
-                console.log('Lotes para este detalle');
-                console.log(lotesParaEsteDetalle);
+
                 detallesSalida = lotesParaEsteDetalle.length > 0 ? lotesParaEsteDetalle : undefined;
             }
             
@@ -100,7 +91,7 @@ export class MovimientoFactory {
             
             movimientoDetalles.push(movimientoDetalle);
             
-            indice++; // Incrementar el índice para el siguiente elemento
+            indice++;
         }
         
         return movimientoDetalles;

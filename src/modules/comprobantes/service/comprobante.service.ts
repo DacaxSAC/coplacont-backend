@@ -55,32 +55,32 @@ export class ComprobanteService {
         
         //Busca entidad dueña del idPersona
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
-        console.log('Entidad relacionada a comprobante:', entidad);
+
         // Crea instancia de comprobante
         const comprobante = this.comprobanteRepository.create(createComprobanteDto);
         comprobante.persona = entidad;
+
         // Asigna correlativo
         const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion);
         correlativo.ultimoNumero += 1;
         await this.correlativoRepository.save(correlativo);
         comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+
         //Guarda el comprobante
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
-        console.log(`✅ Comprobante creado: ID=${comprobanteSaved.idComprobante}, Correlativo=${comprobanteSaved.correlativo}`);
         
         let costosUnitarios: number[] = [];
         let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
+
         //Verifica si el comprobante tiene detalles
         if (await this.existDetails(createComprobanteDto)) {
             //Registra detalles
             const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
 
             comprobanteSaved.detalles = detallesSaved;
-
-            console.log(`✅ Detalles registrados: ${detallesSaved.length} detalles`);
             
             // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = MetodoValoracion.PROMEDIO; // createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
+            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
             const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
             costosUnitarios = costoUnitario;
             precioYcantidadPorLote = lotes;
@@ -92,7 +92,6 @@ export class ComprobanteService {
                 if (!lotesValidos) {
                     throw new Error('Error al crear los lotes para la compra. Verifique los logs para más detalles.');
                 }
-                console.log(`✅ Lotes validados correctamente para compra ${comprobanteSaved.idComprobante}`);
             }
         }
         

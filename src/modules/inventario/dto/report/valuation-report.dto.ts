@@ -56,20 +56,6 @@ export class ValuationItemDto {
   costoUnitarioFIFO: number;
 
   @ApiProperty({
-    description: 'Valoración usando método LIFO',
-    example: 2625.50,
-  })
-  @Expose()
-  valoracionLIFO: number;
-
-  @ApiProperty({
-    description: 'Costo unitario LIFO',
-    example: 26.15,
-  })
-  @Expose()
-  costoUnitarioLIFO: number;
-
-  @ApiProperty({
     description: 'Valoración usando promedio ponderado',
     example: 2588.13,
   })
@@ -82,13 +68,6 @@ export class ValuationItemDto {
   })
   @Expose()
   costoUnitarioPromedio: number;
-
-  @ApiProperty({
-    description: 'Diferencia entre FIFO y LIFO',
-    example: -74.75,
-  })
-  @Expose()
-  diferencia_FIFO_LIFO: number;
 
   @ApiProperty({
     description: 'Diferencia entre FIFO y Promedio',
@@ -127,9 +106,7 @@ export class ValuationReportDto {
   @Expose()
   resumen: {
     totalFIFO: number;
-    totalLIFO: number;
     totalPromedio: number;
-    diferenciaTotalFIFO_LIFO: number;
     diferenciaTotalFIFO_Promedio: number;
     cantidadTotalItems: number;
     valorTotalInventario: number;

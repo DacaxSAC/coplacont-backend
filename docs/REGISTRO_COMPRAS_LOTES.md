@@ -26,11 +26,28 @@
       descripcion: "Manzanas verdes"
     }
   ],
-  metodoValoracion: MetodoValoracion.FIFO
+  metodoValoracion: MetodoValoracion.PROMEDIO // Opcional, por defecto es PROMEDIO
 }
 ```
 
-### 2. Flujo de Procesamiento
+### 2. Métodos de Valoración Soportados
+
+El sistema soporta dos métodos de valoración de inventarios:
+
+#### PROMEDIO (Por defecto)
+- Utiliza el costo promedio ponderado del inventario
+- Para compras: Recalcula el promedio con la nueva entrada
+- Para ventas: Aplica el costo promedio actual a todas las salidas
+- Distribución física: FIFO (primero en entrar, primero en salir)
+- Valoración contable: Costo promedio ponderado
+
+#### FIFO (First In, First Out)
+- Primero en entrar, primero en salir
+- Para compras: Registra el lote con su costo específico
+- Para ventas: Consume los lotes más antiguos primero
+- Calcula el costo unitario promedio ponderado de los lotes consumidos
+
+### 3. Flujo de Procesamiento
 
 1. **Registro de Comprobante** (`ComprobanteService.register()`)
    - Crea el comprobante principal
@@ -47,7 +64,7 @@
    - Actualiza el stock del inventario
    - Valida que los lotes se crearon correctamente
 
-### 3. Validaciones Implementadas
+### 4. Validaciones Implementadas
 
 #### En ComprobanteDetalleService
 - ✅ Inventario existe
@@ -62,7 +79,7 @@
 - ✅ Inventario tiene producto y almacén
 - ✅ Lotes se crean con datos correctos
 
-### 4. Logging y Debugging
+### 5. Logging y Debugging
 
 El sistema incluye logging detallado en cada paso:
 
@@ -76,7 +93,7 @@ El sistema incluye logging detallado en cada paso:
 ✅ Detalle 2 procesado: Inventario=2, Producto=6, Almacén=1
 ✅ 2 detalles guardados exitosamente
 ✅ Totales calculados para comprobante 123
-🔄 Iniciando procesamiento de lotes: Tipo=COMPRA, Método=FIFO, Detalles=2
+🔄 Iniciando procesamiento de lotes: Tipo=COMPRA, Método=PROMEDIO, Detalles=2
 📦 Procesando detalle 1/2: Inventario=1, Cantidad=10.5
 Iniciando creación de lote para detalle: Inventario=1, Cantidad=10.5
 ✅ Lote creado exitosamente: ID=456, Inventario=1, Producto=5, Almacén=1, Cantidad=10.5, Stock actualizado=15.5
@@ -93,7 +110,7 @@ Iniciando creación de lote para detalle: Inventario=2, Cantidad=5.0
 ✅ Movimiento creado para comprobante 123
 ```
 
-### 5. Endpoints Útiles
+### 6. Endpoints Útiles
 
 #### Consultar Lotes Recientes
 ```http
@@ -110,7 +127,7 @@ GET /api/lotes/inventario/{idInventario}
 GET /api/lotes/inventario/{idInventario}/disponibles
 ```
 
-### 6. Estructura de Lote Creado
+### 7. Estructura de Lote Creado
 
 ```typescript
 {
@@ -130,7 +147,7 @@ GET /api/lotes/inventario/{idInventario}/disponibles
 }
 ```
 
-### 7. Manejo de Errores
+### 8. Manejo de Errores
 
 El sistema incluye validaciones robustas que lanzan errores descriptivos:
 
@@ -141,7 +158,7 @@ El sistema incluye validaciones robustas que lanzan errores descriptivos:
 - `El precio unitario no puede ser negativo`
 - `Error al crear los lotes para la compra. Verifique los logs para más detalles.`
 
-### 8. Recomendaciones
+### 9. Recomendaciones
 
 1. **Antes de registrar una compra**, asegúrate de que:
    - El inventario existe y está correctamente configurado
