@@ -15,4 +15,8 @@ export class CreatePersonaDto {
     telefono: string;
     @ApiProperty()
     dni: string;
+    @ApiProperty({ required: false, default: 'DNI' })
+    tipoDocumento?: string;
+    @ApiProperty({ required: false })
+    direccion?: string;
 }
