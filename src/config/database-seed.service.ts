@@ -90,6 +90,7 @@ export class DatabaseSeedService implements OnModuleInit {
         // Crear usuario admin
         const hashedPassword = await hash('admin123', 10);
         const adminUser = this.userRepository.create({
+          nombre: 'Administrador',
           email: 'admin@coplacont.com',
           contrasena: hashedPassword,
           habilitado: true,

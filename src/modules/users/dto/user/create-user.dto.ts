@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsBoolean } from 'class-validator';
+import { IsEmail, IsOptional, IsBoolean, IsString, IsNotEmpty } from 'class-validator';
 import { CreatePersonaDto } from '../persona/create-persona.dto';
 import { RolEnum } from '../../enums/RoleEnum';
 
@@ -14,6 +14,14 @@ export class CreateUserDto {
   })
   @IsEmail({}, { message: 'Debe proporcionar un email válido' })
   email: string;
+  
+  @ApiProperty({
+    example: 'Juan Pérez',
+    description: 'Nombre completo del usuario'
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'El nombre es requerido' })
+  nombre: string;
   
   @ApiProperty({
     description: 'ID del rol a asignar al usuario'

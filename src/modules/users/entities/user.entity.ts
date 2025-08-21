@@ -11,6 +11,9 @@ export class User {
   email: string;
 
   @Column()
+  nombre: string;
+
+  @Column()
   contrasena: string;
 
   @Column({ default: true })

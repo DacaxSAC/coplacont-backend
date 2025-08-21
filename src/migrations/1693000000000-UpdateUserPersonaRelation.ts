@@ -10,9 +10,10 @@ export class UpdateUserPersonaRelation1693000000000 implements MigrationInterfac
     name = 'UpdateUserPersonaRelation1693000000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Agregar campo esPrincipal a la tabla user
+        // Agregar campos nombre y esPrincipal a la tabla user
         await queryRunner.query(`
             ALTER TABLE "user" 
+            ADD COLUMN "nombre" character varying NOT NULL DEFAULT 'Usuario',
             ADD COLUMN "esPrincipal" boolean NOT NULL DEFAULT false
         `);
 
@@ -109,9 +110,10 @@ export class UpdateUserPersonaRelation1693000000000 implements MigrationInterfac
             ADD CONSTRAINT "UQ_user_personaId" UNIQUE ("personaId")
         `);
 
-        // Eliminar campo esPrincipal
+        // Eliminar campos nombre y esPrincipal
         await queryRunner.query(`
             ALTER TABLE "user" 
+            DROP COLUMN "nombre",
             DROP COLUMN "esPrincipal"
         `);
 

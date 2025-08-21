@@ -77,6 +77,7 @@ export class UserService {
     const passwordHasheada = await hash(passwordPlano, 10);
     
     const user = this.userRepository.create({
+      nombre: createUserDto.nombre,
       email: createUserDto.email,
       contrasena: passwordHasheada,
       persona: persona || undefined,

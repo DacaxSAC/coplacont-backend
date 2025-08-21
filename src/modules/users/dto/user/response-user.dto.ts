@@ -3,43 +3,27 @@ import { ApiProperty } from "@nestjs/swagger";
 
 class PersonaResponseDto {
     @Expose()
-    @ApiProperty({ description: 'ID de la persona' })
+    @ApiProperty({ description: 'ID de la empresa' })
     id: number;
 
     @Expose()
-    @ApiProperty({ description: 'Primer nombre' })
-    primerNombre: string;
+    @ApiProperty({ description: 'Nombre de la empresa' })
+    nombreEmpresa: string;
 
     @Expose()
-    @ApiProperty({ description: 'Segundo nombre' })
-    segundoNombre: string;
+    @ApiProperty({ description: 'RUC de la empresa' })
+    ruc: string;
 
     @Expose()
-    @ApiProperty({ description: 'Primer apellido' })
-    primerApellido: string;
+    @ApiProperty({ description: 'Razón social de la empresa' })
+    razonSocial: string;
 
     @Expose()
-    @ApiProperty({ description: 'Segundo apellido' })
-    segundoApellido: string;
-
-    @Expose()
-    @ApiProperty({ description: 'Fecha de nacimiento' })
-    fechaNacimiento: Date;
-
-    @Expose()
-    @ApiProperty({ description: 'Teléfono' })
+    @ApiProperty({ description: 'Teléfono de la empresa' })
     telefono: string;
 
     @Expose()
-    @ApiProperty({ description: 'DNI' })
-    dni: string;
-
-    @Expose()
-    @ApiProperty({ description: 'Tipo de documento', required: false })
-    tipoDocumento?: string;
-
-    @Expose()
-    @ApiProperty({ description: 'Dirección', required: false })
+    @ApiProperty({ description: 'Dirección de la empresa', required: false })
     direccion?: string;
 }
 
@@ -49,8 +33,16 @@ export class ResponseUserDto {
     id: number;
 
     @Expose()
+    @ApiProperty({ description: 'Nombre del usuario' })
+    nombre: string;
+
+    @Expose()
     @ApiProperty({ description: 'Email del usuario' })
     email: string;
+
+    @Expose()
+    @ApiProperty({ description: 'Indica si es usuario principal de la empresa', required: false })
+    esPrincipal?: boolean;
 
     @Expose()
     @ApiProperty({ description: 'Token de recuperación de contraseña', required: false })
@@ -58,8 +50,8 @@ export class ResponseUserDto {
 
     @Expose()
     @Type(() => PersonaResponseDto)
-    @ApiProperty({ description: 'Datos de la persona asociada', type: PersonaResponseDto })
-    persona: PersonaResponseDto;
+    @ApiProperty({ description: 'Datos de la empresa asociada', type: PersonaResponseDto, required: false })
+    persona?: PersonaResponseDto;
 
     @Expose()
     @ApiProperty({ description: 'Roles del usuario', type: [String] })
