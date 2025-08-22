@@ -204,4 +204,16 @@ export class UserService {
     });
   }
 
+  /**
+   * Busca un usuario por ID incluyendo la relación con persona
+   * @param id ID del usuario
+   * @returns Usuario con datos de persona
+   */
+  async findByIdWithPersona(id: number): Promise<User | null> {
+    return await this.userRepository.findOne({ 
+      where: { id },
+      relations: ['persona']
+    });
+  }
+
 }

@@ -124,54 +124,69 @@ export class MovimientosRepository {
     /**
      * Buscar todos los movimientos
      */
-    async findAll(): Promise<Movimiento[]> {
-        return await this.movimientoRepository.find({
-            relations: [
-                'detalles', 
-                'detalles.inventario', 
-                'detalles.inventario.producto', 
-                'detalles.inventario.almacen', 
-                'detalles.detallesSalida',
-                'comprobante'
-            ],
-            order: { fechaCreacion: 'DESC' }
-        });
+    async findAll(personaId?: number): Promise<Movimiento[]> {
+        const queryBuilder = this.movimientoRepository
+            .createQueryBuilder('movimiento')
+            .leftJoinAndSelect('movimiento.detalles', 'detalles')
+            .leftJoinAndSelect('detalles.inventario', 'inventario')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('detalles.detallesSalida', 'detallesSalida')
+            .leftJoinAndSelect('movimiento.comprobante', 'comprobante');
+
+        if (personaId) {
+            queryBuilder.andWhere('comprobante.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('movimiento.fechaCreacion', 'DESC')
+            .getMany();
     }
 
     /**
      * Buscar movimientos por tipo
      */
-    async findByTipo(tipo: TipoMovimiento): Promise<Movimiento[]> {
-        return await this.movimientoRepository.find({
-            where: { tipo },
-            relations: [
-                'detalles', 
-                'detalles.inventario', 
-                'detalles.inventario.producto', 
-                'detalles.inventario.almacen', 
-                'detalles.detallesSalida',
-                'comprobante'
-            ],
-            order: { fechaCreacion: 'DESC' }
-        });
+    async findByTipo(tipo: TipoMovimiento, personaId?: number): Promise<Movimiento[]> {
+        const queryBuilder = this.movimientoRepository
+            .createQueryBuilder('movimiento')
+            .leftJoinAndSelect('movimiento.detalles', 'detalles')
+            .leftJoinAndSelect('detalles.inventario', 'inventario')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('detalles.detallesSalida', 'detallesSalida')
+            .leftJoinAndSelect('movimiento.comprobante', 'comprobante')
+            .where('movimiento.tipo = :tipo', { tipo });
+
+        if (personaId) {
+            queryBuilder.andWhere('comprobante.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('movimiento.fechaCreacion', 'DESC')
+            .getMany();
     }
 
     /**
      * Buscar movimientos por estado
      */
-    async findByEstado(estado: EstadoMovimiento): Promise<Movimiento[]> {
-        return await this.movimientoRepository.find({
-            where: { estado },
-            relations: [
-                'detalles', 
-                'detalles.inventario', 
-                'detalles.inventario.producto', 
-                'detalles.inventario.almacen', 
-                'detalles.detallesSalida',
-                'comprobante'
-            ],
-            order: { fechaCreacion: 'DESC' }
-        });
+    async findByEstado(estado: EstadoMovimiento, personaId?: number): Promise<Movimiento[]> {
+        const queryBuilder = this.movimientoRepository
+            .createQueryBuilder('movimiento')
+            .leftJoinAndSelect('movimiento.detalles', 'detalles')
+            .leftJoinAndSelect('detalles.inventario', 'inventario')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('detalles.detallesSalida', 'detallesSalida')
+            .leftJoinAndSelect('movimiento.comprobante', 'comprobante')
+            .where('movimiento.estado = :estado', { estado });
+
+        if (personaId) {
+            queryBuilder.andWhere('comprobante.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('movimiento.fechaCreacion', 'DESC')
+            .getMany();
     }
 
     /**

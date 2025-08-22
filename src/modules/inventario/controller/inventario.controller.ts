@@ -9,7 +9,8 @@ import {
     ParseIntPipe,
     HttpStatus,
     UseInterceptors,
-    ClassSerializerInterceptor
+    ClassSerializerInterceptor,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -17,11 +18,15 @@ import {
     ApiResponse,
     ApiParam,
     ApiQuery,
-    ApiBody
+    ApiBody,
+    ApiBearerAuth
 } from '@nestjs/swagger';
 import { InventarioService } from '../service/inventario.service';
 import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from '../dto';
 import { plainToClass } from 'class-transformer';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 
 /**
  * Controlador para la gestión de inventario
@@ -30,6 +35,8 @@ import { plainToClass } from 'class-transformer';
 @ApiTags('Inventario')
 @Controller('api/inventario')
 @UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class InventarioController {
 
     constructor(private readonly inventarioService: InventarioService) {}
@@ -78,8 +85,11 @@ export class InventarioController {
         description: 'Lista de inventarios obtenida exitosamente',
         type: [ResponseInventarioDto]
     })
-    async findAll(): Promise<ResponseInventarioDto[]> {
-        const inventarios = await this.inventarioService.findAll();
+    async findAll(@CurrentUser() user: AuthenticatedUser): Promise<ResponseInventarioDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        const inventarios = await this.inventarioService.findAll(user.personaId);
         return inventarios.map(inventario => plainToClass(ResponseInventarioDto, inventario));
     }
 
@@ -124,8 +134,14 @@ export class InventarioController {
         status: HttpStatus.NOT_FOUND, 
         description: 'Almacén no encontrado' 
     })
-    async findByAlmacen(@Param('idAlmacen', ParseIntPipe) idAlmacen: number): Promise<ResponseInventarioDto[]> {
-        const inventarios = await this.inventarioService.findByAlmacen(idAlmacen);
+    async findByAlmacen(
+        @Param('idAlmacen', ParseIntPipe) idAlmacen: number,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseInventarioDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        const inventarios = await this.inventarioService.findByAlmacen(idAlmacen, user.personaId);
         return inventarios.map(inventario => plainToClass(ResponseInventarioDto, inventario));
     }
 
@@ -147,8 +163,14 @@ export class InventarioController {
         status: HttpStatus.NOT_FOUND, 
         description: 'Producto no encontrado' 
     })
-    async findByProducto(@Param('idProducto', ParseIntPipe) idProducto: number): Promise<ResponseInventarioDto[]> {
-        const inventarios = await this.inventarioService.findByProducto(idProducto);
+    async findByProducto(
+        @Param('idProducto', ParseIntPipe) idProducto: number,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseInventarioDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        const inventarios = await this.inventarioService.findByProducto(idProducto, user.personaId);
         return inventarios.map(inventario => plainToClass(ResponseInventarioDto, inventario));
     }
 

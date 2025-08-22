@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGene
 import { ComprobanteDetalle } from "./comprobante-detalle";
 import { ComprobanteTotales } from "./comprobante-totales";
 import { Entidad } from "src/modules/entidades/entities";
+import { Persona } from "../../users/entities/persona.entity";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { Moneda } from "../enum/tipo-moneda.enum";
 import { TipoComprobante } from "../enum/tipo-comprobante.enum";
@@ -16,10 +17,15 @@ export class Comprobante {
     @Column({unique : false , nullable : false})
     correlativo : string;
 
-    //Manual
+    //Manual - Relación con cliente/proveedor
     @ManyToOne(() => Entidad, { nullable: true })
+    @JoinColumn({ name: 'id_entidad' })
+    entidad: Entidad;
+
+    //Manual - Relación con empresa propietaria del comprobante
+    @ManyToOne(() => Persona, { nullable: false })
     @JoinColumn({ name: 'id_persona' })
-    persona: Entidad;
+    persona: Persona;
 
     //Manual
     @Column({

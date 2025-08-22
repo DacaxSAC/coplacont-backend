@@ -32,8 +32,8 @@ export class MovimientosService {
     /**
      * Buscar todos los movimientos
      */
-    async findAll(): Promise<ResponseMovimientoDto[]> {
-        const movimientos = await this.movimientosRepository.findAll();
+    async findAll(personaId?: number): Promise<ResponseMovimientoDto[]> {
+        const movimientos = await this.movimientosRepository.findAll(personaId);
         return movimientos.map(movimiento => this.mapToResponseDto(movimiento));
     }
 
@@ -51,16 +51,16 @@ export class MovimientosService {
     /**
      * Buscar movimientos por tipo
      */
-    async findByTipo(tipo: TipoMovimiento): Promise<ResponseMovimientoDto[]> {
-        const movimientos = await this.movimientosRepository.findByTipo(tipo);
+    async findByTipo(tipo: TipoMovimiento, personaId?: number): Promise<ResponseMovimientoDto[]> {
+        const movimientos = await this.movimientosRepository.findByTipo(tipo, personaId);
         return movimientos.map(movimiento => this.mapToResponseDto(movimiento));
     }
 
     /**
      * Buscar movimientos por estado
      */
-    async findByEstado(estado: EstadoMovimiento): Promise<ResponseMovimientoDto[]> {
-        const movimientos = await this.movimientosRepository.findByEstado(estado);
+    async findByEstado(estado: EstadoMovimiento, personaId?: number): Promise<ResponseMovimientoDto[]> {
+        const movimientos = await this.movimientosRepository.findByEstado(estado, personaId);
         return movimientos.map(movimiento => this.mapToResponseDto(movimiento));
     }
 

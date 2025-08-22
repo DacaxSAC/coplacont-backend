@@ -23,6 +23,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PersonaService } from './services/person.service';
 import { Persona } from './entities/persona.entity';
 import { EmailService } from './services/email.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
     imports: [
@@ -53,7 +54,13 @@ import { EmailService } from './services/email.service';
       RolePermissionService,
       AuthService,
       PersonaService,
-      EmailService
+      EmailService,
+      JwtAuthGuard
+    ],
+    exports: [
+      UserService,
+      AuthService,
+      JwtAuthGuard
     ],
   })
   export class UserModule {}

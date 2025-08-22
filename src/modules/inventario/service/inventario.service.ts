@@ -32,8 +32,8 @@ export class InventarioService {
     }
 
 
-    async findAll(): Promise<ResponseInventarioDto[]> {
-        const inventarios = await this.inventarioRepository.findAll();
+    async findAll(personaId?: number): Promise<ResponseInventarioDto[]> {
+        const inventarios = await this.inventarioRepository.findAll(personaId);
         return inventarios.map(inventario => this.mapToResponseDto(inventario));
     }
 
@@ -47,16 +47,16 @@ export class InventarioService {
     }
 
 
-    async findByAlmacen(idAlmacen: number): Promise<ResponseInventarioDto[]> {
+    async findByAlmacen(idAlmacen: number, personaId?: number): Promise<ResponseInventarioDto[]> {
         await this.validateAlmacenExists(idAlmacen);
-        const inventarios = await this.inventarioRepository.findByAlmacen(idAlmacen);
+        const inventarios = await this.inventarioRepository.findByAlmacen(idAlmacen, personaId);
         return inventarios.map(inventario => this.mapToResponseDto(inventario));
     }
 
 
-    async findByProducto(idProducto: number): Promise<ResponseInventarioDto[]> {
+    async findByProducto(idProducto: number, personaId?: number): Promise<ResponseInventarioDto[]> {
         await this.validateProductoExists(idProducto);
-        const inventarios = await this.inventarioRepository.findByProducto(idProducto);
+        const inventarios = await this.inventarioRepository.findByProducto(idProducto, personaId);
         return inventarios.map(inventario => this.mapToResponseDto(inventario));
     }
 

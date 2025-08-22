@@ -9,7 +9,8 @@ import {
     Query,
     ParseIntPipe,
     HttpCode,
-    HttpStatus
+    HttpStatus,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -17,8 +18,12 @@ import {
     ApiResponse,
     ApiParam,
     ApiQuery,
-    ApiBody
+    ApiBody,
+    ApiBearerAuth
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 import { MovimientosService } from '../service/movimientos.service';
 import { CreateMovimientoDto } from '../dto/create-movimiento.dto';
 import { ResponseMovimientoDto } from '../dto/response-movimiento.dto';
@@ -30,6 +35,8 @@ import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
  */
 @ApiTags('Movimientos')
 @Controller('movimientos')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class MovimientosController {
 
     constructor(private readonly movimientosService: MovimientosService) {}
@@ -82,18 +89,22 @@ export class MovimientosController {
     async findAll(
         @Query('tipo') tipo?: TipoMovimiento,
         @Query('estado') estado?: EstadoMovimiento,
-        @Query('idComprobante', new ParseIntPipe({ optional: true })) idComprobante?: number
+        @Query('idComprobante', new ParseIntPipe({ optional: true })) idComprobante?: number,
+        @CurrentUser() user?: AuthenticatedUser
     ): Promise<ResponseMovimientoDto[]> {
+        if (!user?.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
         if (tipo) {
-            return await this.movimientosService.findByTipo(tipo);
+            return await this.movimientosService.findByTipo(tipo, user.personaId);
         }
         if (estado) {
-            return await this.movimientosService.findByEstado(estado);
+            return await this.movimientosService.findByEstado(estado, user.personaId);
         }
         if (idComprobante) {
             return await this.movimientosService.findByComprobante(idComprobante);
         }
-        return await this.movimientosService.findAll();
+        return await this.movimientosService.findAll(user.personaId);
     }
 
     /**
@@ -202,8 +213,14 @@ export class MovimientosController {
         description: 'Lista de movimientos por tipo',
         type: [ResponseMovimientoDto]
     })
-    async findByTipo(@Param('tipo') tipo: TipoMovimiento): Promise<ResponseMovimientoDto[]> {
-        return await this.movimientosService.findByTipo(tipo);
+    async findByTipo(
+        @Param('tipo') tipo: TipoMovimiento,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseMovimientoDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.movimientosService.findByTipo(tipo, user.personaId);
     }
 
     /**
@@ -221,8 +238,14 @@ export class MovimientosController {
         description: 'Lista de movimientos por estado',
         type: [ResponseMovimientoDto]
     })
-    async findByEstado(@Param('estado') estado: EstadoMovimiento): Promise<ResponseMovimientoDto[]> {
-        return await this.movimientosService.findByEstado(estado);
+    async findByEstado(
+        @Param('estado') estado: EstadoMovimiento,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseMovimientoDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.movimientosService.findByEstado(estado, user.personaId);
     }
 
     /**

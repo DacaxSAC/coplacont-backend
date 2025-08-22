@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Categoria } from '../../categoria/entities';
 import { TipoProducto } from '../enum/tipo-producto.enum';
+import { Persona } from '../../users/entities/persona.entity';
 
 /**
  * Entidad que representa un producto en el sistema
@@ -11,6 +12,14 @@ export class Producto {
 
     @PrimaryGeneratedColumn()
     id: number;
+
+    /**
+     * Relación con Persona (empresa propietaria del producto)
+     * Un producto pertenece a una empresa específica
+     */
+    @ManyToOne(() => Persona, { nullable: false })
+    @JoinColumn({ name: 'id_persona' })
+    persona: Persona;
 
     /**
      * Nombre del producto

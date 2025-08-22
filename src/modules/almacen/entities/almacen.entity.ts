@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Persona } from '../../users/entities/persona.entity';
 
 /**
  * Entidad que representa un almacén en el sistema
@@ -9,6 +10,14 @@ export class Almacen {
 
     @PrimaryGeneratedColumn()
     id: number;
+
+    /**
+     * Relación con Persona (empresa propietaria del almacén)
+     * Un almacén pertenece a una empresa específica
+     */
+    @ManyToOne(() => Persona, { nullable: false })
+    @JoinColumn({ name: 'id_persona' })
+    persona: Persona;
 
     /**
      * Nombre del almacén

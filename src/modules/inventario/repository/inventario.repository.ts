@@ -31,27 +31,60 @@ export class InventarioRepository {
         });
     }
 
-    async findAll(): Promise<Inventario[]> {
-        return await this.repository.find({
-            relations: ['almacen', 'producto', 'producto.categoria'],
-            order: { fechaCreacion: 'DESC' }
-        });
+    async findAll(personaId?: number): Promise<Inventario[]> {
+        const queryBuilder = this.repository
+            .createQueryBuilder('inventario')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('producto.categoria', 'categoria');
+
+        if (personaId) {
+            queryBuilder
+                .andWhere('almacen.id_persona = :personaId', { personaId })
+                .andWhere('producto.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('inventario.fechaCreacion', 'DESC')
+            .getMany();
     }
 
-    async findByAlmacen(idAlmacen: number): Promise<Inventario[]> {
-        return await this.repository.find({
-            where: { almacen: { id: idAlmacen } },
-            relations: ['almacen', 'producto', 'producto.categoria'],
-            order: { producto: { descripcion: 'ASC' } }
-        });
+    async findByAlmacen(idAlmacen: number, personaId?: number): Promise<Inventario[]> {
+        const queryBuilder = this.repository
+            .createQueryBuilder('inventario')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('producto.categoria', 'categoria')
+            .where('almacen.id = :idAlmacen', { idAlmacen });
+
+        if (personaId) {
+            queryBuilder
+                .andWhere('almacen.id_persona = :personaId', { personaId })
+                .andWhere('producto.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('producto.descripcion', 'ASC')
+            .getMany();
     }
 
-    async findByProducto(idProducto: number): Promise<Inventario[]> {
-        return await this.repository.find({
-            where: { producto: { id: idProducto } },
-            relations: ['almacen', 'producto', 'producto.categoria'],
-            order: { almacen: { nombre: 'ASC' } }
-        });
+    async findByProducto(idProducto: number, personaId?: number): Promise<Inventario[]> {
+        const queryBuilder = this.repository
+            .createQueryBuilder('inventario')
+            .leftJoinAndSelect('inventario.almacen', 'almacen')
+            .leftJoinAndSelect('inventario.producto', 'producto')
+            .leftJoinAndSelect('producto.categoria', 'categoria')
+            .where('producto.id = :idProducto', { idProducto });
+
+        if (personaId) {
+            queryBuilder
+                .andWhere('almacen.id_persona = :personaId', { personaId })
+                .andWhere('producto.id_persona = :personaId', { personaId });
+        }
+
+        return await queryBuilder
+            .orderBy('almacen.nombre', 'ASC')
+            .getMany();
     }
 
     async findByAlmacenAndProducto(idAlmacen: number, idProducto: number): Promise<Inventario | null> {

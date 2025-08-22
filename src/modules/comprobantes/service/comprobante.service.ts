@@ -50,15 +50,16 @@ export class ComprobanteService {
     }
 
     @Transactional()
-    async register(createComprobanteDto: CreateComprobanteDto): Promise<void> {
+    async register(createComprobanteDto: CreateComprobanteDto, personaId: number): Promise<void> {
         console.log(`🔄 Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}`);
         
-        //Busca entidad dueña del idPersona
+        //Busca entidad cliente/proveedor
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
 
         // Crea instancia de comprobante
         const comprobante = this.comprobanteRepository.create(createComprobanteDto);
-        comprobante.persona = entidad;
+        comprobante.entidad = entidad;
+        comprobante.persona = { id: personaId } as any; // Se asignará la Persona completa por TypeORM
 
         // Asigna correlativo
         const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion);
@@ -107,8 +108,16 @@ export class ComprobanteService {
         return { correlativo: `corr-${correlativo.ultimoNumero + 1}` };
     }
 
-    async findAll(): Promise<ResponseComprobanteDto[]> {
-        const comprobantes = await this.comprobanteRepository.find({ relations: ['totales'] });
+    /**
+     * Obtiene todos los comprobantes filtrados por empresa
+     * @param personaId ID de la empresa (Persona)
+     * @returns Lista de comprobantes de la empresa
+     */
+    async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
+        const comprobantes = await this.comprobanteRepository.find({ 
+            where: { persona: { id: personaId } },
+            relations: ['totales', 'persona'] 
+        });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,
         });
@@ -124,12 +133,16 @@ export class ComprobanteService {
     }
 
     /**
-     * Obtiene todos los comprobantes de tipo COMPRA
-     * @returns Lista de comprobantes de compra
+     * Obtiene todos los comprobantes de tipo COMPRA filtrados por empresa
+     * @param personaId ID de la empresa (Persona)
+     * @returns Lista de comprobantes de compra de la empresa
      */
-    async findCompras(): Promise<ResponseComprobanteDto[]> {
+    async findCompras(personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
-            where: { tipoOperacion: TipoOperacion.COMPRA },
+            where: { 
+                tipoOperacion: TipoOperacion.COMPRA,
+                persona: { id: personaId }
+            },
             relations: ['totales', 'persona']
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -138,12 +151,16 @@ export class ComprobanteService {
     }
 
     /**
-     * Obtiene todos los comprobantes de tipo VENTA
-     * @returns Lista de comprobantes de venta
+     * Obtiene todos los comprobantes de tipo VENTA filtrados por empresa
+     * @param personaId ID de la empresa (Persona)
+     * @returns Lista de comprobantes de venta de la empresa
      */
-    async findVentas(): Promise<ResponseComprobanteDto[]> {
+    async findVentas(personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
-            where: { tipoOperacion: TipoOperacion.VENTA },
+            where: { 
+                tipoOperacion: TipoOperacion.VENTA,
+                persona: { id: personaId }
+            },
             relations: ['totales', 'persona']
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {

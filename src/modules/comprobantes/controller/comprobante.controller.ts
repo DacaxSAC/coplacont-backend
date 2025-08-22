@@ -1,12 +1,17 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiExtraModels, ApiBody } from "@nestjs/swagger";
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiExtraModels, ApiBody, ApiBearerAuth } from "@nestjs/swagger";
 import { ComprobanteService } from "../service/comprobante.service";
 import { CreateComprobanteDto } from "../dto/comprobante/create-comprobante.dto";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { CreateComprobanteDetalleDto } from "../dto/comprobante-detalle/create-comprobante-detalle.dto";
+import { JwtAuthGuard } from "../../users/guards/jwt-auth.guard";
+import { CurrentUser } from "../../users/decorators/current-user.decorator";
+import type { AuthenticatedUser } from "../../users/decorators/current-user.decorator";
 
 @ApiTags('Comprobantes')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @ApiExtraModels(CreateComprobanteDetalleDto)
 @Controller('api/comprobante')
 export class ComprobanteController {
@@ -18,22 +23,31 @@ export class ComprobanteController {
     @Get()
     @ApiOperation({ summary: 'Obtener todos los comprobantes' })
     @ApiResponse({ status: 200, description: 'Lista de comprobantes obtenida exitosamente', type: [ResponseComprobanteDto] })
-    findAll () : Promise<ResponseComprobanteDto[]>{
-        return this.comprobanteService.findAll();
+    findAll(@CurrentUser() user: AuthenticatedUser): Promise<ResponseComprobanteDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return this.comprobanteService.findAll(user.personaId);
     }
 
     @Get('compras')
     @ApiOperation({ summary: 'Obtener todos los comprobantes de compra' })
     @ApiResponse({ status: 200, description: 'Lista de comprobantes de compra obtenida exitosamente', type: [ResponseComprobanteDto] })
-    findCompras(): Promise<ResponseComprobanteDto[]> {
-        return this.comprobanteService.findCompras();
+    findCompras(@CurrentUser() user: AuthenticatedUser): Promise<ResponseComprobanteDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return this.comprobanteService.findCompras(user.personaId);
     }
 
     @Get('ventas')
     @ApiOperation({ summary: 'Obtener todos los comprobantes de venta' })
     @ApiResponse({ status: 200, description: 'Lista de comprobantes de venta obtenida exitosamente', type: [ResponseComprobanteDto] })
-    findVentas(): Promise<ResponseComprobanteDto[]> {
-        return this.comprobanteService.findVentas();
+    findVentas(@CurrentUser() user: AuthenticatedUser): Promise<ResponseComprobanteDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return this.comprobanteService.findVentas(user.personaId);
     }
 
     @Get('siguiente-correlativo')
@@ -46,7 +60,10 @@ export class ComprobanteController {
     })
     @ApiResponse({ status: 200, description: 'Siguiente correlativo obtenido exitosamente', schema: { type: 'object', properties: { correlativo: { type: 'string', example: 'corr-000001' } } } })
     @ApiResponse({ status: 400, description: 'Tipo de operación inválido' })
-    getNextCorrelativo(@Query('tipoOperacion') tipoOperacion: TipoOperacion): Promise<{ correlativo: string }> {
+    getNextCorrelativo(
+        @Query('tipoOperacion') tipoOperacion: TipoOperacion,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<{ correlativo: string }> {
         return this.comprobanteService.getNextCorrelativo(tipoOperacion);
     }
 
@@ -55,8 +72,14 @@ export class ComprobanteController {
     @ApiBody({ type: CreateComprobanteDto })
     @ApiResponse({ status: 201, description: 'Comprobante creado exitosamente' })
     @ApiResponse({ status: 400, description: 'Datos inválidos' })
-    create (@Body() createComprobanteDto : CreateComprobanteDto) : Promise<void>{
-        return this.comprobanteService.register(createComprobanteDto);
+    create(
+        @Body() createComprobanteDto: CreateComprobanteDto,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<void> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return this.comprobanteService.register(createComprobanteDto, user.personaId);
     }
 
 }
