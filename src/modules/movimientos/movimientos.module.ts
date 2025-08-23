@@ -11,6 +11,7 @@ import { Almacen } from '../almacen/entities/almacen.entity';
 import { Inventario } from '../inventario/entities';
 import { InventarioLote } from '../inventario/entities';
 import { InventarioModule } from '../inventario/inventario.module';
+import { UserModule } from '../users/user.module';
 
 /**
  * Módulo para la gestión de movimientos de inventario
@@ -27,7 +28,8 @@ import { InventarioModule } from '../inventario/inventario.module';
             Inventario,
             InventarioLote
         ]),
-        InventarioModule
+        InventarioModule,
+        UserModule
     ],
     controllers: [MovimientosController],
     providers: [

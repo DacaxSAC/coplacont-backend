@@ -20,12 +20,14 @@ import { LoteController } from './controller/lote.controller';
 import { KardexController } from './controller/kardex.controller';
 import { CostoVentaController } from './controller/costo-venta.controller';
 import { ProductosModule } from '../productos/productos.module';
+import { UserModule } from '../users/user.module';
 
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Inventario, InventarioLote, Almacen, Producto]),
-    ProductosModule
+    ProductosModule,
+    UserModule
   ],
   controllers: [InventarioController, InventarioLoteController, LoteController, KardexController, CostoVentaController],
   providers: [InventarioService, InventarioLoteService, LoteService, KardexService, CostoVentaService, InventarioRepository, KardexRepository, CostoVentaRepository],

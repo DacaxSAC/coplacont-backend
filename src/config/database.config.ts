@@ -4,7 +4,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   type: 'postgres',
   url: process.env.DATABASE_URL,
   autoLoadEntities: true,
-  synchronize: process.env.NODE_ENV !== 'production',
+  synchronize: true,
   //dropSchema:true,
   ssl: {
     rejectUnauthorized: false,

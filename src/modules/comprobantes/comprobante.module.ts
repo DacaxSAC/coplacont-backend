@@ -16,13 +16,15 @@ import { MovimientosModule } from "../movimientos/movimientos.module";
 import { InventarioModule } from "../inventario/inventario.module";
 import { ComprobanteDetalleService } from "./service/comprobante-detalle.service";
 import { ComprobanteTotalesService } from "./service/comprobante-totales.service";
+import { UserModule } from "../users/user.module";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales, Correlativo]),
     EntidadModule,
     MovimientosModule,
-    InventarioModule
+    InventarioModule,
+    UserModule
   ],
   controllers: [ComprobanteController, ComprasController, VentasController, TestComprobanteController],
   providers: [
