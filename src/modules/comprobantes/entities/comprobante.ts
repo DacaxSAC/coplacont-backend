@@ -3,6 +3,7 @@ import { ComprobanteDetalle } from "./comprobante-detalle";
 import { ComprobanteTotales } from "./comprobante-totales";
 import { Entidad } from "src/modules/entidades/entities";
 import { Persona } from "../../users/entities/persona.entity";
+import { PeriodoContable } from "../../periodos/entities/periodo-contable.entity";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { Moneda } from "../enum/tipo-moneda.enum";
 import { TipoComprobante } from "../enum/tipo-comprobante.enum";
@@ -73,6 +74,11 @@ export class Comprobante {
 
     @Column({ length: 6 , nullable: true })
     periodo: string;
+
+    //Relación con período contable
+    @ManyToOne(() => PeriodoContable, { nullable: true })
+    @JoinColumn({ name: 'id_periodo_contable' })
+    periodoContable?: PeriodoContable;
 
     @Column({ name: 'car_sunat', length: 50, nullable: true })
     carSunat: string;

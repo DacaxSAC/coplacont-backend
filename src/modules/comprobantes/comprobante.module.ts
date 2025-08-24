@@ -4,6 +4,7 @@ import { Comprobante } from "./entities/comprobante";
 import { ComprobanteDetalle } from "./entities/comprobante-detalle";
 import { ComprobanteTotales } from "./entities/comprobante-totales";
 import { Correlativo } from "./entities/correlativo";
+import { PeriodoContable } from "../periodos/entities/periodo-contable.entity";
 import { ComprobanteController } from "./controller/comprobante.controller";
 import { ComprasController } from "./controller/compras.controller";
 import { VentasController } from "./controller/ventas.controller";
@@ -17,14 +18,16 @@ import { InventarioModule } from "../inventario/inventario.module";
 import { ComprobanteDetalleService } from "./service/comprobante-detalle.service";
 import { ComprobanteTotalesService } from "./service/comprobante-totales.service";
 import { UserModule } from "../users/user.module";
+import { PeriodosModule } from "../periodos/periodos.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales, Correlativo]),
+    TypeOrmModule.forFeature([Comprobante, ComprobanteDetalle, ComprobanteTotales, Correlativo, PeriodoContable]),
     EntidadModule,
     MovimientosModule,
     InventarioModule,
-    UserModule
+    UserModule,
+    PeriodosModule
   ],
   controllers: [ComprobanteController, ComprasController, VentasController, TestComprobanteController],
   providers: [

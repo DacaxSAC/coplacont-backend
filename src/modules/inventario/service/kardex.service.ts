@@ -5,12 +5,17 @@ import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';
+import { RecalculoKardexService, ResultadoRecalculo } from './recalculo-kardex.service';
+import { PeriodoContableService } from 'src/modules/periodos/service';
+import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracion.enum';
 
 @Injectable()
 export class KardexService {
   constructor(
     private readonly kardexRepository: KardexRepository,
-    private readonly inventarioRepository: InventarioRepository
+    private readonly inventarioRepository: InventarioRepository,
+    private readonly recalculoKardexService: RecalculoKardexService,
+    private readonly periodoContableService: PeriodoContableService
   ) {}
 
   /**
@@ -181,5 +186,129 @@ export class KardexService {
    */
   private calculateTotalCost(cantidad: number, costoUnitario: number): number {
     return cantidad * costoUnitario;
+  }
+
+  /**
+   * Procesa un movimiento retroactivo y ejecuta el recálculo automático
+   * @param idPersona ID de la persona para validar período activo
+   * @param fechaMovimiento Fecha del movimiento a procesar
+   * @param movimientoId ID del movimiento a recalcular
+   * @param metodoValoracion Método de valoración a utilizar (PROMEDIO o FIFO)
+   */
+  async procesarMovimientoRetroactivo(
+    idPersona: number,
+    fechaMovimiento: Date,
+    movimientoId: number,
+    metodoValoracion: MetodoValoracion
+  ): Promise<ResultadoRecalculo | { mensaje: string }> {
+    // Validar que la fecha esté dentro del período activo
+    const fechaValida = await this.periodoContableService.validarFechaEnPeriodoActivo(
+      idPersona,
+      fechaMovimiento
+    );
+
+    if (!fechaValida) {
+      throw new Error('La fecha del movimiento no está dentro del período contable activo');
+    }
+
+    // Validar límite de movimientos retroactivos
+    const puedeHacerMovimientoRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
+      idPersona,
+      fechaMovimiento
+    );
+
+    if (!puedeHacerMovimientoRetroactivo) {
+      throw new Error('No se pueden realizar movimientos retroactivos más allá del límite configurado');
+    }
+
+    // Verificar si la fecha es retroactiva
+    if (!this.esFechaRetroactiva(fechaMovimiento)) {
+      // Si no es retroactiva, no necesita recálculo especial
+      return { mensaje: 'Movimiento no requiere recálculo retroactivo' };
+    }
+
+    // Ejecutar recálculo del movimiento
+    return await this.recalculoKardexService.recalcularMovimientoRetroactivo(
+      movimientoId,
+      metodoValoracion
+    );
+  }
+
+  /**
+   * Verifica si una fecha es retroactiva comparándola con la fecha actual
+   * @param fechaMovimiento Fecha del movimiento a verificar
+   * @returns true si la fecha es retroactiva (anterior a hoy)
+   */
+  private esFechaRetroactiva(fechaMovimiento: Date): boolean {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fechas
+    
+    const fechaComparar = new Date(fechaMovimiento);
+    fechaComparar.setHours(0, 0, 0, 0);
+    
+    return fechaComparar < hoy;
+  }
+
+  /**
+   * Recalcula múltiples movimientos retroactivos
+   * @param movimientosIds Array de IDs de movimientos a recalcular
+   * @param metodoValoracion Método de valoración a utilizar
+   * @returns Resultado consolidado del recálculo
+   */
+  async recalcularMovimientosRetroactivos(
+    movimientosIds: number[],
+    metodoValoracion: MetodoValoracion
+  ): Promise<Array<{ movimientoId: number; exito: boolean; resultado?: ResultadoRecalculo; error?: string }>> {
+    const resultados: Array<{ movimientoId: number; exito: boolean; resultado?: ResultadoRecalculo; error?: string }> = [];
+    
+    for (const movimientoId of movimientosIds) {
+      try {
+        const resultado = await this.recalculoKardexService.recalcularMovimientoRetroactivo(
+          movimientoId,
+          metodoValoracion
+        );
+        resultados.push({
+          movimientoId,
+          exito: true,
+          resultado
+        });
+      } catch (error) {
+        resultados.push({
+          movimientoId,
+          exito: false,
+          error: error.message
+        });
+      }
+    }
+    
+    return resultados;
+  }
+
+  /**
+   * Obtiene estadísticas de recálculo para un período
+   * @param fechaInicio Fecha de inicio del período
+   * @param fechaFin Fecha de fin del período
+   * @returns Estadísticas del recálculo
+   */
+  async obtenerEstadisticasRecalculo(
+    fechaInicio: Date,
+    fechaFin: Date
+  ): Promise<{
+    periodo: { inicio: Date; fin: Date };
+    movimientosRetroactivos: number;
+    recalculosEjecutados: number;
+    erroresEncontrados: number;
+  }> {
+    // Implementar lógica para obtener estadísticas de recálculo
+    // Por ahora retornamos un objeto básico
+    return {
+      periodo: {
+        inicio: fechaInicio,
+        fin: fechaFin
+      },
+      movimientosRetroactivos: 0,
+      recalculosEjecutados: 0,
+      erroresEncontrados: 0
+    };
   }
 }

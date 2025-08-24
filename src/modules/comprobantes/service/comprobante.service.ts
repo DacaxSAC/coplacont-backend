@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { Comprobante } from "../entities/comprobante";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -14,6 +14,7 @@ import { Correlativo } from "../entities/correlativo";
 import { MovimientosService } from "src/modules/movimientos";
 import { MovimientoFactory } from "src/modules/movimientos/factory/MovimientoFactory";
 import { LoteService } from "src/modules/inventario/service/lote.service";
+import { PeriodoContableService } from "src/modules/periodos/service";
 
 @Injectable()
 export class ComprobanteService {
@@ -27,7 +28,8 @@ export class ComprobanteService {
         private readonly personaService: EntidadService,
         private readonly movimientoService : MovimientosService,
         private readonly movimientoFactory : MovimientoFactory,
-        private readonly loteService: LoteService
+        private readonly loteService: LoteService,
+        private readonly periodoContableService: PeriodoContableService
     ) { }
 
     @Transactional()
@@ -52,6 +54,9 @@ export class ComprobanteService {
     @Transactional()
     async register(createComprobanteDto: CreateComprobanteDto, personaId: number): Promise<void> {
         console.log(`🔄 Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}`);
+        
+        // Validar que la fecha de emisión esté dentro del período activo
+        await this.validarPeriodoActivo(personaId, createComprobanteDto.fechaEmision);
         
         //Busca entidad cliente/proveedor
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
@@ -166,6 +171,81 @@ export class ComprobanteService {
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,
         });
+    }
+
+    /**
+     * Valida que la fecha esté dentro del período contable activo
+     * @param personaId ID de la persona/empresa
+     * @param fechaEmision Fecha de emisión del comprobante
+     * @throws BadRequestException si la fecha no está en período activo
+     */
+    private async validarPeriodoActivo(personaId: number, fechaEmision: Date): Promise<void> {
+        const fechaValida = await this.periodoContableService.validarFechaEnPeriodoActivo(
+            personaId,
+            fechaEmision
+        );
+
+        if (!fechaValida) {
+            throw new BadRequestException(
+                'La fecha de emisión del comprobante no está dentro del período contable activo. ' +
+                'Verifique que exista un período activo que incluya esta fecha.'
+            );
+        }
+    }
+
+    /**
+     * Valida que se puedan realizar movimientos retroactivos
+     * @param personaId ID de la persona/empresa
+     * @param fechaEmision Fecha de emisión del comprobante
+     * @throws BadRequestException si no se permiten movimientos retroactivos
+     */
+    private async validarMovimientoRetroactivo(personaId: number, fechaEmision: Date): Promise<void> {
+        const puedeHacerMovimientoRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
+            personaId,
+            fechaEmision
+        );
+
+        if (!puedeHacerMovimientoRetroactivo) {
+            throw new BadRequestException(
+                'No se pueden registrar comprobantes con fechas retroactivas más allá del límite configurado. ' +
+                'Contacte al administrador para ajustar la configuración de períodos.'
+            );
+        }
+    }
+
+    /**
+     * Obtiene el período contable activo para una persona
+     * @param personaId ID de la persona/empresa
+     * @returns Período contable activo o null si no existe
+     */
+    async obtenerPeriodoActivo(personaId: number) {
+        return await this.periodoContableService.obtenerPeriodoActivo(personaId);
+    }
+
+    /**
+     * Valida que un comprobante pueda ser registrado en la fecha especificada
+     * @param personaId ID de la persona/empresa
+     * @param fechaEmision Fecha de emisión del comprobante
+     * @returns true si el comprobante puede ser registrado
+     */
+    async validarRegistroComprobante(personaId: number, fechaEmision: Date): Promise<boolean> {
+        try {
+            await this.validarPeriodoActivo(personaId, fechaEmision);
+            
+            // Si la fecha es retroactiva, validar también los límites
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const fechaComparar = new Date(fechaEmision);
+            fechaComparar.setHours(0, 0, 0, 0);
+            
+            if (fechaComparar < hoy) {
+                await this.validarMovimientoRetroactivo(personaId, fechaEmision);
+            }
+            
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
 }
