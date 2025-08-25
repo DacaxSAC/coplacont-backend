@@ -27,6 +27,9 @@ export class Persona {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
     
+    @Column({ default: true })
+    habilitado: boolean;
+    
     @OneToMany(() => User, user => user.persona)
     usuarios: User[];
 }

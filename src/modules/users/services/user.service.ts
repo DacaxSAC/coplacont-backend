@@ -216,4 +216,50 @@ export class UserService {
     });
   }
 
+  /**
+   * Crea un usuario asociado a una empresa específica
+   * @param createUserDto Datos del usuario a crear
+   * @param idPersona ID de la empresa a la que se asociará el usuario
+   * @returns Usuario creado
+   */
+  async createUserForPersona(createUserDto: CreateUserDto, idPersona: number): Promise<ResponseUserDto> {
+    // Verificar que la empresa existe y está habilitada
+    const persona = await this.personaService.findById(idPersona);
+    if (!persona) {
+      throw new Error(`Empresa con ID ${idPersona} no encontrada`);
+    }
+    
+    const passwordPlano = this.generarPasswordAutogenerada();
+    const passwordHasheada = await hash(passwordPlano, 10);
+    
+    const user = this.userRepository.create({
+      nombre: createUserDto.nombre,
+      email: createUserDto.email,
+      contrasena: passwordHasheada,
+      persona: persona,
+      esPrincipal: createUserDto.esPrincipal || false,
+    });
+    
+    const userSaved = await this.userRepository.save(user);
+    
+    await this.userRoleRepository.create({
+      idUser: userSaved.id, 
+      idRole: createUserDto.idRol,
+    });
+    
+    try {
+      await this.emailService.sendWelcomeEmailWithCredentials(
+        createUserDto.email,
+        persona.nombreEmpresa,
+        passwordPlano
+      );
+    } catch (error) {
+      console.error('Error enviando email de bienvenida:', error);
+    }
+    
+    return plainToInstance(ResponseUserDto, userSaved, {
+      excludeExtraneousValues: true,
+    });
+  }
+
 }
