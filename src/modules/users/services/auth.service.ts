@@ -61,7 +61,7 @@ export class AuthService {
     const roles = await this.userRoleService.findRolesByUser(user);
     const permissions = await this.rolePermissionService.findPermissionsByRoles(roles);
     const payload = this.jwtService.sign(this.buildPayload(user,roles,permissions))
-    return this.buildAuthResponse('Inicio de sesión exitoso', true, user.email, payload, user.persona, roles)
+    return this.buildAuthResponse('Inicio de sesión exitoso', true, user.nombre, user.email, payload, user.persona, roles)
   }
 
   /**
@@ -193,9 +193,10 @@ export class AuthService {
     * @param roles Roles del usuario (opcional)
     * @returns Respuesta de autenticación
     */
-   private buildAuthResponse (message: string, success: boolean, email?: string, jwt?: string, persona?: Persona, roles?: Role[]) : AuthResponseDto {
+   private buildAuthResponse (message: string, success: boolean, nombre?: string, email?: string, jwt?: string, persona?: Persona, roles?: Role[]) : AuthResponseDto {
      const response: AuthResponseDto = { message, success };
      
+     if(nombre) response.nombre = nombre;
      if (email) response.email = email;
      if (jwt) response.jwt = jwt;
      if (persona) response.persona = persona;

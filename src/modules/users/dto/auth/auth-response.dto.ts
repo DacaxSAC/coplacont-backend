@@ -17,6 +17,14 @@ export class AuthResponseDto {
         description: 'Indica si la operación fue exitosa'
     })
     success: boolean;
+
+    @ApiProperty({
+        example: 'Javier Castillo',
+        description: 'Nombre del usuario',
+        required: false
+    })
+    nombre?: string;
+
     
     @ApiProperty({
         example: 'usuario@ejemplo.com',
