@@ -9,7 +9,8 @@ import {
     Query,
     ParseIntPipe,
     ParseBoolPipe,
-    ParseFloatPipe
+    ParseFloatPipe,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -19,16 +20,23 @@ import {
     ApiQuery,
     ApiBadRequestResponse,
     ApiNotFoundResponse,
-    ApiConflictResponse
+    ApiConflictResponse,
+    ApiBearerAuth
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 import { AlmacenService } from '../service/almacen.service';
 import { CreateAlmacenDto, UpdateAlmacenDto, ResponseAlmacenDto } from '../dto';
 
 /**
  * Controlador para gestionar las operaciones CRUD de almacenes
  * Proporciona endpoints REST para la gestión de almacenes
+ * Requiere autenticación JWT y filtra por empresa del usuario
  */
 @ApiTags('Almacenes')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('/api/almacenes')
 export class AlmacenController {
 
@@ -39,8 +47,8 @@ export class AlmacenController {
      */
     @Post()
     @ApiOperation({ 
-        summary: 'Crear nuevo almacén',
-        description: 'Crea un nuevo almacén' 
+        summary: 'Crear nuevo almacén para la empresa',
+        description: 'Crea un nuevo almacén asociado a la empresa del usuario autenticado' 
     })
     @ApiResponse({ 
         status: 201, 
@@ -49,17 +57,23 @@ export class AlmacenController {
     })
     @ApiBadRequestResponse({ description: 'Datos de entrada inválidos' })
     @ApiConflictResponse({ description: 'Ya existe un almacén con este nombre' })
-    async create(@Body() createAlmacenDto: CreateAlmacenDto): Promise<ResponseAlmacenDto> {
-        return await this.almacenService.create(createAlmacenDto);
+    async create(
+        @CurrentUser() user: AuthenticatedUser,
+        @Body() createAlmacenDto: CreateAlmacenDto
+    ): Promise<ResponseAlmacenDto> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.create(user.personaId, createAlmacenDto);
     }
 
     /**
-     * Obtener todos los almacenes
+     * Obtener todos los almacenes de la empresa
      */
     @Get()
     @ApiOperation({ 
-        summary: 'Obtener todos los almacenes',
-        description: 'Obtiene la lista de todos los almacenes. Por defecto solo retorna almacenes activos.' 
+        summary: 'Obtener todos los almacenes de la empresa',
+        description: 'Obtiene la lista de todos los almacenes de la empresa del usuario autenticado. Por defecto solo retorna almacenes activos.' 
     })
     @ApiQuery({ 
         name: 'includeInactive', 
@@ -72,17 +86,23 @@ export class AlmacenController {
         description: 'Lista de almacenes obtenida exitosamente',
         type: [ResponseAlmacenDto] 
     })
-    async findAll(@Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findAll(includeInactive || false);
+    async findAll(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
+    ): Promise<ResponseAlmacenDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findAll(user.personaId, includeInactive || false);
     }
 
     /**
-     * Obtener un almacén por ID
+     * Obtener un almacén por ID de la empresa
      */
     @Get(':id')
     @ApiOperation({ 
-        summary: 'Obtener almacén por ID',
-        description: 'Obtiene un almacén específico por su ID' 
+        summary: 'Obtener almacén por ID de la empresa',
+        description: 'Obtiene un almacén específico por su ID que pertenezca a la empresa del usuario autenticado' 
     })
     @ApiParam({ name: 'id', description: 'ID del almacén', type: Number })
     @ApiResponse({ 
@@ -91,17 +111,23 @@ export class AlmacenController {
         type: ResponseAlmacenDto 
     })
     @ApiNotFoundResponse({ description: 'Almacén no encontrado' })
-    async findOne(@Param('id', ParseIntPipe) id: number): Promise<ResponseAlmacenDto> {
-        return await this.almacenService.findOne(id);
+    async findOne(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseIntPipe) id: number
+    ): Promise<ResponseAlmacenDto> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findOne(user.personaId, id);
     }
 
     /**
-     * Actualizar un almacén
+     * Actualizar un almacén de la empresa
      */
     @Patch(':id')
     @ApiOperation({ 
-        summary: 'Actualizar almacén',
-        description: 'Actualiza un almacén existente' 
+        summary: 'Actualizar almacén de la empresa',
+        description: 'Actualiza un almacén existente que pertenezca a la empresa del usuario autenticado' 
     })
     @ApiParam({ name: 'id', description: 'ID del almacén', type: Number })
     @ApiResponse({ 
@@ -113,38 +139,48 @@ export class AlmacenController {
     @ApiNotFoundResponse({ description: 'Almacén no encontrado' })
     @ApiConflictResponse({ description: 'Ya existe un almacén con este nombre' })
     async update(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id', ParseIntPipe) id: number,
         @Body() updateAlmacenDto: UpdateAlmacenDto
     ): Promise<ResponseAlmacenDto> {
-        return await this.almacenService.update(id, updateAlmacenDto);
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.update(user.personaId, id, updateAlmacenDto);
     }
 
     /**
-     * Eliminar un almacén (soft delete)
+     * Eliminar un almacén de la empresa (soft delete)
      */
     @Delete(':id')
     @ApiOperation({ 
-        summary: 'Eliminar almacén',
-        description: 'Elimina un almacén (soft delete)' 
+        summary: 'Eliminar almacén de la empresa',
+        description: 'Elimina un almacén que pertenezca a la empresa del usuario autenticado (soft delete)' 
     })
     @ApiParam({ name: 'id', description: 'ID del almacén', type: Number })
     @ApiResponse({ 
         status: 200, 
-        description: 'Almacén eliminado exitosamente' 
+        description: 'Almacén eliminado exitosamente',
+        type: ResponseAlmacenDto 
     })
     @ApiNotFoundResponse({ description: 'Almacén no encontrado' })
-    async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-        await this.almacenService.remove(id);
-        return { message: 'Almacén eliminado exitosamente' };
+    async remove(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseIntPipe) id: number
+    ): Promise<ResponseAlmacenDto> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.remove(user.personaId, id);
     }
 
     /**
-     * Buscar almacenes por nombre
+     * Buscar almacenes por nombre en la empresa
      */
     @Get('search/by-name')
     @ApiOperation({ 
-        summary: 'Buscar almacenes por nombre',
-        description: 'Busca almacenes que contengan el nombre especificado' 
+        summary: 'Buscar almacenes por nombre en la empresa',
+        description: 'Busca almacenes que contengan el nombre especificado dentro de la empresa del usuario autenticado' 
     })
     @ApiQuery({ 
         name: 'nombre', 
@@ -157,17 +193,23 @@ export class AlmacenController {
         description: 'Almacenes encontrados',
         type: [ResponseAlmacenDto] 
     })
-    async findByName(@Query('nombre') nombre: string): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findByName(nombre);
+    async findByName(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('nombre') nombre: string
+    ): Promise<ResponseAlmacenDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findByName(user.personaId, nombre);
     }
 
     /**
-     * Buscar almacenes por ubicación
+     * Buscar almacenes por ubicación en la empresa
      */
     @Get('search/by-location')
     @ApiOperation({ 
-        summary: 'Buscar almacenes por ubicación',
-        description: 'Busca almacenes que contengan la ubicación especificada' 
+        summary: 'Buscar almacenes por ubicación en la empresa',
+        description: 'Busca almacenes que contengan la ubicación especificada dentro de la empresa del usuario autenticado' 
     })
     @ApiQuery({ 
         name: 'ubicacion', 
@@ -180,17 +222,23 @@ export class AlmacenController {
         description: 'Almacenes encontrados',
         type: [ResponseAlmacenDto] 
     })
-    async findByLocation(@Query('ubicacion') ubicacion: string): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findByLocation(ubicacion);
+    async findByLocation(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('ubicacion') ubicacion: string
+    ): Promise<ResponseAlmacenDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findByLocation(user.personaId, ubicacion);
     }
 
     /**
-     * Buscar almacenes por responsable
+     * Buscar almacenes por responsable en la empresa
      */
     @Get('search/by-responsible')
     @ApiOperation({ 
-        summary: 'Buscar almacenes por responsable',
-        description: 'Busca almacenes que contengan el responsable especificado' 
+        summary: 'Buscar almacenes por responsable en la empresa',
+        description: 'Busca almacenes que contengan el responsable especificado dentro de la empresa del usuario autenticado' 
     })
     @ApiQuery({ 
         name: 'responsable', 
@@ -203,17 +251,23 @@ export class AlmacenController {
         description: 'Almacenes encontrados',
         type: [ResponseAlmacenDto] 
     })
-    async findByResponsible(@Query('responsable') responsable: string): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findByResponsible(responsable);
+    async findByResponsible(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('responsable') responsable: string
+    ): Promise<ResponseAlmacenDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findByResponsible(user.personaId, responsable);
     }
 
     /**
-     * Buscar almacenes por capacidad mínima
+     * Buscar almacenes por capacidad mínima en la empresa
      */
     @Get('search/by-min-capacity')
     @ApiOperation({ 
-        summary: 'Buscar almacenes por capacidad mínima',
-        description: 'Busca almacenes con capacidad mayor o igual a la especificada' 
+        summary: 'Buscar almacenes por capacidad mínima en la empresa',
+        description: 'Busca almacenes con capacidad mayor o igual a la especificada dentro de la empresa del usuario autenticado' 
     })
     @ApiQuery({ 
         name: 'minCapacidad', 
@@ -226,7 +280,13 @@ export class AlmacenController {
         description: 'Almacenes encontrados',
         type: [ResponseAlmacenDto] 
     })
-    async findByMinCapacity(@Query('minCapacidad', ParseFloatPipe) minCapacidad: number): Promise<ResponseAlmacenDto[]> {
-        return await this.almacenService.findByMinCapacity(minCapacidad);
+    async findByMinCapacity(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('minCapacidad', ParseFloatPipe) minCapacidad: number
+    ): Promise<ResponseAlmacenDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene empresa asociada');
+        }
+        return await this.almacenService.findByMinCapacity(user.personaId, minCapacidad);
     }
 }

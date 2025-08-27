@@ -8,7 +8,8 @@ import {
     Delete,
     Query,
     ParseIntPipe,
-    ParseBoolPipe
+    ParseBoolPipe,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -18,17 +19,23 @@ import {
     ApiQuery,
     ApiBadRequestResponse,
     ApiNotFoundResponse,
-    ApiConflictResponse
+    ApiConflictResponse,
+    ApiBearerAuth
 } from '@nestjs/swagger';
 import { ProductoService } from '../service/producto.service';
 import { CreateProductoDto, UpdateProductoDto, ResponseProductoDto } from '../dto';
 import { TipoProducto } from '../enum/tipo-producto.enum';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
 
 /**
  * Controlador para gestionar las operaciones CRUD de productos
  * Proporciona endpoints REST para la gestión de productos
+ * Requiere autenticación JWT y filtra por empresa del usuario
  */
 @ApiTags('Productos')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('/api/productos')
 export class ProductoController {
 
@@ -40,7 +47,7 @@ export class ProductoController {
     @Post()
     @ApiOperation({ 
         summary: 'Crear nuevo producto',
-        description: 'Crea un nuevo producto' 
+        description: 'Crea un nuevo producto para la empresa del usuario autenticado' 
     })
     @ApiResponse({ 
         status: 201, 
@@ -49,8 +56,11 @@ export class ProductoController {
     })
     @ApiBadRequestResponse({ description: 'Datos de entrada inválidos o categoría no válida' })
     @ApiConflictResponse({ description: 'Ya existe un producto con este código' })
-    async create(@Body() createProductoDto: CreateProductoDto): Promise<ResponseProductoDto> {
-        return await this.productoService.create(createProductoDto);
+    async create(
+        @Body() createProductoDto: CreateProductoDto,
+        @CurrentUser() user: any
+    ): Promise<ResponseProductoDto> {
+        return await this.productoService.create(createProductoDto, user.personaId);
     }
 
     /**
@@ -58,7 +68,7 @@ export class ProductoController {
      */
     @Get()
     @ApiOperation({ 
-        summary: 'Obtener todos los productos',
+        summary: 'Obtener todos los productos de la empresa',
         description: 'Obtiene la lista de todos los productos con sus categorías. Por defecto solo retorna productos activos.' 
     })
     @ApiQuery({ 
@@ -79,10 +89,11 @@ export class ProductoController {
         type: [ResponseProductoDto] 
     })
     async findAll(
+        @CurrentUser() user: any,
         @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean,
         @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findAll(includeInactive || false, tipo);
+        return await this.productoService.findAll(user.personaId, includeInactive || false, tipo);
     }
 
     /**
@@ -90,7 +101,7 @@ export class ProductoController {
      */
     @Get(':id')
     @ApiOperation({ 
-        summary: 'Obtener producto por ID',
+        summary: 'Obtener producto por ID de la empresa',
         description: 'Obtiene un producto específico por su ID con su categoría' 
     })
     @ApiParam({ name: 'id', description: 'ID del producto', type: Number })
@@ -100,8 +111,8 @@ export class ProductoController {
         type: ResponseProductoDto 
     })
     @ApiNotFoundResponse({ description: 'Producto no encontrado' })
-    async findOne(@Param('id', ParseIntPipe) id: number): Promise<ResponseProductoDto> {
-        return await this.productoService.findOne(id);
+    async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any): Promise<ResponseProductoDto> {
+        return await this.productoService.findOne(id, user.personaId);
     }
 
     /**
@@ -109,7 +120,7 @@ export class ProductoController {
      */
     @Patch(':id')
     @ApiOperation({ 
-        summary: 'Actualizar producto',
+        summary: 'Actualizar producto de la empresa',
         description: 'Actualiza un producto existente' 
     })
     @ApiParam({ name: 'id', description: 'ID del producto', type: Number })
@@ -123,9 +134,10 @@ export class ProductoController {
     @ApiConflictResponse({ description: 'Ya existe un producto con este código' })
     async update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() updateProductoDto: UpdateProductoDto
+        @Body() updateProductoDto: UpdateProductoDto,
+        @CurrentUser() user: any
     ): Promise<ResponseProductoDto> {
-        return await this.productoService.update(id, updateProductoDto);
+        return await this.productoService.update(id, updateProductoDto, user.personaId);
     }
 
     /**
@@ -133,7 +145,7 @@ export class ProductoController {
      */
     @Delete(':id')
     @ApiOperation({ 
-        summary: 'Eliminar producto',
+        summary: 'Eliminar producto de la empresa',
         description: 'Elimina un producto (soft delete)' 
     })
     @ApiParam({ name: 'id', description: 'ID del producto', type: Number })
@@ -142,8 +154,8 @@ export class ProductoController {
         description: 'Producto eliminado exitosamente' 
     })
     @ApiNotFoundResponse({ description: 'Producto no encontrado' })
-    async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-        await this.productoService.remove(id);
+    async remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any): Promise<{ message: string }> {
+        await this.productoService.remove(id, user.personaId);
         return { message: 'Producto eliminado exitosamente' };
     }
 
@@ -173,10 +185,11 @@ export class ProductoController {
         type: [ResponseProductoDto] 
     })
     async findByDescription(
+        @CurrentUser() user: any,
         @Query('descripcion') descripcion: string,
         @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findByDescription(descripcion, tipo);
+        return await this.productoService.findByDescription(descripcion, user.personaId, tipo);
     }
 
     /**
@@ -205,10 +218,11 @@ export class ProductoController {
         type: [ResponseProductoDto] 
     })
     async findByName(
+        @CurrentUser() user: any,
         @Query('nombre') nombre: string,
         @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findByName(nombre, tipo);
+        return await this.productoService.findByName(nombre, user.personaId, tipo);
     }
 
     /**
@@ -232,10 +246,11 @@ export class ProductoController {
         type: [ResponseProductoDto] 
     })
     async findByCategory(
+        @CurrentUser() user: any,
         @Param('categoriaId', ParseIntPipe) categoriaId: number,
         @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findByCategory(categoriaId, tipo);
+        return await this.productoService.findByCategory(categoriaId, user.personaId, tipo);
     }
 
     /**
@@ -258,8 +273,9 @@ export class ProductoController {
         type: [ResponseProductoDto] 
     })
     async findLowStock(
+        @CurrentUser() user: any,
         @Query('tipo') tipo?: TipoProducto
     ): Promise<ResponseProductoDto[]> {
-        return await this.productoService.findLowStock(tipo);
+        return await this.productoService.findLowStock(user.personaId, tipo);
     }
 }

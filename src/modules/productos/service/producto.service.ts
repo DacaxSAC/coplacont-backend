@@ -25,31 +25,40 @@ export class ProductoService {
     /**
      * Crear un nuevo producto
      * @param createProductoDto - Datos para crear el producto
+     * @param personaId - ID de la persona/empresa propietaria
      * @returns Promise<ResponseProductoDto> - Producto creado
      */
-    async create(createProductoDto: CreateProductoDto): Promise<ResponseProductoDto> {
-        // Verificar que la categoría existe y está activa
+    async create(createProductoDto: CreateProductoDto, personaId: number): Promise<ResponseProductoDto> {
+        // Verificar que la categoría existe, está activa y pertenece a la misma empresa
         const categoria = await this.categoriaRepository.findOne({
-            where: { id: createProductoDto.idCategoria, estado: true }
+            where: { 
+                id: createProductoDto.idCategoria, 
+                estado: true,
+                persona: { id: personaId }
+            },
+            relations: ['persona']
         });
 
         if (!categoria) {
-            throw new BadRequestException('La categoría especificada no existe o está inactiva');
+            throw new BadRequestException('La categoría especificada no existe, está inactiva o no pertenece a su empresa');
         }
 
         let codigo = createProductoDto.codigo;
 
         // Autogenerar código si no se proporciona
         if (!codigo) {
-            codigo = await this.generateProductCode(categoria.nombre, categoria.tipo);
+            codigo = await this.generateProductCode(categoria.nombre, categoria.tipo, personaId);
         } else {
-            // Verificar si ya existe un producto con el mismo código (si se proporciona)
+            // Verificar si ya existe un producto con el mismo código en la misma empresa
             const existingProducto = await this.productoRepository.findOne({
-                where: { codigo }
+                where: { 
+                    codigo,
+                    persona: { id: personaId }
+                }
             });
 
             if (existingProducto) {
-                throw new ConflictException('Ya existe un producto con este código');
+                throw new ConflictException('Ya existe un producto con este código en su empresa');
             }
         }
 
@@ -58,6 +67,7 @@ export class ProductoService {
             ...createProductoDto,
             codigo,
             categoria,
+            persona: { id: personaId },
             estado: createProductoDto.estado ?? true,
             stockMinimo: createProductoDto.stockMinimo ?? 0
         });
@@ -67,25 +77,28 @@ export class ProductoService {
         // Cargar el producto con la relación de categoría
         const productoWithCategoria = await this.productoRepository.findOne({
             where: { id: savedProducto.id },
-            relations: ['categoria']
+            relations: ['categoria', 'persona']
         });
 
         return plainToClass(ResponseProductoDto, productoWithCategoria, { excludeExtraneousValues: true });
     }
 
     /**
-     * Obtener todos los productos
+     * Obtener todos los productos de una empresa
+     * @param personaId - ID de la persona/empresa
      * @param includeInactive - Incluir productos inactivos (opcional)
      * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Lista de productos
      */
-    async findAll(includeInactive: boolean = false, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+    async findAll(personaId: number, includeInactive: boolean = false, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
-            .leftJoinAndSelect('producto.categoria', 'categoria');
+            .leftJoinAndSelect('producto.categoria', 'categoria')
+            .leftJoin('producto.persona', 'persona')
+            .where('persona.id = :personaId', { personaId });
 
         if (!includeInactive) {
-            queryBuilder.where('producto.estado = :estado', { estado: true });
+            queryBuilder.andWhere('producto.estado = :estado', { estado: true });
         }
 
         if (tipo) {
@@ -101,47 +114,60 @@ export class ProductoService {
     }
 
     /**
-     * Obtener un producto por ID
+     * Obtener un producto por ID de una empresa específica
      * @param id - ID del producto
+     * @param personaId - ID de la persona/empresa
      * @returns Promise<ResponseProductoDto> - Producto encontrado
      */
-    async findOne(id: number): Promise<ResponseProductoDto> {
+    async findOne(id: number, personaId: number): Promise<ResponseProductoDto> {
         const producto = await this.productoRepository.findOne({
-            where: { id },
-            relations: ['categoria']
+            where: { 
+                id,
+                persona: { id: personaId }
+            },
+            relations: ['categoria', 'persona']
         });
 
         if (!producto) {
-            throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+            throw new NotFoundException(`Producto con ID ${id} no encontrado o no pertenece a su empresa`);
         }
 
         return plainToClass(ResponseProductoDto, producto, { excludeExtraneousValues: true });
     }
 
     /**
-     * Actualizar un producto
+     * Actualizar un producto de una empresa específica
      * @param id - ID del producto a actualizar
      * @param updateProductoDto - Datos para actualizar
+     * @param personaId - ID de la persona/empresa
      * @returns Promise<ResponseProductoDto> - Producto actualizado
      */
-    async update(id: number, updateProductoDto: UpdateProductoDto): Promise<ResponseProductoDto> {
+    async update(id: number, updateProductoDto: UpdateProductoDto, personaId: number): Promise<ResponseProductoDto> {
         const producto = await this.productoRepository.findOne({
-            where: { id },
-            relations: ['categoria']
+            where: { 
+                id,
+                persona: { id: personaId }
+            },
+            relations: ['categoria', 'persona']
         });
 
         if (!producto) {
-            throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+            throw new NotFoundException(`Producto con ID ${id} no encontrado o no pertenece a su empresa`);
         }
 
         // Verificar la categoría si se está cambiando
         if (updateProductoDto.idCategoria && updateProductoDto.idCategoria !== producto.categoria.id) {
             const categoria = await this.categoriaRepository.findOne({
-                where: { id: updateProductoDto.idCategoria, estado: true }
+                where: { 
+                    id: updateProductoDto.idCategoria, 
+                    estado: true,
+                    persona: { id: personaId }
+                },
+                relations: ['persona']
             });
 
             if (!categoria) {
-                throw new BadRequestException('La categoría especificada no existe o está inactiva');
+                throw new BadRequestException('La categoría especificada no existe, está inactiva o no pertenece a su empresa');
             }
 
             producto.categoria = categoria;
@@ -150,11 +176,14 @@ export class ProductoService {
         // Verificar si el nuevo código ya existe (si se está cambiando)
         if (updateProductoDto.codigo && updateProductoDto.codigo !== producto.codigo) {
             const existingProducto = await this.productoRepository.findOne({
-                where: { codigo: updateProductoDto.codigo }
+                where: { 
+                    codigo: updateProductoDto.codigo,
+                    persona: { id: personaId }
+                }
             });
 
             if (existingProducto) {
-                throw new ConflictException('Ya existe un producto con este código');
+                throw new ConflictException('Ya existe un producto con este código en su empresa');
             }
         }
 
@@ -167,24 +196,28 @@ export class ProductoService {
         // Recargar con relaciones
         const productoWithCategoria = await this.productoRepository.findOne({
             where: { id: updatedProducto.id },
-            relations: ['categoria']
+            relations: ['categoria', 'persona']
         });
 
         return plainToClass(ResponseProductoDto, productoWithCategoria, { excludeExtraneousValues: true });
     }
 
     /**
-     * Eliminar un producto (soft delete)
+     * Eliminar un producto (soft delete) de una empresa específica
      * @param id - ID del producto a eliminar
+     * @param personaId - ID de la persona/empresa
      * @returns Promise<void>
      */
-    async remove(id: number): Promise<void> {
+    async remove(id: number, personaId: number): Promise<void> {
         const producto = await this.productoRepository.findOne({
-            where: { id }
+            where: { 
+                id,
+                persona: { id: personaId }
+            }
         });
 
         if (!producto) {
-            throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+            throw new NotFoundException(`Producto con ID ${id} no encontrado o no pertenece a su empresa`);
         }
 
         // Soft delete - cambiar estado a false
@@ -193,17 +226,20 @@ export class ProductoService {
     }
 
     /**
-     * Buscar productos por descripción
+     * Buscar productos por descripción en una empresa específica
      * @param descripcion - Descripción a buscar
+     * @param personaId - ID de la persona/empresa
      * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos encontrados
      */
-    async findByDescription(descripcion: string, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+    async findByDescription(descripcion: string, personaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
+            .leftJoin('producto.persona', 'persona')
             .where('producto.descripcion ILIKE :descripcion', { descripcion: `%${descripcion}%` })
-            .andWhere('producto.estado = :estado', { estado: true });
+            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('persona.id = :personaId', { personaId });
 
         if (tipo) {
             queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
@@ -219,18 +255,21 @@ export class ProductoService {
     }
 
     /**
-     * Buscar productos por nombre
+     * Buscar productos por nombre en una empresa específica
      * @param nombre - Nombre a buscar
+     * @param personaId - ID de la persona/empresa
      * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos encontrados
      */
-    async findByName(nombre: string, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+    async findByName(nombre: string, personaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
+            .leftJoin('producto.persona', 'persona')
             .where('producto.nombre IS NOT NULL')
             .andWhere('producto.nombre ILIKE :nombre', { nombre: `%${nombre}%` })
-            .andWhere('producto.estado = :estado', { estado: true });
+            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('persona.id = :personaId', { personaId });
 
         if (tipo) {
             queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
@@ -246,17 +285,20 @@ export class ProductoService {
     }
 
     /**
-     * Buscar productos por categoría
+     * Buscar productos por categoría en una empresa específica
      * @param categoriaId - ID de la categoría
+     * @param personaId - ID de la persona/empresa
      * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos de la categoría
      */
-    async findByCategory(categoriaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+    async findByCategory(categoriaId: number, personaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
+            .leftJoin('producto.persona', 'persona')
             .where('categoria.id = :categoriaId', { categoriaId })
-            .andWhere('producto.estado = :estado', { estado: true });
+            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('persona.id = :personaId', { personaId });
 
         if (tipo) {
             queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
@@ -272,16 +314,19 @@ export class ProductoService {
     }
 
     /**
-     * Buscar productos con stock bajo
+     * Buscar productos con stock bajo en una empresa específica
+     * @param personaId - ID de la persona/empresa
      * @param tipo - Filtrar por tipo de ítem (PRODUCTO | SERVICIO)
      * @returns Promise<ResponseProductoDto[]> - Productos con stock bajo
      */
-    async findLowStock(tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
+    async findLowStock(personaId: number, tipo?: TipoProducto): Promise<ResponseProductoDto[]> {
         const queryBuilder = this.productoRepository
             .createQueryBuilder('producto')
             .leftJoinAndSelect('producto.categoria', 'categoria')
+            .leftJoin('producto.persona', 'persona')
             .where('producto.stockMinimo > 0')
-            .andWhere('producto.estado = :estado', { estado: true });
+            .andWhere('producto.estado = :estado', { estado: true })
+            .andWhere('persona.id = :personaId', { personaId });
 
         if (tipo) {
             queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
@@ -299,8 +344,11 @@ export class ProductoService {
     /**
      * Genera un código único para el producto
      * Formato: [PREFIJO_CATEGORIA]-[TIPO]-[NUMERO_SECUENCIAL]
+     * @param categoriaNombre - Nombre de la categoría
+     * @param tipo - Tipo de categoría
+     * @param personaId - ID de la persona/empresa
      */
-    private async generateProductCode(categoriaNombre: string, tipo: TipoCategoria): Promise<string> {
+    private async generateProductCode(categoriaNombre: string, tipo: TipoCategoria, personaId: number): Promise<string> {
         // Crear prefijo de categoría (primeras 3 letras en mayúsculas)
         const categoriaPrefix = categoriaNombre
             .replace(/[^a-zA-Z]/g, '') // Remover caracteres especiales
@@ -311,12 +359,14 @@ export class ProductoService {
         // Prefijo de tipo
         const tipoPrefix = tipo === TipoCategoria.PRODUCTO ? 'PROD' : 'SERV';
 
-        // Buscar el último número secuencial para esta combinación
+        // Buscar el último número secuencial para esta combinación en la misma empresa
         const lastProduct = await this.productoRepository
             .createQueryBuilder('producto')
+            .leftJoin('producto.persona', 'persona')
             .where('producto.codigo LIKE :pattern', { 
                 pattern: `${categoriaPrefix}-${tipoPrefix}-%` 
             })
+            .andWhere('persona.id = :personaId', { personaId })
             .orderBy('producto.codigo', 'DESC')
             .getOne();
 

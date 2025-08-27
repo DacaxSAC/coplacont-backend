@@ -8,14 +8,16 @@ import {
   Param,
   ParseIntPipe,
   HttpStatus,
-  Query
+  Query,
+  UseGuards
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery
+  ApiQuery,
+  ApiBearerAuth
 } from '@nestjs/swagger';
 import { PeriodoContableService } from '../service/periodo-contable.service';
 import {
@@ -24,25 +26,30 @@ import {
   ResponsePeriodoContableDto,
   CerrarPeriodoDto
 } from '../dto';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 
 /**
  * Controlador para gestionar períodos contables
- * Proporciona endpoints para CRUD y operaciones especiales de períodos
+ * Proporciona endpoints para CRUD y operaciones especiales de períodos con soporte multi-tenant
  */
 @ApiTags('Períodos Contables')
 @Controller('periodos-contables')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class PeriodoContableController {
   constructor(
     private readonly periodoContableService: PeriodoContableService
   ) {}
 
   /**
-   * Crear un nuevo período contable
+   * Crear un nuevo período contable para la empresa
    */
   @Post()
   @ApiOperation({
-    summary: 'Crear período contable',
-    description: 'Crea un nuevo período contable para una persona/empresa'
+    summary: 'Crear período contable para la empresa',
+    description: 'Crea un nuevo período contable para la empresa del usuario autenticado'
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -58,23 +65,22 @@ export class PeriodoContableController {
     description: 'Datos de entrada inválidos'
   })
   async crear(
+    @CurrentUser() user: AuthenticatedUser,
     @Body() createDto: CreatePeriodoContableDto
   ): Promise<ResponsePeriodoContableDto> {
-    return this.periodoContableService.crear(createDto);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.crear(user.personaId, createDto);
   }
 
   /**
-   * Obtener todos los períodos de una persona
+   * Obtener todos los períodos de la empresa
    */
-  @Get('persona/:idPersona')
+  @Get()
   @ApiOperation({
-    summary: 'Obtener períodos por persona',
-    description: 'Obtiene todos los períodos contables de una persona/empresa'
-  })
-  @ApiParam({
-    name: 'idPersona',
-    description: 'ID de la persona/empresa',
-    type: 'number'
+    summary: 'Obtener períodos de la empresa',
+    description: 'Obtiene todos los períodos contables de la empresa del usuario autenticado'
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -82,23 +88,21 @@ export class PeriodoContableController {
     type: [ResponsePeriodoContableDto]
   })
   async obtenerPorPersona(
-    @Param('idPersona', ParseIntPipe) idPersona: number
+    @CurrentUser() user: AuthenticatedUser
   ): Promise<ResponsePeriodoContableDto[]> {
-    return this.periodoContableService.obtenerPorPersona(idPersona);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.obtenerPorPersona(user.personaId);
   }
 
   /**
-   * Obtener período activo de una persona
+   * Obtener período activo de la empresa
    */
-  @Get('persona/:idPersona/activo')
+  @Get('activo')
   @ApiOperation({
-    summary: 'Obtener período activo',
-    description: 'Obtiene el período contable activo de una persona/empresa'
-  })
-  @ApiParam({
-    name: 'idPersona',
-    description: 'ID de la persona/empresa',
-    type: 'number'
+    summary: 'Obtener período activo de la empresa',
+    description: 'Obtiene el período contable activo de la empresa del usuario autenticado'
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -110,18 +114,21 @@ export class PeriodoContableController {
     description: 'No se encontró período activo'
   })
   async obtenerPeriodoActivo(
-    @Param('idPersona', ParseIntPipe) idPersona: number
+    @CurrentUser() user: AuthenticatedUser
   ): Promise<ResponsePeriodoContableDto> {
-    return this.periodoContableService.obtenerPeriodoActivo(idPersona);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.obtenerPeriodoActivo(user.personaId);
   }
 
   /**
-   * Obtener período por ID
+   * Obtener período por ID de la empresa
    */
   @Get(':id')
   @ApiOperation({
-    summary: 'Obtener período por ID',
-    description: 'Obtiene un período contable específico por su ID'
+    summary: 'Obtener período por ID de la empresa',
+    description: 'Obtiene un período contable específico por su ID, verificando que pertenezca a la empresa del usuario'
   })
   @ApiParam({
     name: 'id',
@@ -138,19 +145,22 @@ export class PeriodoContableController {
     description: 'Período contable no encontrado'
   })
   async obtenerPorId(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number
   ): Promise<ResponsePeriodoContableDto> {
-    const periodo = await this.periodoContableService.obtenerPorId(id);
-    return this.periodoContableService['mapearAResponse'](periodo);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.obtenerPorIdYPersona(id, user.personaId);
   }
 
   /**
-   * Actualizar un período contable
+   * Actualizar un período contable de la empresa
    */
   @Put(':id')
   @ApiOperation({
-    summary: 'Actualizar período contable',
-    description: 'Actualiza un período contable existente'
+    summary: 'Actualizar período contable de la empresa',
+    description: 'Actualiza un período contable existente de la empresa del usuario'
   })
   @ApiParam({
     name: 'id',
@@ -171,19 +181,23 @@ export class PeriodoContableController {
     description: 'No se puede modificar un período cerrado'
   })
   async actualizar(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdatePeriodoContableDto
   ): Promise<ResponsePeriodoContableDto> {
-    return this.periodoContableService.actualizar(id, updateDto);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.actualizarPorPersona(id, user.personaId, updateDto);
   }
 
   /**
-   * Cerrar un período contable
+   * Cerrar un período contable de la empresa
    */
   @Put(':id/cerrar')
   @ApiOperation({
-    summary: 'Cerrar período contable',
-    description: 'Cierra un período contable, impidiendo futuras modificaciones'
+    summary: 'Cerrar período contable de la empresa',
+    description: 'Cierra un período contable de la empresa del usuario, impidiendo futuras modificaciones'
   })
   @ApiParam({
     name: 'id',
@@ -204,19 +218,23 @@ export class PeriodoContableController {
     description: 'El período ya está cerrado'
   })
   async cerrar(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() cerrarDto: CerrarPeriodoDto
   ): Promise<ResponsePeriodoContableDto> {
-    return this.periodoContableService.cerrar(id, cerrarDto);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.cerrarPorPersona(id, user.personaId, cerrarDto);
   }
 
   /**
-   * Reabrir un período contable
+   * Reabrir un período contable de la empresa
    */
   @Put(':id/reabrir')
   @ApiOperation({
-    summary: 'Reabrir período contable',
-    description: 'Reabre un período contable cerrado'
+    summary: 'Reabrir período contable de la empresa',
+    description: 'Reabre un período contable cerrado de la empresa del usuario'
   })
   @ApiParam({
     name: 'id',
@@ -237,18 +255,22 @@ export class PeriodoContableController {
     description: 'El período no está cerrado'
   })
   async reabrir(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number
   ): Promise<ResponsePeriodoContableDto> {
-    return this.periodoContableService.reabrir(id);
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.reabrirPorPersona(id, user.personaId);
   }
 
   /**
-   * Eliminar un período contable
+   * Eliminar un período contable de la empresa
    */
   @Delete(':id')
   @ApiOperation({
-    summary: 'Eliminar período contable',
-    description: 'Elimina un período contable (solo si no está cerrado y no tiene comprobantes)'
+    summary: 'Eliminar período contable de la empresa',
+    description: 'Elimina un período contable de la empresa del usuario (solo si no está cerrado y no tiene comprobantes)'
   })
   @ApiParam({
     name: 'id',
@@ -267,22 +289,23 @@ export class PeriodoContableController {
     status: HttpStatus.BAD_REQUEST,
     description: 'No se puede eliminar un período cerrado o con comprobantes'
   })
-  async eliminar(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.periodoContableService.eliminar(id);
+  async eliminar(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<void> {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    return this.periodoContableService.eliminarPorPersona(id, user.personaId);
   }
 
   /**
-   * Validar fecha en período activo
+   * Validar fecha en período activo de la empresa
    */
-  @Get('persona/:idPersona/validar-fecha')
+  @Get('validar-fecha')
   @ApiOperation({
-    summary: 'Validar fecha en período activo',
-    description: 'Valida si una fecha está dentro del período activo'
-  })
-  @ApiParam({
-    name: 'idPersona',
-    description: 'ID de la persona/empresa',
-    type: 'number'
+    summary: 'Validar fecha en período activo de la empresa',
+    description: 'Valida si una fecha está dentro del período activo de la empresa del usuario'
   })
   @ApiQuery({
     name: 'fecha',
@@ -302,28 +325,26 @@ export class PeriodoContableController {
     }
   })
   async validarFechaEnPeriodoActivo(
-    @Param('idPersona', ParseIntPipe) idPersona: number,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('fecha') fecha: string
   ) {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
     const fechaValidar = new Date(fecha);
     return this.periodoContableService.validarFechaEnPeriodoActivo(
-      idPersona,
+      user.personaId,
       fechaValidar
     );
   }
 
   /**
-   * Validar movimiento retroactivo
+   * Validar movimiento retroactivo de la empresa
    */
-  @Get('persona/:idPersona/validar-retroactivo')
+  @Get('validar-retroactivo')
   @ApiOperation({
-    summary: 'Validar movimiento retroactivo',
-    description: 'Valida si se permite un movimiento retroactivo según la configuración'
-  })
-  @ApiParam({
-    name: 'idPersona',
-    description: 'ID de la persona/empresa',
-    type: 'number'
+    summary: 'Validar movimiento retroactivo de la empresa',
+    description: 'Valida si se permite un movimiento retroactivo según la configuración de la empresa del usuario'
   })
   @ApiQuery({
     name: 'fecha',
@@ -342,12 +363,15 @@ export class PeriodoContableController {
     }
   })
   async validarMovimientoRetroactivo(
-    @Param('idPersona', ParseIntPipe) idPersona: number,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('fecha') fecha: string
   ) {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
     const fechaMovimiento = new Date(fecha);
     return this.periodoContableService.validarMovimientoRetroactivo(
-      idPersona,
+      user.personaId,
       fechaMovimiento
     );
   }

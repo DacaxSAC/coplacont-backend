@@ -10,6 +10,7 @@ import {  ProductoService } from './service';
 
 // Controllers
 import {  ProductoController } from './controller';
+import { UserModule } from '../users/user.module';
 
 /**
  * Módulo de productos y almacenes
@@ -21,7 +22,8 @@ import {  ProductoController } from './controller';
             Producto,
             Almacen,
             Categoria
-        ])
+        ]),
+        UserModule // Importar UserModule para JwtAuthGuard, JwtService y UserService
     ],
     controllers: [
         ProductoController
