@@ -10,9 +10,11 @@ import {
   ParseIntPipe,
   ParseBoolPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
+  UseGuards,
+  UnauthorizedException
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { EntidadService } from '../services';
 import { 
   CreateEntidadDto, 
@@ -21,8 +23,13 @@ import {
   EntidadResponseDto,
   ApiResponseDto 
 } from '../dto';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 
 @ApiTags('Entidades')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('api/entidades')
 export class EntidadController {
   constructor(private readonly entidadService: EntidadService) {}
@@ -38,8 +45,14 @@ export class EntidadController {
     status: 400, 
     description: 'Datos inválidos o documento ya existe' 
   })
-  create(@Body() createEntidadDto: CreateEntidadDto): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.create(createEntidadDto);
+  create(
+    @Body() createEntidadDto: CreateEntidadDto,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponseDto<EntidadResponseDto>> {
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.create(createEntidadDto, user.personaId);
   }
 
   @Get()
@@ -56,9 +69,13 @@ export class EntidadController {
     type: [EntidadResponseDto] 
   })
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
   ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findAll(includeInactive || false);
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.findAll(user.personaId, includeInactive || false);
   }
 
   @Get('clients')
@@ -75,9 +92,13 @@ export class EntidadController {
     type: [EntidadResponseDto] 
   })
   findClients(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
   ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findClients(includeInactive || false);
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.findClients(user.personaId, includeInactive || false);
   }
 
   @Get('providers')
@@ -94,9 +115,13 @@ export class EntidadController {
     type: [EntidadResponseDto] 
   })
   findProviders(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
   ): Promise<ApiResponseDto<EntidadResponseDto[]>> {
-    return this.entidadService.findProviders(includeInactive || false);
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.findProviders(user.personaId, includeInactive || false);
   }
 
   @Get(':id')
@@ -111,8 +136,14 @@ export class EntidadController {
     status: 404, 
     description: 'Entidad no encontrada' 
   })
-  findById(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.findById(id);
+  findById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponseDto<EntidadResponseDto>> {
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.findById(id, user.personaId);
   }
 
   @Get('document/:documentNumber')
@@ -127,8 +158,14 @@ export class EntidadController {
     status: 404, 
     description: 'Entidad no encontrada' 
   })
-  findByDocumentNumber(@Param('documentNumber') documentNumber: string): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.findByDocumentNumber(documentNumber);
+  findByDocumentNumber(
+    @Param('documentNumber') documentNumber: string,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponseDto<EntidadResponseDto>> {
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.findByDocumentNumber(documentNumber, user.personaId);
   }
 
   @Patch(':id')
@@ -145,9 +182,13 @@ export class EntidadController {
   })
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateEntidadDto: UpdateEntidadDto
+    @Body() updateEntidadDto: UpdateEntidadDto,
+    @CurrentUser() user: AuthenticatedUser
   ): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.update(id, updateEntidadDto);
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.update(id, user.personaId, updateEntidadDto);
   }
 
   @Patch(':id/activate-roles')
@@ -171,9 +212,13 @@ export class EntidadController {
   })
   activateRoles(
     @Param('id', ParseIntPipe) id: number,
-    @Body() activateRoleDto: ActivateRoleDto
+    @Body() activateRoleDto: ActivateRoleDto,
+    @CurrentUser() user: AuthenticatedUser
   ): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.activateRole(id, activateRoleDto);
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.activateRole(id, user.personaId, activateRoleDto);
   }
 
   @Delete(':id')
@@ -191,8 +236,14 @@ export class EntidadController {
     status: 404, 
     description: 'Entidad no encontrada' 
   })
-  softDelete(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<null>> {
-    return this.entidadService.softDelete(id);
+  softDelete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponseDto<null>> {
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.softDelete(id, user.personaId);
   }
 
   @Patch(':id/restore')
@@ -211,7 +262,13 @@ export class EntidadController {
     status: 404, 
     description: 'Entidad no encontrada o ya está activa' 
   })
-  restore(@Param('id', ParseIntPipe) id: number): Promise<ApiResponseDto<EntidadResponseDto>> {
-    return this.entidadService.restore(id);
+  restore(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponseDto<EntidadResponseDto>> {
+    if (!user.personaId) {
+      throw new UnauthorizedException('Usuario no tiene una empresa asociada');
+    }
+    return this.entidadService.restore(id, user.personaId);
   }
 }

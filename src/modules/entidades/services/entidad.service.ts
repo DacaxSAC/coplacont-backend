@@ -14,36 +14,47 @@ export class EntidadService {
   /**
    * Crea una nueva persona
    * @param createPersonDto - Datos para crear la persona
+   * @param personaId - ID de la persona (empresa) a la que pertenece
    * @returns Respuesta con la persona creada o error
    */
-  async create(createPersonDto: CreateEntidadDto): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async create(createPersonDto: CreateEntidadDto, personaId: number): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const existingPerson = await this.personRepository.findOne({
-        where: { numeroDocumento: createPersonDto.numeroDocumento }
+        where: { 
+          numeroDocumento: createPersonDto.numeroDocumento,
+          persona: { id: personaId }
+        }
       });
 
       if (existingPerson) {
-        return ApiResponseDto.error(`Ya existe una persona con el número de documento ${createPersonDto.numeroDocumento}`);
+        return ApiResponseDto.error(`Ya existe una entidad con el número de documento ${createPersonDto.numeroDocumento} en esta empresa`);
       }
 
-      const person = this.personRepository.create(createPersonDto);
+      const person = this.personRepository.create({
+        ...createPersonDto,
+        persona: { id: personaId }
+      });
       const savedPerson = await this.personRepository.save(person);
       const responseDto = this.mapToResponseDto(savedPerson);
       
-      return ApiResponseDto.success('Persona creada exitosamente', responseDto);
+      return ApiResponseDto.success('Entidad creada exitosamente', responseDto);
     } catch (error) {
-      return ApiResponseDto.error('Error al crear la persona: ' + error.message);
+      return ApiResponseDto.error('Error al crear la entidad: ' + error.message);
     }
   }
 
   /**
-   * Obtiene todas las personas
+   * Obtiene todas las personas de una empresa específica
+   * @param personaId - ID de la persona (empresa)
    * @param includeInactive - Si es true, incluye personas inactivas. Por defecto false (solo activas)
    * @returns Respuesta con lista de personas
    */
-  async findAll(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findAll(personaId: number, includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
-      const whereCondition = includeInactive ? {} : { activo: true };
+      const whereCondition: any = { persona: { id: personaId } };
+      if (!includeInactive) {
+        whereCondition.activo = true;
+      }
       
       const persons = await this.personRepository.find({
         where: whereCondition,
@@ -51,25 +62,26 @@ export class EntidadService {
       });
       
       const responseDtos = persons.map(person => this.mapToResponseDto(person));
-      return ApiResponseDto.success('Personas obtenidas exitosamente', responseDtos);
+      return ApiResponseDto.success('Entidades obtenidas exitosamente', responseDtos);
     } catch (error) {
-      return ApiResponseDto.error('Error al obtener las personas: ' + error.message);
+      return ApiResponseDto.error('Error al obtener las entidades: ' + error.message);
     }
   }
 
   /**
-   * Busca una persona por ID
+   * Busca una persona por ID dentro de una empresa específica
    * @param id - ID de la persona
+   * @param personaId - ID de la persona (empresa)
    * @returns Respuesta con la persona encontrada o error
    */
-  async findById(id: number): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async findById(id: number, personaId: number): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { id, activo: true }
+        where: { id, persona: { id: personaId }, activo: true }
       });
 
       if (!person) {
-        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada`);
+        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada en esta empresa`);
       }
 
       const responseDto = this.mapToResponseDto(person);
@@ -80,13 +92,14 @@ export class EntidadService {
   }
 
   /**
-   * Obtiene todas las personas que son clientes
+   * Obtiene todas las personas que son clientes de una empresa específica
+   * @param personaId - ID de la persona (empresa)
    * @param includeInactive - Si es true, incluye clientes inactivos. Por defecto false (solo activos)
    * @returns Respuesta con lista de clientes
    */
-  async findClients(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findClients(personaId: number, includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
-      const whereCondition: any = { esCliente: true };
+      const whereCondition: any = { persona: { id: personaId }, esCliente: true };
       if (!includeInactive) {
         whereCondition.activo = true;
       }
@@ -104,13 +117,14 @@ export class EntidadService {
   }
 
   /**
-   * Obtiene todas las personas que son proveedores
+   * Obtiene todas las personas que son proveedores de una empresa específica
+   * @param personaId - ID de la persona (empresa)
    * @param includeInactive - Si es true, incluye proveedores inactivos. Por defecto false (solo activos)
    * @returns Respuesta con lista de proveedores
    */
-  async findProviders(includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
+  async findProviders(personaId: number, includeInactive: boolean = false): Promise<ApiResponseDto<EntidadResponseDto[]>> {
     try {
-      const whereCondition: any = { esProveedor: true };
+      const whereCondition: any = { persona: { id: personaId }, esProveedor: true };
       if (!includeInactive) {
         whereCondition.activo = true;
       }
@@ -130,17 +144,18 @@ export class EntidadService {
   /**
    * Actualiza los datos principales de una persona
    * @param id - ID de la persona
+   * @param personaId - ID de la persona (empresa)
    * @param updatePersonDto - Datos a actualizar
    * @returns Respuesta con la persona actualizada o error
    */
-  async update(id: number, updatePersonDto: UpdateEntidadDto): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async update(id: number, personaId: number, updatePersonDto: UpdateEntidadDto): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { id, activo: true }
+        where: { id, persona: { id: personaId }, activo: true }
       });
 
       if (!person) {
-        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada`);
+        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada en esta empresa`);
       }
 
       // Actualizar solo los campos proporcionados
@@ -157,17 +172,18 @@ export class EntidadService {
   /**
    * Activa un rol específico para una persona (solo activación permitida)
    * @param id - ID de la persona
+   * @param personaId - ID de la persona (empresa)
    * @param activateRoleDto - Datos del rol a activar
    * @returns Respuesta con la persona con el rol activado o error
    */
-  async activateRole(id: number, activateRoleDto: ActivateRoleDto): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async activateRole(id: number, personaId: number, activateRoleDto: ActivateRoleDto): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { id, activo: true }
+        where: { id, persona: { id: personaId }, activo: true }
       });
 
       if (!person) {
-        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada`);
+        return ApiResponseDto.error(`Entidad con ID ${id} no encontrada en esta empresa`);
       }
 
       // Validar que solo se esté activando (no desactivando)
@@ -194,69 +210,72 @@ export class EntidadService {
   /**
    * Realiza soft delete de una persona (marca como inactiva)
    * @param id ID de la persona
+   * @param personaId - ID de la persona (empresa)
    * @returns Respuesta de confirmación o error
    */
-  async softDelete(id: number): Promise<ApiResponseDto<null>> {
+  async softDelete(id: number, personaId: number): Promise<ApiResponseDto<null>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { id, activo: true }
+        where: { id, persona: { id: personaId }, activo: true }
       });
 
       if (!person) {
-        return ApiResponseDto.error('Persona no encontrada');
+        return ApiResponseDto.error('Entidad no encontrada en esta empresa');
       }
 
       person.activo = false;
       await this.personRepository.save(person);
-      return ApiResponseDto.success('Persona eliminada exitosamente', null);
+      return ApiResponseDto.success('Entidad eliminada exitosamente', null);
     } catch (error) {
-      return ApiResponseDto.error('Error al eliminar la persona: ' + error.message);
+      return ApiResponseDto.error('Error al eliminar la entidad: ' + error.message);
     }
   }
 
   /**
    * Restaura una persona eliminada (soft delete)
    * @param id ID de la persona
+   * @param personaId - ID de la persona (empresa)
    * @returns Respuesta con la persona restaurada o error
    */
-  async restore(id: number): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async restore(id: number, personaId: number): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { id, activo: false }
+        where: { id, persona: { id: personaId }, activo: false }
       });
 
       if (!person) {
-        return ApiResponseDto.error('Persona no encontrada o ya está activa');
+        return ApiResponseDto.error('Entidad no encontrada o ya está activa en esta empresa');
       }
 
       person.activo = true;
       const restoredPerson = await this.personRepository.save(person);
       const responseDto = this.mapToResponseDto(restoredPerson);
-      return ApiResponseDto.success('Persona restaurada exitosamente', responseDto);
+      return ApiResponseDto.success('Entidad restaurada exitosamente', responseDto);
     } catch (error) {
-      return ApiResponseDto.error('Error al restaurar la persona: ' + error.message);
+      return ApiResponseDto.error('Error al restaurar la entidad: ' + error.message);
     }
   }
 
   /**
-   * Busca personas por número de documento
+   * Busca personas por número de documento dentro de una empresa específica
    * @param documentNumber Número de documento
+   * @param personaId - ID de la persona (empresa)
    * @returns Respuesta con la persona encontrada o error
    */
-  async findByDocumentNumber(documentNumber: string): Promise<ApiResponseDto<EntidadResponseDto>> {
+  async findByDocumentNumber(documentNumber: string, personaId: number): Promise<ApiResponseDto<EntidadResponseDto>> {
     try {
       const person = await this.personRepository.findOne({
-        where: { numeroDocumento: documentNumber, activo: true }
+        where: { numeroDocumento: documentNumber, persona: { id: personaId }, activo: true }
       });
 
       if (!person) {
-        return ApiResponseDto.error(`Persona con número de documento ${documentNumber} no encontrada`);
+        return ApiResponseDto.error(`Entidad con número de documento ${documentNumber} no encontrada en esta empresa`);
       }
 
       const responseDto = this.mapToResponseDto(person);
-      return ApiResponseDto.success('Persona encontrada exitosamente', responseDto);
+      return ApiResponseDto.success('Entidad encontrada exitosamente', responseDto);
     } catch (error) {
-      return ApiResponseDto.error('Error al buscar la persona: ' + error.message);
+      return ApiResponseDto.error('Error al buscar la entidad: ' + error.message);
     }
   }
 

@@ -5,9 +5,12 @@ import {
   CreateDateColumn, 
   UpdateDateColumn,
   BeforeInsert,
-  BeforeUpdate
+  BeforeUpdate,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
 import { EntidadType } from '../enums/EntidadType.enum';
+import { Persona } from '../../users/entities/persona.entity';
 
 /**
  * Entidad que representa una persona que puede ser cliente o proveedor
@@ -54,6 +57,14 @@ export class Entidad {
 
   @Column({ nullable: true, length: 20 })
   telefono?: string;
+
+  /**
+   * Relación con Persona (empresa propietaria de la entidad)
+   * Una entidad (cliente/proveedor) pertenece a una empresa específica
+   */
+  @ManyToOne(() => Persona, { nullable: false })
+  @JoinColumn({ name: 'id_persona' })
+  persona: Persona;
 
   @CreateDateColumn()
   createdAt: Date;

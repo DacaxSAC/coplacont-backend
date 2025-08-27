@@ -8,7 +8,8 @@ import {
     Delete,
     Query,
     ParseIntPipe,
-    ParseBoolPipe
+    ParseBoolPipe,
+    UseGuards
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -18,10 +19,14 @@ import {
     ApiQuery,
     ApiBadRequestResponse,
     ApiNotFoundResponse,
-    ApiConflictResponse
+    ApiConflictResponse,
+    ApiBearerAuth
 } from '@nestjs/swagger';
 import { CategoriaService } from '../service/categoria.service';
 import { CreateCategoriaDto, UpdateCategoriaDto, ResponseCategoriaDto } from '../dto';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
 
 /**
  * Controlador para gestionar las operaciones CRUD de categorías
@@ -29,6 +34,8 @@ import { CreateCategoriaDto, UpdateCategoriaDto, ResponseCategoriaDto } from '..
  */
 @ApiTags('Categorías')
 @Controller('/api/categorias')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class CategoriaController {
 
     constructor(private readonly categoriaService: CategoriaService) {}
@@ -48,8 +55,14 @@ export class CategoriaController {
     })
     @ApiBadRequestResponse({ description: 'Datos de entrada inválidos' })
     @ApiConflictResponse({ description: 'Ya existe una categoría con este nombre' })
-    async create(@Body() createCategoriaDto: CreateCategoriaDto): Promise<ResponseCategoriaDto> {
-        return await this.categoriaService.create(createCategoriaDto);
+    async create(
+        @Body() createCategoriaDto: CreateCategoriaDto,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseCategoriaDto> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.categoriaService.create(createCategoriaDto, user.personaId);
     }
 
     /**
@@ -72,9 +85,13 @@ export class CategoriaController {
         type: [ResponseCategoriaDto] 
     })
     async findAll(
+        @CurrentUser() user: AuthenticatedUser,
         @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean
     ): Promise<ResponseCategoriaDto[]> {
-        return await this.categoriaService.findAll(includeInactive || false);
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.categoriaService.findAll(user.personaId, includeInactive || false);
     }
 
     /**
@@ -92,8 +109,14 @@ export class CategoriaController {
         type: ResponseCategoriaDto 
     })
     @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-    async findOne(@Param('id', ParseIntPipe) id: number): Promise<ResponseCategoriaDto> {
-        return await this.categoriaService.findOne(id);
+    async findOne(
+        @Param('id', ParseIntPipe) id: number,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseCategoriaDto> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.categoriaService.findOne(id, user.personaId);
     }
 
     /**
@@ -115,9 +138,13 @@ export class CategoriaController {
     @ApiConflictResponse({ description: 'Ya existe una categoría con este nombre' })
     async update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() updateCategoriaDto: UpdateCategoriaDto
+        @Body() updateCategoriaDto: UpdateCategoriaDto,
+        @CurrentUser() user: AuthenticatedUser
     ): Promise<ResponseCategoriaDto> {
-        return await this.categoriaService.update(id, updateCategoriaDto);
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.categoriaService.update(id, updateCategoriaDto, user.personaId);
     }
 
     /**
@@ -135,8 +162,14 @@ export class CategoriaController {
     })
     @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
     @ApiConflictResponse({ description: 'No se puede eliminar la categoría porque tiene productos asociados' })
-    async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
-        await this.categoriaService.remove(id);
+    async remove(
+        @Param('id', ParseIntPipe) id: number,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<{ message: string }> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        await this.categoriaService.remove(id, user.personaId);
         return { message: 'Categoría eliminada exitosamente' };
     }
 
@@ -159,7 +192,13 @@ export class CategoriaController {
         description: 'Categorías encontradas',
         type: [ResponseCategoriaDto] 
     })
-    async findByName(@Query('nombre') nombre: string): Promise<ResponseCategoriaDto[]> {
-        return await this.categoriaService.findByName(nombre);
+    async findByName(
+        @Query('nombre') nombre: string,
+        @CurrentUser() user: AuthenticatedUser
+    ): Promise<ResponseCategoriaDto[]> {
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return await this.categoriaService.findByName(nombre, user.personaId);
     }
 }

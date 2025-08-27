@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Entidad } from './entities';
 import { EntidadController } from './controllers';
 import { EntidadService } from './services';
+import { UserModule } from '../users/user.module';
 
 /**
  * Módulo para la gestión de personas (clientes y proveedores)
@@ -10,6 +11,7 @@ import { EntidadService } from './services';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Entidad]),
+    UserModule, // Importar UserModule para JwtAuthGuard, JwtService y UserService
   ],
   controllers: [EntidadController],
   providers: [EntidadService],

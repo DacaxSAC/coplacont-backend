@@ -1,6 +1,7 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Producto } from '../../productos/entities';
 import { TipoCategoria } from '../enum/tipo-categoria.enum';
+import { Persona } from '../../users/entities/persona.entity';
 
 /**
  * Entidad que representa una categoría de productos
@@ -47,6 +48,14 @@ export class Categoria {
      */
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     fechaActualizacion: Date;
+
+    /**
+     * Relación con Persona (empresa propietaria de la categoría)
+     * Una categoría pertenece a una empresa específica
+     */
+    @ManyToOne(() => Persona, { nullable: false })
+    @JoinColumn({ name: 'id_persona' })
+    persona: Persona;
 
     /**
      * Relación uno a muchos con productos
