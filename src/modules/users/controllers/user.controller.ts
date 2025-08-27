@@ -4,6 +4,7 @@ import { UserService } from '../services/user.service';
 import { PersonaService } from '../services/person.service';
 import { CreateUserDto } from '../dto/user/create-user.dto';
 import { CreateUserForPersonaDto } from '../dto/user/create-user-for-persona.dto';
+import { CreatePersonaWithUserDto } from '../dto/persona/create-persona-with-user.dto';
 import { ResponseUserDto } from '../dto/user/response-user.dto';
 import { UpdateUserDto } from '../dto/user/update-user.dto';
 
@@ -18,7 +19,7 @@ export class UserController {
     @Get(':id')
     @ApiOperation({ summary: 'Obtener usuario por ID' })
     @ApiParam({ 
-        name: 'id', 
+        name: 'id',     
         description: 'ID del usuario', 
         example: 1 
     })
@@ -279,6 +280,82 @@ export class UserController {
     @ApiResponse({ status: 400, description: 'Error al desactivar el usuario' })
     disableUser(@Param('id') id: number): Promise<void> {
         return this.userService.softDelete(id);
+    }
+
+    /**
+     * Crea una nueva empresa junto con su usuario principal
+     * @param createPersonaWithUserDto Datos de la empresa y usuario principal
+     * @returns Empresa y usuario creados
+     */
+    @Post('empresa-con-usuario')
+    @ApiOperation({ 
+        summary: 'Crear empresa con usuario principal',
+        description: 'Crea una nueva empresa (persona jurídica) junto con su usuario principal en una sola operación. El usuario principal tendrá acceso completo a la empresa y recibirá un email de bienvenida con credenciales temporales.'
+    })
+    @ApiBody({ 
+        type: CreatePersonaWithUserDto,
+        examples: {
+            empresaCompleta: {
+                summary: 'Empresa nueva con administrador',
+                value: {
+                    nombreEmpresa: 'Innovación Tech S.A.C.',
+                    ruc: '20123456789',
+                    razonSocial: 'INNOVACION TECH SOCIEDAD ANONIMA CERRADA',
+                    telefono: '+51 999 888 777',
+                    direccion: 'Av. Tecnológica 123, San Isidro, Lima',
+                    nombreUsuario: 'Carlos Administrador',
+                    emailUsuario: 'admin@innovaciontech.com',
+                    idRol: 1,
+                    esPrincipal: true
+                }
+            },
+            empresaBasica: {
+                summary: 'Empresa básica con datos mínimos',
+                value: {
+                    nombreEmpresa: 'Comercial ABC E.I.R.L.',
+                    ruc: '20987654321',
+                    razonSocial: 'COMERCIAL ABC EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA',
+                    nombreUsuario: 'Ana Gerente',
+                    emailUsuario: 'gerencia@comercialabc.com',
+                    idRol: 1,
+                    esPrincipal: true
+                }
+            }
+        }
+    })
+    @ApiResponse({ 
+        status: 201, 
+        description: 'Empresa y usuario principal creados exitosamente',
+        example: {
+            persona: {
+                id: 10,
+                nombreEmpresa: 'Innovación Tech S.A.C.',
+                ruc: '20123456789',
+                razonSocial: 'INNOVACION TECH SOCIEDAD ANONIMA CERRADA',
+                telefono: '+51 999 888 777',
+                direccion: 'Av. Tecnológica 123, San Isidro, Lima',
+                habilitado: true,
+                createdAt: '2024-01-15T10:30:00.000Z',
+                updatedAt: '2024-01-15T10:30:00.000Z'
+            },
+            usuario: {
+                id: 25,
+                email: 'admin@innovaciontech.com',
+                nombre: 'Carlos Administrador',
+                habilitado: true,
+                esPrincipal: true,
+                persona: {
+                    id: 10,
+                    nombreEmpresa: 'Innovación Tech S.A.C.',
+                    ruc: '20123456789'
+                }
+            }
+        }
+    })
+    @ApiResponse({ status: 400, description: 'Datos inválidos, RUC ya existe, o email ya registrado' })
+    @ApiResponse({ status: 500, description: 'Error interno del servidor durante la transacción' })
+    createPersonaWithUser(@Body() createPersonaWithUserDto: CreatePersonaWithUserDto): Promise<{ persona: any; usuario: any }> {
+        return this.personaService.createPersonaWithUser(createPersonaWithUserDto);
     }
 
 }

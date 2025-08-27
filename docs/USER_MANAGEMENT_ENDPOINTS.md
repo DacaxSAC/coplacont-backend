@@ -4,7 +4,63 @@ Este documento describe los nuevos endpoints implementados para la gestión avan
 
 ## Endpoints Implementados
 
-### 1. Crear Usuario para Empresa Específica
+### 1. Crear Empresa con Usuario Principal
+
+**Endpoint:** `POST /api/user/empresa-con-usuario`
+
+**Descripción:** Crea una nueva empresa (persona jurídica) junto con su usuario principal en una sola operación transaccional.
+
+**Body (CreateEmpresaConUsuarioDto):**
+```json
+{
+  "nombreEmpresa": "Innovación Tech S.A.C.",
+  "ruc": "20123456789",
+  "razonSocial": "INNOVACION TECH SOCIEDAD ANONIMA CERRADA",
+  "telefono": "+51 999 888 777",
+  "direccion": "Av. Tecnológica 123, San Isidro, Lima",
+  "nombreUsuario": "Carlos Administrador",
+  "emailUsuario": "admin@innovaciontech.com",
+  "idRol": 1,
+  "esPrincipal": true
+}
+```
+
+**Respuesta:**
+```json
+{
+  "persona": {
+    "id": 10,
+    "nombreEmpresa": "Innovación Tech S.A.C.",
+    "ruc": "20123456789",
+    "razonSocial": "INNOVACION TECH SOCIEDAD ANONIMA CERRADA",
+    "telefono": "+51 999 888 777",
+    "direccion": "Av. Tecnológica 123, San Isidro, Lima",
+    "habilitado": true,
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  },
+  "usuario": {
+    "id": 25,
+    "email": "admin@innovaciontech.com",
+    "nombre": "Carlos Administrador",
+    "habilitado": true,
+    "esPrincipal": true,
+    "persona": {
+      "id": 10,
+      "nombreEmpresa": "Innovación Tech S.A.C.",
+      "ruc": "20123456789"
+    }
+  }
+}
+```
+
+**Características:**
+- **Transaccional**: Si falla la creación del usuario, se revierte la creación de la empresa
+- **Email automático**: Se envía email de bienvenida con credenciales temporales
+- **Usuario principal**: El usuario creado tiene acceso completo a la empresa
+- **Validaciones**: RUC único, email único, datos requeridos
+
+### 2. Crear Usuario para Empresa Específica
 
 **Endpoint:** `POST /api/user/persona/:idPersona`
 

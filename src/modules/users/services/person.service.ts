@@ -1,9 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Persona } from "../entities/persona.entity";
 import { User } from "../entities/user.entity";
-import { Repository } from "typeorm";
+import { Repository, DataSource } from "typeorm";
 import { CreatePersonaDto } from "../dto/persona/create-persona.dto";
+import { CreatePersonaWithUserDto } from "../dto/persona/create-persona-with-user.dto";
+import { UserService } from "./user.service";
+import { CreateUserForPersonaDto } from "../dto/user/create-user-for-persona.dto";
 
 @Injectable()
 export class PersonaService {
@@ -12,7 +15,10 @@ export class PersonaService {
         @InjectRepository(Persona) 
         private readonly personaRepository : Repository<Persona>,
         @InjectRepository(User)
-        private readonly userRepository: Repository<User> ){
+        private readonly userRepository: Repository<User>,
+        @Inject(forwardRef(() => UserService))
+        private readonly userService: UserService,
+        private readonly dataSource: DataSource ){
     }
 
     async create ( createPersonaDto : CreatePersonaDto) : Promise<Persona> {
@@ -68,6 +74,54 @@ export class PersonaService {
             where: { id },
             relations: ['usuarios']
         });
+    }
+
+    /**
+     * Crea una nueva empresa junto con su usuario principal
+     * @param createPersonaWithUserDto Datos de la empresa y usuario
+     * @returns Empresa creada con usuario principal
+     */
+    async createPersonaWithUser(createPersonaWithUserDto: CreatePersonaWithUserDto): Promise<{ persona: Persona; usuario: any }> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // Crear la empresa
+            const personaData: CreatePersonaDto = {
+                nombreEmpresa: createPersonaWithUserDto.nombreEmpresa,
+                ruc: createPersonaWithUserDto.ruc,
+                razonSocial: createPersonaWithUserDto.razonSocial,
+                telefono: createPersonaWithUserDto.telefono,
+                direccion: createPersonaWithUserDto.direccion
+            };
+
+            const persona = queryRunner.manager.create(Persona, personaData);
+            const savedPersona = await queryRunner.manager.save(persona);
+
+            // Crear el usuario principal para la empresa
+            const userForPersonaDto: CreateUserForPersonaDto = {
+                nombre: createPersonaWithUserDto.nombreUsuario,
+                email: createPersonaWithUserDto.emailUsuario,
+                idRol: createPersonaWithUserDto.idRol,
+                esPrincipal: createPersonaWithUserDto.esPrincipal ?? true
+            };
+
+            // Usar el UserService para crear el usuario (esto manejará el hash de contraseña y envío de email)
+            const usuario = await this.userService.createUserForPersona(userForPersonaDto, savedPersona.id);
+
+            await queryRunner.commitTransaction();
+
+            return {
+                persona: savedPersona,
+                usuario: usuario
+            };
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
     }
 
 }
