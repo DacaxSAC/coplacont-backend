@@ -565,14 +565,31 @@ export class PeriodoContableService {
    * Mapear entidad a DTO de respuesta
    */
   private mapearAResponse(periodo: PeriodoContable): ResponsePeriodoContableDto {
+    // Función auxiliar para manejar fechas que pueden ser Date o string
+    const formatearFecha = (fecha: Date | string): string => {
+      if (fecha instanceof Date) {
+        return fecha.toISOString().split('T')[0];
+      }
+      // Si es string, asumimos que ya está en formato YYYY-MM-DD
+      return String(fecha).split('T')[0];
+    };
+
+    const formatearFechaCompleta = (fecha: Date | string): string => {
+      if (fecha instanceof Date) {
+        return fecha.toISOString();
+      }
+      // Si es string, intentamos convertir a Date y luego a ISO
+      return new Date(fecha).toISOString();
+    };
+
     return {
       id: periodo.id,
       año: periodo.año,
-      fechaInicio: periodo.fechaInicio.toISOString().split('T')[0],
-      fechaFin: periodo.fechaFin.toISOString().split('T')[0],
+      fechaInicio: formatearFecha(periodo.fechaInicio),
+      fechaFin: formatearFecha(periodo.fechaFin),
       activo: periodo.activo,
       cerrado: periodo.cerrado,
-      fechaCierre: periodo.fechaCierre?.toISOString(),
+      fechaCierre: periodo.fechaCierre ? formatearFechaCompleta(periodo.fechaCierre) : undefined,
       usuarioCierre: periodo.usuarioCierre,
       observaciones: periodo.observaciones,
       persona: {
@@ -580,9 +597,9 @@ export class PeriodoContableService {
         razonSocial: periodo.persona.razonSocial,
         ruc: periodo.persona.ruc
       },
-      descripcion: periodo.getDescripcion(),
-      fechaCreacion: periodo.fechaCreacion.toISOString(),
-      fechaActualizacion: periodo.fechaActualizacion.toISOString()
+      descripcion: `Período ${periodo.año} (${formatearFecha(periodo.fechaInicio)} - ${formatearFecha(periodo.fechaFin)})`,
+      fechaCreacion: formatearFechaCompleta(periodo.fechaCreacion),
+      fechaActualizacion: formatearFechaCompleta(periodo.fechaActualizacion)
     };
   }
 }

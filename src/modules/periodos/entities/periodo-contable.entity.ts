@@ -112,7 +112,11 @@ export class PeriodoContable {
    * Método para verificar si una fecha está dentro del período
    */
   estaEnPeriodo(fecha: Date): boolean {
-    return fecha >= this.fechaInicio && fecha <= this.fechaFin;
+    // Convertir fechas del período a Date si son strings
+    const fechaInicio = this.fechaInicio instanceof Date ? this.fechaInicio : new Date(this.fechaInicio);
+    const fechaFin = this.fechaFin instanceof Date ? this.fechaFin : new Date(this.fechaFin);
+    
+    return fecha >= fechaInicio && fecha <= fechaFin;
   }
 
   /**
@@ -126,6 +130,15 @@ export class PeriodoContable {
    * Método para obtener la descripción del período
    */
   getDescripcion(): string {
-    return `Período ${this.año} (${this.fechaInicio.toISOString().split('T')[0]} - ${this.fechaFin.toISOString().split('T')[0]})`;
+    // Función auxiliar para formatear fechas que pueden ser Date o string
+    const formatearFecha = (fecha: Date | string): string => {
+      if (fecha instanceof Date) {
+        return fecha.toISOString().split('T')[0];
+      }
+      // Si es string, asumimos que ya está en formato YYYY-MM-DD
+      return String(fecha).split('T')[0];
+    };
+
+    return `Período ${this.año} (${formatearFecha(this.fechaInicio)} - ${formatearFecha(this.fechaFin)})`;
   }
 }

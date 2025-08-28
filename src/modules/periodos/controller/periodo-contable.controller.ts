@@ -37,7 +37,7 @@ import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum
  * Proporciona endpoints para CRUD y operaciones especiales de períodos con soporte multi-tenant
  */
 @ApiTags('Períodos Contables')
-@Controller('periodos-contables')
+@Controller('/api/periodos-contables')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PeriodoContableController {
