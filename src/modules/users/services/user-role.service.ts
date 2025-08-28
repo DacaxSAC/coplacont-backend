@@ -37,10 +37,10 @@ export class UserRolService {
 
     async findRolesByUser(user: User): Promise<Role[]> {
         const userRoles = await this.userRoleRepository.find({
-            where: { user },
+            where: { user: { id: user.id } },
             relations: ['role'],
         });
-
+        
         return userRoles.map((ur) => ur.role);
     }
 

@@ -141,15 +141,10 @@ export class UserService {
     await this.userRepository.update(id, { habilitado: false });
   }
 
-  /**
-   * Busca un usuario por email incluyendo la relación con persona
-   * @param email Email del usuario
-   * @returns Usuario con datos de persona
-   */
   async findByEmail(email: string) {
     return await this.userRepository.findOne({ 
       where: { email },
-      relations: ['persona']
+      relations: ['persona', 'userRoles', 'userRoles.role']
     });
   }
 

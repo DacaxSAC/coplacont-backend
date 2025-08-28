@@ -91,7 +91,8 @@ export class PersonaService {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
-
+        console.log('ID ROL EN EL DTO:')
+        console.log(createPersonaWithUserDto.idRol);
         try {
             // Crear la empresa
             const personaData: CreatePersonaDto = {
@@ -131,6 +132,7 @@ export class PersonaService {
             const role = await queryRunner.manager.findOne(Role, {
                 where: { id: userForPersonaDto.idRol }
             });
+            console.log('ROL ENCONTRADO:', role)
             
             if (!role) {
                 throw new Error(`Rol con ID ${userForPersonaDto.idRol} no encontrado`);

@@ -223,6 +223,18 @@ export class LoteService {
         cantidadNum,
         inventario,
       );
+      // Para lote específico, usar el costo del lote seleccionado
+      const lote = await this.loteRepository.findOne({
+        where: { id: detalle.idLote }
+      });
+      if (lote) {
+        costoUnitarioPorAlgoritmoCosteo = Number(lote.costoUnitario);
+        lotes = [{
+          idLote: lote.id,
+          costoUnitarioDeLote: Number(lote.costoUnitario),
+          cantidad: cantidadNum
+        }];
+      }
     } else {
       // Usar método de valoración seleccionado
       switch (metodoValoracion) {
