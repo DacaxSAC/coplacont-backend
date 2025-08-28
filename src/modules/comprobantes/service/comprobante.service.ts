@@ -76,11 +76,15 @@ export class ComprobanteService {
         comprobante.entidad = entidad;
         comprobante.persona = { id: personaId } as any; // Se asignará la Persona completa por TypeORM
 
-        // Asigna correlativo
-        const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId);
-        correlativo.ultimoNumero += 1;
-        await this.correlativoRepository.save(correlativo);
-        comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+        // Asigna correlativo (genera automáticamente si no se proporciona)
+        if (!createComprobanteDto.correlativo) {
+            const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId);
+            correlativo.ultimoNumero += 1;
+            await this.correlativoRepository.save(correlativo);
+            comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+        } else {
+            comprobante.correlativo = createComprobanteDto.correlativo;
+        }
 
         //Guarda el comprobante
         const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
@@ -95,8 +99,9 @@ export class ComprobanteService {
 
             comprobanteSaved.detalles = detallesSaved;
             
-            // Procesar lotes según el tipo de operación y método de valoración
-            const metodoValoracion = createComprobanteDto.metodoValoracion || MetodoValoracion.PROMEDIO;
+            // Obtener método de valoración desde la configuración del período
+            const configuracionPeriodo = await this.periodoContableService.obtenerConfiguracion(personaId);
+            const metodoValoracion = createComprobanteDto.metodoValoracion || configuracionPeriodo.metodoCalculoCosto;
             const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
             costosUnitarios = costoUnitario;
             precioYcantidadPorLote = lotes;

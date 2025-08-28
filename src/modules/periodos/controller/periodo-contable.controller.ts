@@ -24,11 +24,13 @@ import {
   CreatePeriodoContableDto,
   UpdatePeriodoContableDto,
   ResponsePeriodoContableDto,
-  CerrarPeriodoDto
+  CerrarPeriodoDto,
+  UpdateMetodoValoracionDto
 } from '../dto';
 import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
 import { CurrentUser } from '../../users/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
+import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
 
 /**
  * Controlador para gestionar períodos contables
@@ -374,5 +376,54 @@ export class PeriodoContableController {
       user.personaId,
       fechaMovimiento
     );
+  }
+
+  /**
+   * Actualizar método de valoración de inventario
+   */
+  @Put('configuracion/metodo-valoracion')
+  @ApiOperation({
+    summary: 'Actualizar método de valoración de inventario',
+    description: 'Actualiza el método de valoración de inventario en la configuración del período. Solo se permite si no hay movimientos en el período activo.'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Método de valoración actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        mensaje: { type: 'string' },
+        metodoValoracion: { 
+          type: 'string',
+          enum: Object.values(MetodoValoracion)
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'No se puede cambiar el método porque ya existen movimientos en el período activo'
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'No hay un período activo configurado'
+  })
+  async actualizarMetodoValoracion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() updateDto: UpdateMetodoValoracionDto
+  ) {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    
+    const configuracionActualizada = await this.periodoContableService.actualizarMetodoValoracion(
+      user.personaId,
+      updateDto.metodoValoracion
+    );
+
+    return {
+      mensaje: 'Método de valoración actualizado exitosamente',
+      metodoValoracion: configuracionActualizada.metodoCalculoCosto
+    };
   }
 }

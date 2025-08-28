@@ -17,13 +17,13 @@ import { MetodoValoracion } from '../../enum/metodo-valoracion.enum';
 import { CreateComprobanteDetalleDto } from '../comprobante-detalle/create-comprobante-detalle.dto';
 
 export class CreateComprobanteDto {
-  @ApiProperty({
-    description: 'Correlativo único del comprobante',
+  @ApiPropertyOptional({
+    description: 'Correlativo único del comprobante (se genera automáticamente si no se proporciona)',
     example: 'CORR-12345',
   })
   @IsString()
-  @IsNotEmpty()
-  correlativo: string;
+  @IsOptional()
+  correlativo?: string;
 
   @ApiProperty({
     description: 'Referencia a la persona (id)',

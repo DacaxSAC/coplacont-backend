@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { PeriodoContable } from '../entities/periodo-contable.entity';
 import { ConfiguracionPeriodo } from '../entities/configuracion-periodo.entity';
+import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
 import {
   CreatePeriodoContableDto,
   UpdatePeriodoContableDto,
@@ -380,13 +381,13 @@ export class PeriodoContableService {
       );
     }
 
-    // TODO: Verificar que no tenga comprobantes asociados
-    // const tieneComprobantes = await this.verificarComprobantesAsociados(id);
-    // if (tieneComprobantes) {
-    //   throw new BadRequestException(
-    //     'No se puede eliminar un período que tiene comprobantes asociados'
-    //   );
-    // }
+    // Verificar que no tenga comprobantes asociados
+    const tieneComprobantes = await this.verificarComprobantesAsociados(id);
+    if (tieneComprobantes) {
+      throw new BadRequestException(
+        'No se puede eliminar un período que tiene comprobantes asociados'
+      );
+    }
 
     await this.periodoRepository.remove(periodo);
   }
@@ -478,7 +479,7 @@ export class PeriodoContableService {
   /**
    * Obtener configuración de período para una persona
    */
-  private async obtenerConfiguracion(idPersona: number): Promise<ConfiguracionPeriodo> {
+  async obtenerConfiguracion(idPersona: number): Promise<ConfiguracionPeriodo> {
     let configuracion = await this.configuracionRepository.findOne({
       where: { persona: { id: idPersona }, activa: true }
     });
@@ -497,6 +498,57 @@ export class PeriodoContableService {
     }
 
     return configuracion;
+  }
+
+  /**
+   * Verificar si un período tiene comprobantes asociados
+   */
+  private async verificarComprobantesAsociados(periodoId: number): Promise<boolean> {
+     const periodo = await this.periodoRepository.findOne({
+       where: { id: periodoId },
+       relations: ['comprobantes']
+     });
+     
+     return !!(periodo?.comprobantes && periodo.comprobantes.length > 0);
+   }
+
+  /**
+   * Validar si se puede cambiar el método de valoración
+   * @param personaId ID de la persona/empresa
+   * @param nuevoMetodo Nuevo método de valoración
+   * @throws BadRequestException si hay movimientos en el período activo
+   */
+  async validarCambioMetodoValoracion(personaId: number, nuevoMetodo: MetodoValoracion): Promise<void> {
+    const periodoActivo = await this.obtenerPeriodoActivo(personaId);
+    if (!periodoActivo) {
+      throw new BadRequestException('No hay un período activo configurado');
+    }
+
+    const tieneMovimientos = await this.verificarComprobantesAsociados(periodoActivo.id);
+    if (tieneMovimientos) {
+      throw new BadRequestException(
+        'No se puede cambiar el método de valoración porque ya existen movimientos en el período activo. ' +
+        'Para cambiar el método, debe cerrar el período actual y crear uno nuevo.'
+      );
+    }
+  }
+
+  /**
+   * Actualizar método de valoración en la configuración
+   * @param personaId ID de la persona/empresa
+   * @param nuevoMetodo Nuevo método de valoración
+   */
+  async actualizarMetodoValoracion(personaId: number, nuevoMetodo: MetodoValoracion): Promise<ConfiguracionPeriodo> {
+    // Validar que se pueda cambiar
+    await this.validarCambioMetodoValoracion(personaId, nuevoMetodo);
+
+    // Obtener configuración actual
+    const configuracion = await this.obtenerConfiguracion(personaId);
+    
+    // Actualizar método
+    configuracion.metodoCalculoCosto = nuevoMetodo;
+    
+    return await this.configuracionRepository.save(configuracion);
   }
 
   /**
