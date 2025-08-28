@@ -7,6 +7,9 @@ import { CreatePersonaDto } from "../dto/persona/create-persona.dto";
 import { CreatePersonaWithUserDto } from "../dto/persona/create-persona-with-user.dto";
 import { UserService } from "./user.service";
 import { CreateUserForPersonaDto } from "../dto/user/create-user-for-persona.dto";
+import { hash } from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class PersonaService {
@@ -18,7 +21,8 @@ export class PersonaService {
         private readonly userRepository: Repository<User>,
         @Inject(forwardRef(() => UserService))
         private readonly userService: UserService,
-        private readonly dataSource: DataSource ){
+        private readonly dataSource: DataSource,
+        private readonly emailService: EmailService ){
     }
 
     async create ( createPersonaDto : CreatePersonaDto) : Promise<Persona> {
@@ -107,10 +111,48 @@ export class PersonaService {
                 esPrincipal: createPersonaWithUserDto.esPrincipal ?? true
             };
 
-            // Usar el UserService para crear el usuario (esto manejará el hash de contraseña y envío de email)
-            const usuario = await this.userService.createUserForPersona(userForPersonaDto, savedPersona.id);
+            // Crear el usuario dentro de la misma transacción
+            const passwordPlano = this.generateRandomPassword();
+            const passwordHasheada = await this.hashPassword(passwordPlano);
+            
+            const user = queryRunner.manager.create(User, {
+                nombre: userForPersonaDto.nombre,
+                email: userForPersonaDto.email,
+                contrasena: passwordHasheada,
+                persona: savedPersona,
+                esPrincipal: userForPersonaDto.esPrincipal || false,
+            });
+            
+            const savedUser = await queryRunner.manager.save(user);
+            
+            // Crear la relación usuario-rol dentro de la transacción
+            const userRole = queryRunner.manager.create('UserRole', {
+                idUser: savedUser.id,
+                idRole: userForPersonaDto.idRol,
+            });
+            
+            await queryRunner.manager.save(userRole);
+            
+            // Enviar email después de confirmar la transacción
+            const usuario = {
+                id: savedUser.id,
+                nombre: savedUser.nombre,
+                email: savedUser.email,
+                passwordPlano: passwordPlano
+            };
 
             await queryRunner.commitTransaction();
+
+            // Enviar email de bienvenida después de confirmar la transacción
+            try {
+                await this.emailService.sendWelcomeEmailWithCredentials(
+                    usuario.email,
+                    savedPersona.nombreEmpresa,
+                    usuario.passwordPlano
+                );
+            } catch (error) {
+                console.error('Error enviando email de bienvenida:', error);
+            }
 
             return {
                 persona: savedPersona,
@@ -122,6 +164,23 @@ export class PersonaService {
         } finally {
             await queryRunner.release();
         }
+    }
+
+    /**
+     * Genera una contraseña aleatoria
+     * @returns Contraseña aleatoria
+     */
+    private generateRandomPassword(): string {
+        return randomBytes(8).toString('hex');
+    }
+
+    /**
+     * Hashea una contraseña usando bcrypt
+     * @param password Contraseña en texto plano
+     * @returns Contraseña hasheada
+     */
+    private async hashPassword(password: string): Promise<string> {
+        return await hash(password, 10);
     }
 
 }
