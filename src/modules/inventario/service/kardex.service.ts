@@ -202,13 +202,13 @@ export class KardexService {
     metodoValoracion: MetodoValoracion
   ): Promise<ResultadoRecalculo | { mensaje: string }> {
     // Validar que la fecha esté dentro del período activo
-    const fechaValida = await this.periodoContableService.validarFechaEnPeriodoActivo(
+    const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
       idPersona,
       fechaMovimiento
     );
 
-    if (!fechaValida) {
-      throw new Error('La fecha del movimiento no está dentro del período contable activo');
+    if (!validacion.valida) {
+      throw new Error(validacion.mensaje || 'La fecha del movimiento no está dentro del período contable activo');
     }
 
     // Validar límite de movimientos retroactivos

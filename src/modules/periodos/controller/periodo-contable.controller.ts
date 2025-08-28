@@ -92,10 +92,10 @@ export class PeriodoContableController {
   async obtenerPorPersona(
     @CurrentUser() user: AuthenticatedUser
   ): Promise<ResponsePeriodoContableDto[]> {
-    if (!user.personaId) {
+    if (!user.persona?.id) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.obtenerPorPersona(user.personaId);
+    return this.periodoContableService.obtenerPorPersona(user.persona.id);
   }
 
   /**

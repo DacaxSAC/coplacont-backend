@@ -436,6 +436,15 @@ export class PeriodoContableService {
       const periodoActivo = await this.obtenerPeriodoActivo(idPersona);
       const periodo = await this.obtenerPorId(periodoActivo.id);
       
+      // Verificar si el período está cerrado
+      if (periodo.cerrado) {
+        return {
+          valida: false,
+          mensaje: `El período ${periodo.getDescripcion()} está cerrado y no permite registrar nuevos comprobantes`,
+          periodo
+        };
+      }
+      
       if (periodo.estaEnPeriodo(fecha)) {
         return { valida: true, periodo };
       }

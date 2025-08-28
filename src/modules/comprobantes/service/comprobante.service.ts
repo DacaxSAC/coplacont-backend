@@ -40,6 +40,8 @@ export class ComprobanteService {
      */
     @Transactional()
     private async findOrCreateCorrelativo(tipoOperacion: TipoOperacion, personaId: number) {
+        console.log(`🔍 Buscando correlativo para tipo: ${tipoOperacion}, persona: ${personaId}`);
+        
         let correlativo = await this.correlativoRepository
             .createQueryBuilder('c')
             .setLock('pessimistic_write')
@@ -50,12 +52,16 @@ export class ComprobanteService {
             .getOne();
 
         if (!correlativo) {
+            console.log(`📝 Creando nuevo correlativo para tipo: ${tipoOperacion}, persona: ${personaId}`);
             correlativo = this.correlativoRepository.create({
                 tipo: tipoOperacion,
                 personaId: personaId,
                 ultimoNumero: 0,
             });
             await this.correlativoRepository.save(correlativo);
+            console.log(`✅ Correlativo creado con ultimoNumero: ${correlativo.ultimoNumero}`);
+        } else {
+            console.log(`🔄 Correlativo encontrado con ultimoNumero: ${correlativo.ultimoNumero}`);
         }
 
         return correlativo;
@@ -78,11 +84,17 @@ export class ComprobanteService {
 
         // Asigna correlativo (genera automáticamente si no se proporciona)
         if (!createComprobanteDto.correlativo) {
+            console.log(`🎯 Generando correlativo automático para ${createComprobanteDto.tipoOperacion}`);
             const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId);
+            console.log(`📊 Correlativo antes del incremento: ${correlativo.ultimoNumero}`);
             correlativo.ultimoNumero += 1;
+            console.log(`📈 Correlativo después del incremento: ${correlativo.ultimoNumero}`);
             await this.correlativoRepository.save(correlativo);
+            console.log(`💾 Correlativo guardado en BD`);
             comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+            console.log(`🏷️ Correlativo asignado al comprobante: ${comprobante.correlativo}`);
         } else {
+            console.log(`📝 Usando correlativo manual: ${createComprobanteDto.correlativo}`);
             comprobante.correlativo = createComprobanteDto.correlativo;
         }
 
@@ -201,15 +213,14 @@ export class ComprobanteService {
      * @throws BadRequestException si la fecha no está en período activo
      */
     private async validarPeriodoActivo(personaId: number, fechaEmision: Date): Promise<void> {
-        const fechaValida = await this.periodoContableService.validarFechaEnPeriodoActivo(
+        const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
             personaId,
             fechaEmision
         );
 
-        if (!fechaValida) {
+        if (!validacion.valida) {
             throw new BadRequestException(
-                'La fecha de emisión del comprobante no está dentro del período contable activo. ' +
-                'Verifique que exista un período activo que incluya esta fecha.'
+                validacion.mensaje || 'La fecha de emisión del comprobante no está dentro del período contable activo.'
             );
         }
     }
