@@ -16,7 +16,7 @@ export class VentasService {
     ) {}
 
     /**
-     * Obtiene todos los comprobantes de tipo VENTA para una empresa específica
+     * Obtiene todos los comprobantes de tipo VENTA filtrados por empresa
      * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de venta
      */
@@ -35,7 +35,7 @@ export class VentasService {
     }
 
     /**
-     * Busca un comprobante de venta por su ID para una empresa específica
+     * Busca un comprobante de venta por su ID filtrado por empresa
      * @param id - ID del comprobante
      * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
@@ -60,7 +60,7 @@ export class VentasService {
     }
 
     /**
-     * Busca comprobantes de venta por rango de fechas para una empresa específica
+     * Busca comprobantes de venta por rango de fechas filtrados por empresa
      * @param fechaInicio - Fecha de inicio del rango
      * @param fechaFin - Fecha de fin del rango
      * @param personaId - ID de la empresa
@@ -73,9 +73,9 @@ export class VentasService {
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
+            .andWhere('persona.id = :personaId', { personaId })
             .getMany();
         
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -84,7 +84,7 @@ export class VentasService {
     }
 
     /**
-     * Busca comprobantes de venta por cliente para una empresa específica
+     * Busca comprobantes de venta por cliente filtrados por empresa
      * @param clienteId - ID del cliente
      * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes del cliente
@@ -94,11 +94,11 @@ export class VentasService {
             .createQueryBuilder('comprobante')
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
-            .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .leftJoinAndSelect('comprobante.entidad', 'entidad')
+            .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('entidad.id = :clienteId', { clienteId })
+            .andWhere('persona.id = :personaId', { personaId })
             .getMany();
         
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -107,7 +107,7 @@ export class VentasService {
     }
 
     /**
-     * Obtiene el total de ventas en un rango de fechas para una empresa específica
+     * Obtiene el total de ventas en un rango de fechas filtrado por empresa
      * @param fechaInicio - Fecha de inicio del rango
      * @param fechaFin - Fecha de fin del rango
      * @param personaId - ID de la empresa
@@ -120,9 +120,9 @@ export class VentasService {
             .leftJoin('comprobante.persona', 'persona')
             .select('SUM(totales.totalGeneral)', 'total')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
+            .andWhere('persona.id = :personaId', { personaId })
             .getRawOne();
         
         return parseFloat(result.total) || 0;

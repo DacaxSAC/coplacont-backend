@@ -3,21 +3,38 @@ import { TipoOperacion } from "../enum/tipo-operacion.enum";
 import { Persona } from "../../users/entities/persona.entity";
 
 /**
- * Entidad para manejar correlativos por persona y tipo de operación
- * Cada persona tiene sus propios correlativos independientes
+ * Entidad que maneja los correlativos por empresa y tipo de operación
+ * Cada empresa tiene sus propios correlativos independientes
  */
 @Entity({ name: 'correlativos' })
 export class Correlativo {
-    @PrimaryColumn()
-    tipo: TipoOperacion; // 'compra', 'venta', etc.
+    /**
+     * Tipo de operación (COMPRA, VENTA, etc.)
+     * Parte de la clave primaria compuesta
+     */
+    @PrimaryColumn({
+        type: 'enum',
+        enum: TipoOperacion
+    })
+    tipo: TipoOperacion;
 
-    @PrimaryColumn({ nullable: false })
+    /**
+     * ID de la persona/empresa propietaria del correlativo
+     * Parte de la clave primaria compuesta
+     */
+    @PrimaryColumn()
     personaId: number;
 
-    @Column({ default: 0 })
-    ultimoNumero: number;
-
-    @ManyToOne(() => Persona, { nullable: true })
+    /**
+     * Relación con la persona/empresa
+     */
+    @ManyToOne(() => Persona, { nullable: false })
     @JoinColumn({ name: 'personaId' })
     persona: Persona;
+
+    /**
+     * Último número utilizado para este tipo de operación y empresa
+     */
+    @Column({ default: 0 })
+    ultimoNumero: number;
 }
