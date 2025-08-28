@@ -14,6 +14,7 @@ import { ProductosModule } from './modules/productos/productos.module';
 import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
 import { MovimientosModule } from './modules/movimientos/movimientos.module';
 import { InventarioModule } from './modules/inventario/inventario.module';
+import { PeriodosModule } from './modules/periodos/periodos.module';
 import { DatabaseSeedService } from './config/database-seed.service';
 import { Role } from './modules/users/entities/role.entity';
 import { User } from './modules/users/entities/user.entity';
@@ -41,7 +42,8 @@ import { UserRole } from './modules/users/entities/user-role.entity';
     AlmacenModule,
     TipoCambioModule,
     MovimientosModule,
-    InventarioModule
+    InventarioModule,
+    PeriodosModule
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService, DatabaseSeedService],

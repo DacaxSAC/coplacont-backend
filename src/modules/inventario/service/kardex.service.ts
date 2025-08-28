@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { KardexRepository, KardexMovementData } from '../repository/kardex.repository';
 import { KardexRequestDto, KardexResponseDto, KardexReportMovementDto } from '../dto';
 import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
@@ -11,6 +11,8 @@ import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracio
 
 @Injectable()
 export class KardexService {
+  private readonly logger = new Logger(KardexService.name);
+
   constructor(
     private readonly kardexRepository: KardexRepository,
     private readonly inventarioRepository: InventarioRepository,
@@ -201,37 +203,65 @@ export class KardexService {
     movimientoId: number,
     metodoValoracion: MetodoValoracion
   ): Promise<ResultadoRecalculo | { mensaje: string }> {
+    this.logger.log(`🔄 [RECALCULO-TRACE] Iniciando procesamiento de movimiento retroactivo: MovimientoId=${movimientoId}, PersonaId=${idPersona}, Fecha=${fechaMovimiento}, Método=${metodoValoracion}`);
+    
     // Validar que la fecha esté dentro del período activo
+    this.logger.log(`🔍 [RECALCULO-TRACE] Validando fecha en período activo`);
     const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
       idPersona,
       fechaMovimiento
     );
+    
+    this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación período activo: ${JSON.stringify(validacion)}`);
 
     if (!validacion.valida) {
+      this.logger.error(`❌ [RECALCULO-TRACE] Validación período activo FALLÓ: ${validacion.mensaje}`);
       throw new Error(validacion.mensaje || 'La fecha del movimiento no está dentro del período contable activo');
     }
+    
+    this.logger.log(`✅ [RECALCULO-TRACE] Validación período activo EXITOSA`);
 
     // Validar límite de movimientos retroactivos
-    const puedeHacerMovimientoRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
+    this.logger.log(`🔍 [RECALCULO-TRACE] Validando límites de movimientos retroactivos`);
+    const validacionRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
       idPersona,
       fechaMovimiento
     );
+    
+    this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación retroactivo: ${JSON.stringify(validacionRetroactivo)}`);
 
-    if (!puedeHacerMovimientoRetroactivo) {
+    if (!validacionRetroactivo.permitido) {
+      this.logger.error(`❌ [RECALCULO-TRACE] Validación movimiento retroactivo FALLÓ: ${validacionRetroactivo.mensaje}`);
       throw new Error('No se pueden realizar movimientos retroactivos más allá del límite configurado');
     }
+    
+    this.logger.log(`✅ [RECALCULO-TRACE] Validación movimiento retroactivo EXITOSA`);
 
     // Verificar si la fecha es retroactiva
-    if (!this.esFechaRetroactiva(fechaMovimiento)) {
-      // Si no es retroactiva, no necesita recálculo especial
+    const esRetroactiva = this.esFechaRetroactiva(fechaMovimiento);
+    this.logger.log(`🔍 [RECALCULO-TRACE] Verificación fecha retroactiva: ${esRetroactiva ? 'SÍ' : 'NO'}`);
+    
+    if (!esRetroactiva) {
+      this.logger.log(`ℹ️ [RECALCULO-TRACE] Movimiento NO es retroactivo - No requiere recálculo especial`);
       return { mensaje: 'Movimiento no requiere recálculo retroactivo' };
     }
 
     // Ejecutar recálculo del movimiento
-    return await this.recalculoKardexService.recalcularMovimientoRetroactivo(
-      movimientoId,
-      metodoValoracion
-    );
+    this.logger.log(`🚀 [RECALCULO-TRACE] INICIANDO RECÁLCULO AUTOMÁTICO - MovimientoId=${movimientoId}, Método=${metodoValoracion}`);
+    
+    try {
+      const resultado = await this.recalculoKardexService.recalcularMovimientoRetroactivo(
+        movimientoId,
+        metodoValoracion
+      );
+      
+      this.logger.log(`✅ [RECALCULO-TRACE] RECÁLCULO COMPLETADO EXITOSAMENTE - Movimientos afectados: ${resultado.movimientosAfectados}, Lotes actualizados: ${resultado.lotesActualizados}, Tiempo: ${resultado.tiempoEjecucion}ms`);
+      
+      return resultado;
+    } catch (error) {
+      this.logger.error(`❌ [RECALCULO-TRACE] ERROR EN RECÁLCULO: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   /**

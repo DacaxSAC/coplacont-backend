@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { Comprobante } from "../entities/comprobante";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -18,6 +18,7 @@ import { PeriodoContableService } from "src/modules/periodos/service";
 
 @Injectable()
 export class ComprobanteService {
+    private readonly logger = new Logger(ComprobanteService.name);
 
     constructor(
         @InjectRepository(Comprobante)
@@ -69,11 +70,28 @@ export class ComprobanteService {
 
     @Transactional()
     async register(createComprobanteDto: CreateComprobanteDto, personaId: number): Promise<void> {
-        console.log(`🔄 Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}`);
+        this.logger.log(`🔄 [RECALCULO-TRACE] Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}, PersonaId=${personaId}, Fecha=${createComprobanteDto.fechaEmision}`);
+        
+        // Verificar si la fecha es retroactiva antes de las validaciones
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechaComparar = new Date(createComprobanteDto.fechaEmision);
+        fechaComparar.setHours(0, 0, 0, 0);
+        const esFechaRetroactiva = fechaComparar < hoy;
+        
+        this.logger.log(`🔍 [RECALCULO-TRACE] Verificación fecha retroactiva: ${esFechaRetroactiva ? 'SÍ' : 'NO'} (Fecha: ${fechaComparar.toISOString().split('T')[0]}, Hoy: ${hoy.toISOString().split('T')[0]})`);
         
         // Validar que la fecha de emisión esté dentro del período activo
+        this.logger.log(`🔍 [RECALCULO-TRACE] Iniciando validación de período activo para PersonaId=${personaId}`);
         await this.validarPeriodoActivo(personaId, createComprobanteDto.fechaEmision);
-        console.log('pase validacion de periodo')
+        this.logger.log(`✅ [RECALCULO-TRACE] Validación de período activo completada exitosamente`);
+        
+        // Si es fecha retroactiva, validar límites de movimientos retroactivos
+        if (esFechaRetroactiva) {
+            this.logger.log(`🔍 [RECALCULO-TRACE] Fecha retroactiva detectada - Iniciando validación de límites retroactivos`);
+            await this.validarMovimientoRetroactivo(personaId, createComprobanteDto.fechaEmision);
+            this.logger.log(`✅ [RECALCULO-TRACE] Validación de movimiento retroactivo completada - Se permite el registro`);
+        }
         //Busca entidad cliente/proveedor
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
 
@@ -129,9 +147,15 @@ export class ComprobanteService {
         }
         
         // Crear movimiento con costo promedio ponderado
+        this.logger.log(`🔄 [RECALCULO-TRACE] Creando movimiento para comprobante ${comprobanteSaved.idComprobante}`);
         const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios, precioYcantidadPorLote);
+        
+        if (esFechaRetroactiva) {
+            this.logger.log(`⚠️ [RECALCULO-TRACE] MOVIMIENTO RETROACTIVO DETECTADO - Se creará movimiento que puede requerir recálculo automático`);
+        }
+        
         this.movimientoService.create(movimientoDto);
-        console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
+        this.logger.log(`✅ [RECALCULO-TRACE] Movimiento creado exitosamente para comprobante ${comprobanteSaved.idComprobante}`);
     }
 
     /**
@@ -213,17 +237,23 @@ export class ComprobanteService {
      * @throws BadRequestException si la fecha no está en período activo
      */
     private async validarPeriodoActivo(personaId: number, fechaEmision: Date): Promise<void> {
+        this.logger.log(`🔍 [RECALCULO-TRACE] Validando período activo - PersonaId: ${personaId}, Fecha: ${fechaEmision}`);
+        
         const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
             personaId,
             fechaEmision
         );
-        console.log('validacion', validacion);
+        
+        this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación período: ${JSON.stringify(validacion)}`);
 
         if (!validacion.valida) {
+            this.logger.error(`❌ [RECALCULO-TRACE] Validación período FALLÓ: ${validacion.mensaje}`);
             throw new BadRequestException(
                 validacion.mensaje || 'La fecha de emisión del comprobante no está dentro del período contable activo.'
             );
         }
+        
+        this.logger.log(`✅ [RECALCULO-TRACE] Validación período EXITOSA`);
     }
 
     /**
@@ -233,17 +263,24 @@ export class ComprobanteService {
      * @throws BadRequestException si no se permiten movimientos retroactivos
      */
     private async validarMovimientoRetroactivo(personaId: number, fechaEmision: Date): Promise<void> {
-        const puedeHacerMovimientoRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
+        this.logger.log(`🔍 [RECALCULO-TRACE] Validando movimiento retroactivo - PersonaId: ${personaId}, Fecha: ${fechaEmision}`);
+        
+        const validacionResult = await this.periodoContableService.validarMovimientoRetroactivo(
             personaId,
             fechaEmision
         );
+        
+        this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación retroactivo: ${JSON.stringify(validacionResult)}`);
 
-        if (!puedeHacerMovimientoRetroactivo) {
+        if (!validacionResult.permitido) {
+            this.logger.error(`❌ [RECALCULO-TRACE] Validación movimiento retroactivo FALLÓ: ${validacionResult.mensaje}`);
             throw new BadRequestException(
                 'No se pueden registrar comprobantes con fechas retroactivas más allá del límite configurado. ' +
                 'Contacte al administrador para ajustar la configuración de períodos.'
             );
         }
+        
+        this.logger.log(`✅ [RECALCULO-TRACE] Validación movimiento retroactivo EXITOSA - Se permite el movimiento`);
     }
 
     /**

@@ -10,8 +10,8 @@ const TEST_PERSONAS = [1, 2]; // IDs de personas para probar
 async function login() {
   try {
     const response = await axios.post(`${BASE_URL}/api/auth/login`, {
-      email: 'ing.castillorabanal@gmail.com',
-      contrasena: '781b2d2b14e9ab6c'
+      email: 'lcastillorabanal@icloud.com',
+      contrasena: '3ada035fc170f861'
     });
     console.log('Respuesta del login:', response.data);
     

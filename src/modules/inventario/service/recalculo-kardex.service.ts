@@ -63,12 +63,18 @@ export class RecalculoKardexService {
       tiempoEjecucion: 0
     };
 
+    this.logger.log(`🔄 [RECALCULO-CORE] ===== INICIANDO RECÁLCULO KARDEX =====`);
+    this.logger.log(`🔄 [RECALCULO-CORE] MovimientoId: ${movimientoId}, Método: ${metodoValoracion}`);
+    
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    this.logger.log(`🔗 [RECALCULO-CORE] Conexión de base de datos establecida`);
+    
     await queryRunner.startTransaction();
+    this.logger.log(`📝 [RECALCULO-CORE] Transacción iniciada`);
 
     try {
-      this.logger.log(`Iniciando recálculo para movimiento ${movimientoId}`);
+      this.logger.log(`🔍 [RECALCULO-CORE] Buscando movimiento ${movimientoId} con relaciones completas`);
 
       // Obtener el movimiento retroactivo
       const movimiento = await this.movimientoRepository.findOne({
@@ -77,11 +83,26 @@ export class RecalculoKardexService {
       });
 
       if (!movimiento) {
+        this.logger.error(`❌ [RECALCULO-CORE] Movimiento ${movimientoId} NO ENCONTRADO`);
         throw new BadRequestException('Movimiento no encontrado');
+      }
+      
+      this.logger.log(`✅ [RECALCULO-CORE] Movimiento encontrado: Fecha=${movimiento.fecha}, Detalles=${movimiento.detalles?.length || 0}`);
+      
+      if (!movimiento.detalles || movimiento.detalles.length === 0) {
+        this.logger.warn(`⚠️ [RECALCULO-CORE] Movimiento ${movimientoId} no tiene detalles para procesar`);
+        resultado.tiempoEjecucion = Date.now() - tiempoInicio;
+        await queryRunner.commitTransaction();
+        return resultado;
       }
 
       // Procesar cada detalle del movimiento
-      for (const detalle of movimiento.detalles) {
+      this.logger.log(`🔄 [RECALCULO-CORE] Procesando ${movimiento.detalles.length} detalles del movimiento`);
+      
+      for (let i = 0; i < movimiento.detalles.length; i++) {
+        const detalle = movimiento.detalles[i];
+        this.logger.log(`📦 [RECALCULO-CORE] Procesando detalle ${i + 1}/${movimiento.detalles.length}: ProductoId=${detalle.inventario?.producto?.id}, AlmacenId=${detalle.inventario?.almacen?.id}, Cantidad=${detalle.cantidad}`);
+        
         await this.recalcularDetalleMovimiento(
           detalle,
           movimiento.fecha,
@@ -89,27 +110,44 @@ export class RecalculoKardexService {
           resultado,
           queryRunner
         );
+        
+        this.logger.log(`✅ [RECALCULO-CORE] Detalle ${i + 1} procesado exitosamente`);
       }
 
+      this.logger.log(`💾 [RECALCULO-CORE] Confirmando transacción...`);
       await queryRunner.commitTransaction();
+      this.logger.log(`✅ [RECALCULO-CORE] Transacción confirmada exitosamente`);
       
       resultado.tiempoEjecucion = Date.now() - tiempoInicio;
+      
+      this.logger.log(`🎉 [RECALCULO-CORE] ===== RECÁLCULO COMPLETADO =====`);
       this.logger.log(
-        `Recálculo completado en ${resultado.tiempoEjecucion}ms. ` +
-        `Movimientos: ${resultado.movimientosAfectados}, ` +
-        `Lotes: ${resultado.lotesActualizados}, ` +
-        `Inventarios: ${resultado.inventariosActualizados}`
+        `📊 [RECALCULO-CORE] MÉTRICAS FINALES: ` +
+        `Tiempo=${resultado.tiempoEjecucion}ms, ` +
+        `Movimientos=${resultado.movimientosAfectados}, ` +
+        `Lotes=${resultado.lotesActualizados}, ` +
+        `Inventarios=${resultado.inventariosActualizados}, ` +
+        `Errores=${resultado.errores.length}`
       );
 
       return resultado;
     } catch (error) {
+      this.logger.error(`❌ [RECALCULO-CORE] ERROR CRÍTICO en recálculo: ${error.message}`);
+      this.logger.error(`🔄 [RECALCULO-CORE] Ejecutando ROLLBACK de transacción...`);
+      
       await queryRunner.rollbackTransaction();
-      this.logger.error('Error en recálculo de Kardex', error);
+      this.logger.error(`↩️ [RECALCULO-CORE] ROLLBACK completado`);
+      
       resultado.errores.push(error.message);
       resultado.tiempoEjecucion = Date.now() - tiempoInicio;
+      
+      this.logger.error(`📊 [RECALCULO-CORE] MÉTRICAS DE ERROR: Tiempo=${resultado.tiempoEjecucion}ms, Errores=${resultado.errores.length}`);
+      
       throw error;
     } finally {
+      this.logger.log(`🔌 [RECALCULO-CORE] Liberando conexión de base de datos`);
       await queryRunner.release();
+      this.logger.log(`✅ [RECALCULO-CORE] Conexión liberada`);
     }
   }
 
@@ -128,23 +166,35 @@ export class RecalculoKardexService {
 
     // Determinar tipo de movimiento basado en la cantidad (positiva = entrada, negativa = salida)
     const esEntrada = detalle.cantidad > 0;
+    const tipoMovimiento = esEntrada ? 'ENTRADA' : 'SALIDA';
+    
+    this.logger.log(`🔄 [RECALCULO-DETALLE] Procesando ${tipoMovimiento}: Producto='${producto.nombre}', Almacén='${almacen.nombre}', Cantidad=${detalle.cantidad}, Costo=${detalle.costoUnitario}`);
 
-    if (esEntrada) {
-      await this.recalcularEntradaRetroactiva(
-        detalle,
-        fechaMovimiento,
-        metodoValoracion,
-        resultado,
-        queryRunner
-      );
-    } else {
-      await this.recalcularSalidaRetroactiva(
-        detalle,
-        fechaMovimiento,
-        metodoValoracion,
-        resultado,
-        queryRunner
-      );
+    try {
+      if (esEntrada) {
+        this.logger.log(`📥 [RECALCULO-DETALLE] Ejecutando recálculo de ENTRADA retroactiva`);
+        await this.recalcularEntradaRetroactiva(
+          detalle,
+          fechaMovimiento,
+          metodoValoracion,
+          resultado,
+          queryRunner
+        );
+        this.logger.log(`✅ [RECALCULO-DETALLE] Recálculo de ENTRADA completado`);
+      } else {
+        this.logger.log(`📤 [RECALCULO-DETALLE] Ejecutando recálculo de SALIDA retroactiva`);
+        await this.recalcularSalidaRetroactiva(
+          detalle,
+          fechaMovimiento,
+          metodoValoracion,
+          resultado,
+          queryRunner
+        );
+        this.logger.log(`✅ [RECALCULO-DETALLE] Recálculo de SALIDA completado`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ [RECALCULO-DETALLE] Error procesando ${tipoMovimiento} para producto '${producto.nombre}': ${error.message}`);
+      throw error;
     }
   }
 
