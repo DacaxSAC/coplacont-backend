@@ -73,7 +73,7 @@ export class ComprobanteService {
         
         // Validar que la fecha de emisión esté dentro del período activo
         await this.validarPeriodoActivo(personaId, createComprobanteDto.fechaEmision);
-        
+        console.log('pase validacion de periodo')
         //Busca entidad cliente/proveedor
         const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
 
@@ -217,6 +217,7 @@ export class ComprobanteService {
             personaId,
             fechaEmision
         );
+        console.log('validacion', validacion);
 
         if (!validacion.valida) {
             throw new BadRequestException(

@@ -48,6 +48,7 @@ export class CreateComprobanteDto {
   })
   @IsDateString()
   @IsNotEmpty()
+  @Type(() => Date)
   fechaEmision: Date;
 
   @ApiProperty({ enum: Moneda })
@@ -84,6 +85,7 @@ export class CreateComprobanteDto {
     example: '2025-08-20',
   })
   @IsDateString()
+  @Type(() => Date)
   fechaVencimiento?: Date;
 
   @ApiPropertyOptional({

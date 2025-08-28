@@ -104,6 +104,8 @@ export class PeriodoContableService {
    * Obtener período activo de una persona
    */
   async obtenerPeriodoActivo(idPersona: number): Promise<ResponsePeriodoContableDto> {
+    console.log('idPersona', idPersona);
+
     const periodo = await this.periodoRepository.findOne({
       where: {
         persona: { id: idPersona },
@@ -111,6 +113,7 @@ export class PeriodoContableService {
       },
       relations: ['persona']
     });
+    console.log('periodo', periodo);
 
     if (!periodo) {
       throw new NotFoundException(
@@ -434,7 +437,10 @@ export class PeriodoContableService {
   ): Promise<{ valida: boolean; mensaje?: string; periodo?: PeriodoContable }> {
     try {
       const periodoActivo = await this.obtenerPeriodoActivo(idPersona);
+      console.log('periodoActivo', periodoActivo);
+      
       const periodo = await this.obtenerPorId(periodoActivo.id);
+      console.log('periodo', periodo);
       
       // Verificar si el período está cerrado
       if (periodo.cerrado) {
@@ -444,7 +450,7 @@ export class PeriodoContableService {
           periodo
         };
       }
-      
+      console.log('periodo.estaEnPeriodo(fecha)', periodo.estaEnPeriodo(fecha));
       if (periodo.estaEnPeriodo(fecha)) {
         return { valida: true, periodo };
       }

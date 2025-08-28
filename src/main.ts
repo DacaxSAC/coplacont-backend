@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
 import { addTransactionalDataSource, initializeTransactionalContext } from 'typeorm-transactional';
@@ -13,6 +14,13 @@ async function bootstrap() {
 
   const dataSource = app.get(DataSource);
   addTransactionalDataSource(dataSource);
+  
+  // Configurar ValidationPipe global con transformación
+  //app.useGlobalPipes(new ValidationPipe({
+  //  transform: true,
+  //  whitelist: true,
+  //  forbidNonWhitelisted: true,
+  //}));
   
   // Habilitar CORS
   app.enableCors({
