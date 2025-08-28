@@ -502,7 +502,13 @@ export class LoteService {
       );
     }
 
+    // Actualizar stock del inventario
+    const stockActualNum = Number(inventario.stockActual);
+    inventario.stockActual = stockActualNum - cantidad;
+    await this.inventarioRepository.save(inventario);
+    
     console.log(`✅ Salida procesada con costo promedio fijo: ${costoPromedioActual}`);
+    console.log(`📊 Stock del inventario actualizado: ${stockActualNum} -> ${inventario.stockActual}`);
     console.log(`📊 Lotes afectados: ${lotesAfectados.length}`);
 
     return {
