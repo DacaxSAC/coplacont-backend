@@ -64,7 +64,10 @@ export class ComprobanteController {
         @Query('tipoOperacion') tipoOperacion: TipoOperacion,
         @CurrentUser() user: AuthenticatedUser
     ): Promise<{ correlativo: string }> {
-        return this.comprobanteService.getNextCorrelativo(tipoOperacion);
+        if (!user.personaId) {
+            throw new Error('Usuario no tiene una empresa asociada');
+        }
+        return this.comprobanteService.getNextCorrelativo(tipoOperacion, user.personaId);
     }
 
     @Post()

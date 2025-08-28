@@ -32,17 +32,27 @@ export class ComprobanteService {
         private readonly periodoContableService: PeriodoContableService
     ) { }
 
+    /**
+     * Busca o crea un correlativo para una persona y tipo de operación específicos
+     * @param tipoOperacion - Tipo de operación (COMPRA, VENTA, etc.)
+     * @param personaId - ID de la persona/empresa
+     * @returns Correlativo encontrado o creado
+     */
     @Transactional()
-    private async findOrCreateCorrelativo(tipoOperacion: TipoOperacion) {
+    private async findOrCreateCorrelativo(tipoOperacion: TipoOperacion, personaId: number) {
         let correlativo = await this.correlativoRepository
             .createQueryBuilder('c')
             .setLock('pessimistic_write')
-            .where('c.tipo = :tipo', { tipo: tipoOperacion })
+            .where('c.tipo = :tipo AND c.personaId = :personaId', { 
+                tipo: tipoOperacion, 
+                personaId: personaId 
+            })
             .getOne();
 
         if (!correlativo) {
             correlativo = this.correlativoRepository.create({
                 tipo: tipoOperacion,
+                personaId: personaId,
                 ultimoNumero: 0,
             });
             await this.correlativoRepository.save(correlativo);
@@ -67,7 +77,7 @@ export class ComprobanteService {
         comprobante.persona = { id: personaId } as any; // Se asignará la Persona completa por TypeORM
 
         // Asigna correlativo
-        const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion);
+        const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId);
         correlativo.ultimoNumero += 1;
         await this.correlativoRepository.save(correlativo);
         comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
@@ -107,9 +117,15 @@ export class ComprobanteService {
         console.log(`✅ Movimiento creado para comprobante ${comprobanteSaved.idComprobante}`);
     }
 
+    /**
+     * Obtiene el siguiente correlativo para una persona y tipo de operación
+     * @param tipoOperacion - Tipo de operación
+     * @param personaId - ID de la persona/empresa
+     * @returns Siguiente correlativo disponible
+     */
     @Transactional()
-    async getNextCorrelativo(tipoOperacion: TipoOperacion): Promise<{ correlativo: string }> {
-        let correlativo = await this.findOrCreateCorrelativo(tipoOperacion);
+    async getNextCorrelativo(tipoOperacion: TipoOperacion, personaId: number): Promise<{ correlativo: string }> {
+        let correlativo = await this.findOrCreateCorrelativo(tipoOperacion, personaId);
         return { correlativo: `corr-${correlativo.ultimoNumero + 1}` };
     }
 
