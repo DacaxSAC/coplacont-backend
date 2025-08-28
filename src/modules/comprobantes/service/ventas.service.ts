@@ -16,12 +16,16 @@ export class VentasService {
     ) {}
 
     /**
-     * Obtiene todos los comprobantes de tipo VENTA
+     * Obtiene todos los comprobantes de tipo VENTA para una empresa específica
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de venta
      */
-    async findAll(): Promise<ResponseComprobanteDto[]> {
+    async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
-            where: { tipoOperacion: TipoOperacion.VENTA },
+            where: { 
+                tipoOperacion: TipoOperacion.VENTA,
+                persona: { id: personaId }
+            },
             relations: ['totales', 'persona', 'detalles'],
             order: { fechaRegistro: 'DESC' }
         });
@@ -31,15 +35,17 @@ export class VentasService {
     }
 
     /**
-     * Busca un comprobante de venta por su ID
+     * Busca un comprobante de venta por su ID para una empresa específica
      * @param id - ID del comprobante
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
      */
-    async findById(id: number): Promise<ResponseComprobanteWithDetallesDto | null> {
+    async findById(id: number, personaId: number): Promise<ResponseComprobanteWithDetallesDto | null> {
         const comprobante = await this.comprobanteRepository.findOne({
             where: { 
                 idComprobante: id,
-                tipoOperacion: TipoOperacion.VENTA 
+                tipoOperacion: TipoOperacion.VENTA,
+                persona: { id: personaId }
             },
             relations: ['totales', 'persona', 'detalles', 'detalles.producto']
         });
@@ -54,18 +60,20 @@ export class VentasService {
     }
 
     /**
-     * Busca comprobantes de venta por rango de fechas
+     * Busca comprobantes de venta por rango de fechas para una empresa específica
      * @param fechaInicio - Fecha de inicio del rango
      * @param fechaFin - Fecha de fin del rango
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes en el rango
      */
-    async findByDateRange(fechaInicio: Date, fechaFin: Date): Promise<ResponseComprobanteDto[]> {
+    async findByDateRange(fechaInicio: Date, fechaFin: Date, personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
             .getMany();
@@ -76,18 +84,21 @@ export class VentasService {
     }
 
     /**
-     * Busca comprobantes de venta por cliente
-     * @param personaId - ID del cliente
+     * Busca comprobantes de venta por cliente para una empresa específica
+     * @param clienteId - ID del cliente
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes del cliente
      */
-    async findByCliente(personaId: number): Promise<ResponseComprobanteDto[]> {
+    async findByCliente(clienteId: number, personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
+            .leftJoinAndSelect('comprobante.entidad', 'entidad')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
             .andWhere('persona.id = :personaId', { personaId })
+            .andWhere('entidad.id = :clienteId', { clienteId })
             .getMany();
         
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -96,17 +107,20 @@ export class VentasService {
     }
 
     /**
-     * Obtiene el total de ventas en un rango de fechas
+     * Obtiene el total de ventas en un rango de fechas para una empresa específica
      * @param fechaInicio - Fecha de inicio del rango
      * @param fechaFin - Fecha de fin del rango
+     * @param personaId - ID de la empresa
      * @returns Promise<number> Total de ventas en el período
      */
-    async getTotalVentasByDateRange(fechaInicio: Date, fechaFin: Date): Promise<number> {
+    async getTotalVentasByDateRange(fechaInicio: Date, fechaFin: Date, personaId: number): Promise<number> {
         const result = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoin('comprobante.totales', 'totales')
+            .leftJoin('comprobante.persona', 'persona')
             .select('SUM(totales.totalGeneral)', 'total')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
             .getRawOne();

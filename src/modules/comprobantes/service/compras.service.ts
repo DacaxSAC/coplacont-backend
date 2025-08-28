@@ -15,12 +15,16 @@ export class ComprasService {
     ) {}
 
     /**
-     * Obtiene todos los comprobantes de tipo COMPRA
+     * Obtiene todos los comprobantes de tipo COMPRA para una empresa específica
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de compra
      */
-    async findAll(): Promise<ResponseComprobanteDto[]> {
+    async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository.find({
-            where: { tipoOperacion: TipoOperacion.COMPRA },
+            where: { 
+                tipoOperacion: TipoOperacion.COMPRA,
+                persona: { id: personaId }
+            },
             relations: [
                 'totales', 
                 'persona', 
@@ -35,15 +39,17 @@ export class ComprasService {
     }
 
     /**
-     * Busca un comprobante de compra por su ID
+     * Busca un comprobante de compra por su ID para una empresa específica
      * @param id - ID del comprobante
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto | null> Comprobante encontrado o null
      */
-    async findById(id: number): Promise<ResponseComprobanteDto | null> {
+    async findById(id: number, personaId: number): Promise<ResponseComprobanteDto | null> {
         const comprobante = await this.comprobanteRepository.findOne({
             where: { 
                 idComprobante: id, 
-                tipoOperacion: TipoOperacion.COMPRA 
+                tipoOperacion: TipoOperacion.COMPRA,
+                persona: { id: personaId }
             },
             relations: [
                 'totales', 
@@ -63,12 +69,13 @@ export class ComprasService {
     }
 
     /**
-     * Busca comprobantes de compra por rango de fechas
+     * Busca comprobantes de compra por rango de fechas para una empresa específica
      * @param fechaInicio - Fecha de inicio del rango
      * @param fechaFin - Fecha de fin del rango
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes en el rango
      */
-    async findByDateRange(fechaInicio: Date, fechaFin: Date): Promise<ResponseComprobanteDto[]> {
+    async findByDateRange(fechaInicio: Date, fechaFin: Date, personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoinAndSelect('comprobante.totales', 'totales')
@@ -76,6 +83,7 @@ export class ComprasService {
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .leftJoinAndSelect('detalles.inventario', 'inventario')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.COMPRA })
+            .andWhere('persona.id = :personaId', { personaId })
             .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
             .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
             .getMany();
@@ -86,19 +94,22 @@ export class ComprasService {
     }
 
     /**
-     * Busca comprobantes de compra por proveedor
-     * @param personaId - ID del proveedor
+     * Busca comprobantes de compra por proveedor para una empresa específica
+     * @param proveedorId - ID del proveedor
+     * @param personaId - ID de la empresa
      * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes del proveedor
      */
-    async findByProveedor(personaId: number): Promise<ResponseComprobanteDto[]> {
+    async findByProveedor(proveedorId: number, personaId: number): Promise<ResponseComprobanteDto[]> {
         const comprobantes = await this.comprobanteRepository
             .createQueryBuilder('comprobante')
             .leftJoinAndSelect('comprobante.totales', 'totales')
             .leftJoinAndSelect('comprobante.persona', 'persona')
             .leftJoinAndSelect('comprobante.detalles', 'detalles')
             .leftJoinAndSelect('detalles.inventario', 'inventario')
+            .leftJoinAndSelect('comprobante.entidad', 'entidad')
             .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.COMPRA })
             .andWhere('persona.id = :personaId', { personaId })
+            .andWhere('entidad.id = :proveedorId', { proveedorId })
             .getMany();
         
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
