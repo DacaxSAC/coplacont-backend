@@ -7,7 +7,8 @@ import {
   BeforeInsert,
   BeforeUpdate,
   ManyToOne,
-  JoinColumn
+  JoinColumn,
+  Unique
 } from 'typeorm';
 import { EntidadType } from '../enums/EntidadType.enum';
 import { Persona } from '../../users/entities/persona.entity';
@@ -17,6 +18,7 @@ import { Persona } from '../../users/entities/persona.entity';
  * Puede ser persona natural (individual) o jurídica (empresa)
  */
 @Entity('entidades')
+@Unique(['numeroDocumento', 'persona'])
 export class Entidad {
   @PrimaryGeneratedColumn()
   id: number;
@@ -34,7 +36,7 @@ export class Entidad {
   })
   tipo: EntidadType;
 
-  @Column({ unique: true, nullable: false })
+  @Column({ nullable: false })
   numeroDocumento: string;
 
   @Column({ nullable: true })
