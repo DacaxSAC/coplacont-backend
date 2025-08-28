@@ -433,9 +433,24 @@ export class PeriodoContableService {
    */
   async validarFechaEnPeriodoActivo(
     idPersona: number,
-    fecha: Date
+    fecha: Date | string
   ): Promise<{ valida: boolean; mensaje?: string; periodo?: PeriodoContable }> {
     try {
+      // Asegurar que fecha sea un objeto Date válido
+      let fechaDate: Date;
+      if (typeof fecha === 'string') {
+        fechaDate = new Date(fecha);
+      } else if (fecha instanceof Date) {
+        fechaDate = fecha;
+      } else {
+        throw new Error('El parámetro fecha debe ser un Date o string válido');
+      }
+      
+      // Validar que la fecha sea válida
+      if (isNaN(fechaDate.getTime())) {
+        throw new Error('La fecha proporcionada no es válida');
+      }
+      
       const periodoActivo = await this.obtenerPeriodoActivo(idPersona);
       console.log('periodoActivo', periodoActivo);
       
@@ -450,14 +465,14 @@ export class PeriodoContableService {
           periodo
         };
       }
-      console.log('periodo.estaEnPeriodo(fecha)', periodo.estaEnPeriodo(fecha));
-      if (periodo.estaEnPeriodo(fecha)) {
+      console.log('periodo.estaEnPeriodo(fechaDate)', periodo.estaEnPeriodo(fechaDate));
+      if (periodo.estaEnPeriodo(fechaDate)) {
         return { valida: true, periodo };
       }
       
       return {
         valida: false,
-        mensaje: `La fecha ${fecha.toISOString().split('T')[0]} no está dentro del período activo ${periodo.getDescripcion()}`,
+        mensaje: `La fecha ${fechaDate.toISOString().split('T')[0]} no está dentro del período activo ${periodo.getDescripcion()}`,
         periodo
       };
     } catch (error) {
@@ -473,12 +488,28 @@ export class PeriodoContableService {
    */
   async validarMovimientoRetroactivo(
     idPersona: number,
-    fecha: Date
+    fecha: Date | string
   ): Promise<{ permitido: boolean; mensaje?: string }> {
     const configuracion = await this.obtenerConfiguracion(idPersona);
     const hoy = new Date();
+    
+    // Asegurar que fecha sea un objeto Date válido
+    let fechaDate: Date;
+    if (typeof fecha === 'string') {
+      fechaDate = new Date(fecha);
+    } else if (fecha instanceof Date) {
+      fechaDate = fecha;
+    } else {
+      throw new Error('El parámetro fecha debe ser un Date o string válido');
+    }
+    
+    // Validar que la fecha sea válida
+    if (isNaN(fechaDate.getTime())) {
+      throw new Error('La fecha proporcionada no es válida');
+    }
+    
     const diasDiferencia = Math.floor(
-      (hoy.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24)
+      (hoy.getTime() - fechaDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (!configuracion.permiteRetroactivo(diasDiferencia)) {
