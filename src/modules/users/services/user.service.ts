@@ -12,6 +12,8 @@ import { PersonaService } from './person.service';
 import { randomBytes } from 'crypto';
 import { UserRolService } from './user-role.service';
 import { EmailService } from './email.service';
+import { UserRole } from '../entities/user-role.entity';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class UserService {
@@ -19,9 +21,13 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     @Inject(forwardRef(() => PersonaService))
     private readonly personaService: PersonaService,
-    private readonly userRoleRepository: UserRolService,
+    private readonly userRoleService: UserRolService,
     private readonly emailService: EmailService
   ) { }
 
@@ -87,10 +93,22 @@ export class UserService {
     
     const userSaved = await this.userRepository.save(user);
     
-    await this.userRoleRepository.create({
-      idUser: userSaved.id, 
-      idRole: createUserDto.idRol,
+    // Buscar el rol por ID
+    const role = await this.roleRepository.findOne({
+      where: { id: createUserDto.idRol }
     });
+    
+    if (!role) {
+      throw new Error(`Rol con ID ${createUserDto.idRol} no encontrado`);
+    }
+    
+    // Crear la relación usuario-rol
+    const userRole = this.userRoleRepository.create({
+      user: userSaved,
+      role: role,
+    });
+    
+    await this.userRoleRepository.save(userRole);
     
      try {
        await this.emailService.sendWelcomeEmailWithCredentials(
@@ -243,10 +261,22 @@ export class UserService {
     
     const userSaved = await this.userRepository.save(user);
     
-    await this.userRoleRepository.create({
-      idUser: userSaved.id, 
-      idRole: createUserDto.idRol,
+    // Buscar el rol por ID
+    const role = await this.roleRepository.findOne({
+      where: { id: createUserDto.idRol }
     });
+    
+    if (!role) {
+      throw new Error(`Rol con ID ${createUserDto.idRol} no encontrado`);
+    }
+    
+    // Crear la relación usuario-rol
+    const userRole = this.userRoleRepository.create({
+      user: userSaved,
+      role: role,
+    });
+    
+    await this.userRoleRepository.save(userRole);
     
     try {
       await this.emailService.sendWelcomeEmailWithCredentials(

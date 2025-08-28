@@ -10,6 +10,8 @@ import { CreateUserForPersonaDto } from "../dto/user/create-user-for-persona.dto
 import { hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { EmailService } from './email.service';
+import { UserRole } from '../entities/user-role.entity';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class PersonaService {
@@ -125,10 +127,19 @@ export class PersonaService {
             
             const savedUser = await queryRunner.manager.save(user);
             
+            // Buscar el rol por ID dentro de la transacción
+            const role = await queryRunner.manager.findOne(Role, {
+                where: { id: userForPersonaDto.idRol }
+            });
+            
+            if (!role) {
+                throw new Error(`Rol con ID ${userForPersonaDto.idRol} no encontrado`);
+            }
+            
             // Crear la relación usuario-rol dentro de la transacción
-            const userRole = queryRunner.manager.create('UserRole', {
-                idUser: savedUser.id,
-                idRole: userForPersonaDto.idRol,
+            const userRole = queryRunner.manager.create(UserRole, {
+                user: savedUser,
+                role: role,
             });
             
             await queryRunner.manager.save(userRole);
