@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ComprobanteTotales } from "../entities/comprobante-totales";
-import { Repository } from "typeorm";
-import { Transactional } from "typeorm-transactional";
+import { Repository, EntityManager } from "typeorm";
 import { ComprobanteDetalle } from "../entities/comprobante-detalle";
 import { Comprobante } from "../entities/comprobante";
 
@@ -14,8 +13,7 @@ export class ComprobanteTotalesService {
         private readonly comprobanteTotalesRepository: Repository<ComprobanteTotales>,
     ) { }
 
-    @Transactional()
-    async register(idComprobante: number, detalles: ComprobanteDetalle[]) {
+    async register(idComprobante: number, detalles: ComprobanteDetalle[], manager?: EntityManager) {
 
         const comprobante = new Comprobante();
         comprobante.idComprobante = idComprobante;
@@ -29,8 +27,11 @@ export class ComprobanteTotalesService {
         const totalExonerada = 0;
         const totalInafecta = 0;
 
+        // Usar el repositorio apropiado según si hay EntityManager
+        const totalesRepo = manager ? manager.getRepository(ComprobanteTotales) : this.comprobanteTotalesRepository;
+
         // Crear entidad totales
-        const totales = this.comprobanteTotalesRepository.create({
+        const totales = totalesRepo.create({
             comprobante,
             totalGravada,
             totalExonerada,
@@ -41,7 +42,7 @@ export class ComprobanteTotalesService {
         });
 
         // Guardar totales en BD
-        await this.comprobanteTotalesRepository.save(totales);
+        await totalesRepo.save(totales);
     }
 
 

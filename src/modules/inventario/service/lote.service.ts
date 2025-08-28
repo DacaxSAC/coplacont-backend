@@ -22,6 +22,7 @@ export class LoteService {
     detalles: ComprobanteDetalle[],
     tipoOperacion: TipoOperacion,
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
+    fechaEmision?: Date,
   ): Promise<{costoUnitario: number[], lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
     let costosUnitariosDeDetalles: number[] = [];
     let lotesUsados: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
@@ -31,7 +32,7 @@ export class LoteService {
         const detalle = detalles[i];
 
         if (tipoOperacion === TipoOperacion.COMPRA) {
-          await this.registrarLoteCompra(detalle);
+          await this.registrarLoteCompra(detalle, fechaEmision);
         } else {
           // Para ventas y otras operaciones (salidas)
           if (metodoValoracion === MetodoValoracion.PROMEDIO) {
@@ -118,6 +119,7 @@ export class LoteService {
 
   private async registrarLoteCompra(
     detalle: ComprobanteDetalle,
+    fechaEmision?: Date,
   ): Promise<void> {
 
     // Validar que el detalle tenga inventario
@@ -171,7 +173,7 @@ export class LoteService {
       cantidadInicial: cantidad,
       cantidadActual: cantidad,
       costoUnitario: precioUnitario,
-      fechaIngreso: new Date(),
+      fechaIngreso: fechaEmision || new Date(),
       observaciones: `Lote creado automáticamente desde compra - ${detalle.descripcion || 'Sin descripción'}`,
     });
 

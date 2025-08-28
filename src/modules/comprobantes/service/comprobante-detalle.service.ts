@@ -1,10 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { ComprobanteDetalle } from "../entities/comprobante-detalle";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, EntityManager } from "typeorm";
 import { CreateComprobanteDetalleDto } from "../dto/comprobante-detalle/create-comprobante-detalle.dto";
 import { Comprobante } from "../entities/comprobante";
-import { Transactional } from "typeorm-transactional";
 import { ComprobanteTotalesService } from "./comprobante-totales.service";
 import { Inventario } from "src/modules/inventario/entities";
 
@@ -21,12 +20,16 @@ export class ComprobanteDetalleService {
         private readonly comprobanteTotalesService: ComprobanteTotalesService,
     ) {}
 
-    @Transactional() 
-    async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[]) : Promise<ComprobanteDetalle[]>{
+    async register(idComprobante: number, createComprobanteDetalleDtos: CreateComprobanteDetalleDto[], manager?: EntityManager) : Promise<ComprobanteDetalle[]>{
         console.log(`🔄 Registrando ${createComprobanteDetalleDtos.length} detalles para comprobante ${idComprobante}`);
         
+        // Usar el repositorio apropiado según si hay EntityManager
+        const comprobanteRepo = manager ? manager.getRepository(Comprobante) : this.comprobanteRepository;
+        const inventarioRepo = manager ? manager.getRepository(Inventario) : this.inventarioRepository;
+        const detalleRepo = manager ? manager.getRepository(ComprobanteDetalle) : this.comprobanteDetalleRepository;
+        
         // Cargar el comprobante completo desde la base de datos
-        const comprobante = await this.comprobanteRepository.findOne({
+        const comprobante = await comprobanteRepo.findOne({
             where: { idComprobante },
             relations: ['persona']
         });
@@ -37,12 +40,12 @@ export class ComprobanteDetalleService {
 
         const detalles = await Promise.all(createComprobanteDetalleDtos.map(async (dto, index) => {
             console.log(`📦 Procesando detalle ${index + 1}: Inventario=${dto.idInventario}, Cantidad=${dto.cantidad}`);
-            const detalle = this.comprobanteDetalleRepository.create(dto);
+            const detalle = detalleRepo.create(dto);
             detalle.comprobante = comprobante;
             
             // Validar y establecer relación con inventario
             if (dto.idInventario) {
-                const inventario = await this.inventarioRepository.findOne({
+                const inventario = await inventarioRepo.findOne({
                     where: { id: dto.idInventario },
                     relations: ['producto', 'almacen']
                 });
@@ -65,10 +68,10 @@ export class ComprobanteDetalleService {
             return detalle;
         }));
 
-        const detallesSaved = await this.comprobanteDetalleRepository.save(detalles);
+        const detallesSaved = await detalleRepo.save(detalles);
         console.log(`✅ ${detallesSaved.length} detalles guardados exitosamente`);
         
-        await this.comprobanteTotalesService.register(idComprobante, detallesSaved);
+        await this.comprobanteTotalesService.register(idComprobante, detallesSaved, manager);
         console.log(`✅ Totales calculados para comprobante ${idComprobante}`);
         
         return detallesSaved;

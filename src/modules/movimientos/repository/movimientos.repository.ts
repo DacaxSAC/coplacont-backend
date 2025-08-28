@@ -40,68 +40,76 @@ export class MovimientosRepository {
      */
     async create(createMovimientoDto: CreateMovimientoDto): Promise<Movimiento> {
         return await this.dataSource.transaction(async manager => {
-            // Crear el movimiento principal
-            const movimiento = manager.create(Movimiento, {
-                tipo: createMovimientoDto.tipo,
-                fecha: new Date(createMovimientoDto.fecha),
-                numeroDocumento: createMovimientoDto.numeroDocumento,
-                observaciones: createMovimientoDto.observaciones,
-                estado: createMovimientoDto.estado,
-                idComprobante: createMovimientoDto.idComprobante
+            return await this.createWithManager(createMovimientoDto, manager);
+        });
+    }
+
+    /**
+     * Crear un nuevo movimiento con sus detalles usando un EntityManager específico
+     * Útil para transacciones anidadas
+     */
+    async createWithManager(createMovimientoDto: CreateMovimientoDto, manager: any): Promise<Movimiento> {
+        // Crear el movimiento principal
+        const movimiento = manager.create(Movimiento, {
+            tipo: createMovimientoDto.tipo,
+            fecha: new Date(createMovimientoDto.fecha),
+            numeroDocumento: createMovimientoDto.numeroDocumento,
+            observaciones: createMovimientoDto.observaciones,
+            estado: createMovimientoDto.estado,
+            idComprobante: createMovimientoDto.idComprobante
+        });
+
+        const savedMovimiento = await manager.save(Movimiento, movimiento);
+
+        // Crear los detalles
+        const detalles: MovimientoDetalle[] = [];
+        for (const detalle of createMovimientoDto.detalles) {
+            const costoTotal = detalle.costoUnitario ? detalle.cantidad * detalle.costoUnitario : undefined;
+            const movimientoDetalle = manager.create(MovimientoDetalle, {
+                idMovimiento: savedMovimiento.id,
+                idInventario: detalle.idInventario,
+                cantidad: detalle.cantidad,
+                costoUnitario: detalle.costoUnitario,
+                costoTotal: costoTotal,
+                idLote: detalle.idLote
             });
-
-            const savedMovimiento = await manager.save(Movimiento, movimiento);
-
-            // Crear los detalles
-            const detalles: MovimientoDetalle[] = [];
-            for (const detalle of createMovimientoDto.detalles) {
-                const costoTotal = detalle.costoUnitario ? detalle.cantidad * detalle.costoUnitario : undefined;
-                const movimientoDetalle = manager.create(MovimientoDetalle, {
-                    idMovimiento: savedMovimiento.id,
-                    idInventario: detalle.idInventario,
-                    cantidad: detalle.cantidad,
-                    costoUnitario: detalle.costoUnitario,
-                    costoTotal: costoTotal,
-                    idLote: detalle.idLote
-                });
-                
-                const savedDetalle = await manager.save(MovimientoDetalle, movimientoDetalle);
-                detalles.push(savedDetalle);
-                
-                // Si hay detalles de salida, crearlos
-                if (detalle.detallesSalida && detalle.detallesSalida.length > 0) {
-                    for (const detalleSalida of detalle.detallesSalida) {
-                        const detalleSalidaEntity = manager.create(DetalleSalida, {
-                            idMovimientoDetalle: savedDetalle.id,
-                            idLote: detalleSalida.idLote,
-                            costoUnitarioDeLote: detalleSalida.costoUnitarioDeLote,
-                            cantidad: detalleSalida.cantidad
-                        });
-                        
-                        await manager.save(DetalleSalida, detalleSalidaEntity);
-                    }
+            
+            const savedDetalle = await manager.save(MovimientoDetalle, movimientoDetalle);
+            detalles.push(savedDetalle);
+            
+            // Si hay detalles de salida, crearlos
+            if (detalle.detallesSalida && detalle.detallesSalida.length > 0) {
+                for (const detalleSalida of detalle.detallesSalida) {
+                    const detalleSalidaEntity = manager.create(DetalleSalida, {
+                        idMovimientoDetalle: savedDetalle.id,
+                        idLote: detalleSalida.idLote,
+                        costoUnitarioDeLote: detalleSalida.costoUnitarioDeLote,
+                        cantidad: detalleSalida.cantidad
+                    });
+                    
+                    await manager.save(DetalleSalida, detalleSalidaEntity);
                 }
             }
+        }
 
-            // Retornar el movimiento con sus detalles
-            const result = await manager.findOne(Movimiento, {
-                where: { id: savedMovimiento.id },
-                relations: [
-                    'detalles', 
-                    'detalles.inventario', 
-                    'detalles.inventario.producto', 
-                    'detalles.inventario.almacen', 
-                    'detalles.detallesSalida',
-                    'comprobante'
-                ]
-            });
-            
-            if (!result) {
-                throw new Error('Error al crear el movimiento');
-            }
-            
-            return result;
+        // Retornar el movimiento con sus detalles
+        const result = await manager.findOne(Movimiento, {
+            where: { id: savedMovimiento.id },
+            relations: [
+                'detalles', 
+                'detalles.inventario', 
+                'detalles.inventario.producto', 
+                'detalles.inventario.almacen', 
+                'detalles.detallesSalida',
+                'comprobante'
+            ]
         });
+        
+        if (!result) {
+            throw new Error('Error al crear el movimiento');
+        }
+        
+        return result;
     }
 
     /**

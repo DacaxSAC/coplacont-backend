@@ -1,10 +1,9 @@
-import { Injectable, BadRequestException, Logger } from "@nestjs/common";
-import { Repository } from "typeorm";
+import { Injectable } from "@nestjs/common";
+import { Repository, DataSource } from "typeorm";
 import { Comprobante } from "../entities/comprobante";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CreateComprobanteDto } from "../dto/comprobante/create-comprobante.dto";
 import { EntidadService } from "src/modules/entidades/services";
-import { Transactional } from "typeorm-transactional";
 import { ComprobanteDetalleService } from "./comprobante-detalle.service";
 import { ResponseComprobanteDto } from "../dto/comprobante/response-comprobante.dto";
 import { plainToInstance } from "class-transformer";
@@ -18,8 +17,6 @@ import { PeriodoContableService } from "src/modules/periodos/service";
 
 @Injectable()
 export class ComprobanteService {
-    private readonly logger = new Logger(ComprobanteService.name);
-
     constructor(
         @InjectRepository(Comprobante)
         private readonly comprobanteRepository: Repository<Comprobante>,
@@ -30,22 +27,28 @@ export class ComprobanteService {
         private readonly movimientoService : MovimientosService,
         private readonly movimientoFactory : MovimientoFactory,
         private readonly loteService: LoteService,
-        private readonly periodoContableService: PeriodoContableService
+        private readonly periodoContableService: PeriodoContableService,
+        private readonly dataSource: DataSource
     ) { }
 
     /**
      * Busca o crea un correlativo para una persona y tipo de operación específicos
      * @param tipoOperacion - Tipo de operación (COMPRA, VENTA, etc.)
      * @param personaId - ID de la persona/empresa
+     * @param manager - EntityManager de la transacción (opcional)
      * @returns Correlativo encontrado o creado
      */
-    @Transactional()
-    private async findOrCreateCorrelativo(tipoOperacion: TipoOperacion, personaId: number) {
+    private async findOrCreateCorrelativo(tipoOperacion: TipoOperacion, personaId: number, manager?: any) {
         console.log(`🔍 Buscando correlativo para tipo: ${tipoOperacion}, persona: ${personaId}`);
         
-        let correlativo = await this.correlativoRepository
-            .createQueryBuilder('c')
-            .setLock('pessimistic_write')
+        const repository = manager ? manager.getRepository(Correlativo) : this.correlativoRepository;
+        const queryBuilder = repository.createQueryBuilder('c');
+        
+        if (manager) {
+            queryBuilder.setLock('pessimistic_write');
+        }
+        
+        let correlativo = await queryBuilder
             .where('c.tipo = :tipo AND c.personaId = :personaId', { 
                 tipo: tipoOperacion, 
                 personaId: personaId 
@@ -54,12 +57,12 @@ export class ComprobanteService {
 
         if (!correlativo) {
             console.log(`📝 Creando nuevo correlativo para tipo: ${tipoOperacion}, persona: ${personaId}`);
-            correlativo = this.correlativoRepository.create({
+            correlativo = repository.create({
                 tipo: tipoOperacion,
                 personaId: personaId,
                 ultimoNumero: 0,
             });
-            await this.correlativoRepository.save(correlativo);
+            await repository.save(correlativo);
             console.log(`✅ Correlativo creado con ultimoNumero: ${correlativo.ultimoNumero}`);
         } else {
             console.log(`🔄 Correlativo encontrado con ultimoNumero: ${correlativo.ultimoNumero}`);
@@ -68,94 +71,74 @@ export class ComprobanteService {
         return correlativo;
     }
 
-    @Transactional()
+    /**
+     * Registra un nuevo comprobante con sus detalles y movimientos asociados
+     * @param createComprobanteDto - Datos del comprobante a crear
+     * @param personaId - ID de la persona/empresa propietaria
+     */
     async register(createComprobanteDto: CreateComprobanteDto, personaId: number): Promise<void> {
-        this.logger.log(`🔄 [RECALCULO-TRACE] Iniciando registro de comprobante: Tipo=${createComprobanteDto.tipoOperacion}, PersonaId=${personaId}, Fecha=${createComprobanteDto.fechaEmision}`);
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
         
-        // Verificar si la fecha es retroactiva antes de las validaciones
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const fechaComparar = new Date(createComprobanteDto.fechaEmision);
-        fechaComparar.setHours(0, 0, 0, 0);
-        const esFechaRetroactiva = fechaComparar < hoy;
+        try {
+            // Busca entidad cliente/proveedor
+            const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
+
+            // Crea instancia de comprobante
+            const comprobante = queryRunner.manager.create(Comprobante, createComprobanteDto);
+            comprobante.entidad = entidad;
+            comprobante.persona = { id: personaId } as any;
+
+            // Asigna correlativo (genera automáticamente si no se proporciona)
+            if (!createComprobanteDto.correlativo) {
+                const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId, queryRunner.manager);
+                correlativo.ultimoNumero += 1;
+                await queryRunner.manager.save(correlativo);
+                comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+            } else {
+                comprobante.correlativo = createComprobanteDto.correlativo;
+            }
+
+            // Guarda el comprobante
+            const comprobanteSaved = await queryRunner.manager.save(comprobante);
         
-        this.logger.log(`🔍 [RECALCULO-TRACE] Verificación fecha retroactiva: ${esFechaRetroactiva ? 'SÍ' : 'NO'} (Fecha: ${fechaComparar.toISOString().split('T')[0]}, Hoy: ${hoy.toISOString().split('T')[0]})`);
-        
-        // Validar que la fecha de emisión esté dentro del período activo
-        this.logger.log(`🔍 [RECALCULO-TRACE] Iniciando validación de período activo para PersonaId=${personaId}`);
-        await this.validarPeriodoActivo(personaId, createComprobanteDto.fechaEmision);
-        this.logger.log(`✅ [RECALCULO-TRACE] Validación de período activo completada exitosamente`);
-        
-        // Si es fecha retroactiva, validar límites de movimientos retroactivos
-        if (esFechaRetroactiva) {
-            this.logger.log(`🔍 [RECALCULO-TRACE] Fecha retroactiva detectada - Iniciando validación de límites retroactivos`);
-            await this.validarMovimientoRetroactivo(personaId, createComprobanteDto.fechaEmision);
-            this.logger.log(`✅ [RECALCULO-TRACE] Validación de movimiento retroactivo completada - Se permite el registro`);
-        }
-        //Busca entidad cliente/proveedor
-        const entidad = await this.personaService.findEntity(createComprobanteDto.idPersona);
+            let costosUnitarios: number[] = [];
+            let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
 
-        // Crea instancia de comprobante
-        const comprobante = this.comprobanteRepository.create(createComprobanteDto);
-        comprobante.entidad = entidad;
-        comprobante.persona = { id: personaId } as any; // Se asignará la Persona completa por TypeORM
-
-        // Asigna correlativo (genera automáticamente si no se proporciona)
-        if (!createComprobanteDto.correlativo) {
-            console.log(`🎯 Generando correlativo automático para ${createComprobanteDto.tipoOperacion}`);
-            const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId);
-            console.log(`📊 Correlativo antes del incremento: ${correlativo.ultimoNumero}`);
-            correlativo.ultimoNumero += 1;
-            console.log(`📈 Correlativo después del incremento: ${correlativo.ultimoNumero}`);
-            await this.correlativoRepository.save(correlativo);
-            console.log(`💾 Correlativo guardado en BD`);
-            comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
-            console.log(`🏷️ Correlativo asignado al comprobante: ${comprobante.correlativo}`);
-        } else {
-            console.log(`📝 Usando correlativo manual: ${createComprobanteDto.correlativo}`);
-            comprobante.correlativo = createComprobanteDto.correlativo;
-        }
-
-        //Guarda el comprobante
-        const comprobanteSaved = await this.comprobanteRepository.save(comprobante);
-        
-        let costosUnitarios: number[] = [];
-        let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
-
-        //Verifica si el comprobante tiene detalles
-        if (await this.existDetails(createComprobanteDto)) {
-            //Registra detalles
-            const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!);
-
-            comprobanteSaved.detalles = detallesSaved;
-            
-            // Obtener método de valoración desde la configuración del período
-            const configuracionPeriodo = await this.periodoContableService.obtenerConfiguracion(personaId);
-            const metodoValoracion = createComprobanteDto.metodoValoracion || configuracionPeriodo.metodoCalculoCosto;
-            const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion);
-            costosUnitarios = costoUnitario;
-            precioYcantidadPorLote = lotes;
-            
-            // Validar que los lotes se crearon correctamente para compras
-            if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
-                console.log(`🔍 Validando lotes para compra ${comprobanteSaved.idComprobante}`);
-                const lotesValidos = await this.loteService.validarLotesCompra(detallesSaved);
-                if (!lotesValidos) {
-                    throw new Error('Error al crear los lotes para la compra. Verifique los logs para más detalles.');
+            // Verifica si el comprobante tiene detalles
+            if (await this.existDetails(createComprobanteDto)) {
+                // Registra detalles
+                const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!, queryRunner.manager);
+                comprobanteSaved.detalles = detallesSaved;
+                
+                // Obtener método de valoración desde la configuración del período
+                const configuracionPeriodo = await this.periodoContableService.obtenerConfiguracion(personaId);
+                const metodoValoracion = createComprobanteDto.metodoValoracion || configuracionPeriodo.metodoCalculoCosto;
+                const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion, createComprobanteDto.fechaEmision);
+                costosUnitarios = costoUnitario;
+                precioYcantidadPorLote = lotes;
+                
+                // Validar que los lotes se crearon correctamente para compras
+                if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
+                    const lotesValidos = await this.loteService.validarLotesCompra(detallesSaved);
+                    if (!lotesValidos) {
+                        throw new Error('Error al crear los lotes para la compra. Verifique los logs para más detalles.');
+                    }
                 }
             }
+            
+            // Crear movimiento
+            const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios, precioYcantidadPorLote);
+            await this.movimientoService.createWithManager(movimientoDto, queryRunner.manager);
+            
+            await queryRunner.commitTransaction();
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
         }
-        
-        // Crear movimiento con costo promedio ponderado
-        this.logger.log(`🔄 [RECALCULO-TRACE] Creando movimiento para comprobante ${comprobanteSaved.idComprobante}`);
-        const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios, precioYcantidadPorLote);
-        
-        if (esFechaRetroactiva) {
-            this.logger.log(`⚠️ [RECALCULO-TRACE] MOVIMIENTO RETROACTIVO DETECTADO - Se creará movimiento que puede requerir recálculo automático`);
-        }
-        
-        this.movimientoService.create(movimientoDto);
-        this.logger.log(`✅ [RECALCULO-TRACE] Movimiento creado exitosamente para comprobante ${comprobanteSaved.idComprobante}`);
     }
 
     /**
@@ -164,7 +147,6 @@ export class ComprobanteService {
      * @param personaId - ID de la persona/empresa
      * @returns Siguiente correlativo disponible
      */
-    @Transactional()
     async getNextCorrelativo(tipoOperacion: TipoOperacion, personaId: number): Promise<{ correlativo: string }> {
         let correlativo = await this.findOrCreateCorrelativo(tipoOperacion, personaId);
         return { correlativo: `corr-${correlativo.ultimoNumero + 1}` };
@@ -230,58 +212,7 @@ export class ComprobanteService {
         });
     }
 
-    /**
-     * Valida que la fecha esté dentro del período contable activo
-     * @param personaId ID de la persona/empresa
-     * @param fechaEmision Fecha de emisión del comprobante
-     * @throws BadRequestException si la fecha no está en período activo
-     */
-    private async validarPeriodoActivo(personaId: number, fechaEmision: Date): Promise<void> {
-        this.logger.log(`🔍 [RECALCULO-TRACE] Validando período activo - PersonaId: ${personaId}, Fecha: ${fechaEmision}`);
-        
-        const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
-            personaId,
-            fechaEmision
-        );
-        
-        this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación período: ${JSON.stringify(validacion)}`);
 
-        if (!validacion.valida) {
-            this.logger.error(`❌ [RECALCULO-TRACE] Validación período FALLÓ: ${validacion.mensaje}`);
-            throw new BadRequestException(
-                validacion.mensaje || 'La fecha de emisión del comprobante no está dentro del período contable activo.'
-            );
-        }
-        
-        this.logger.log(`✅ [RECALCULO-TRACE] Validación período EXITOSA`);
-    }
-
-    /**
-     * Valida que se puedan realizar movimientos retroactivos
-     * @param personaId ID de la persona/empresa
-     * @param fechaEmision Fecha de emisión del comprobante
-     * @throws BadRequestException si no se permiten movimientos retroactivos
-     */
-    private async validarMovimientoRetroactivo(personaId: number, fechaEmision: Date): Promise<void> {
-        this.logger.log(`🔍 [RECALCULO-TRACE] Validando movimiento retroactivo - PersonaId: ${personaId}, Fecha: ${fechaEmision}`);
-        
-        const validacionResult = await this.periodoContableService.validarMovimientoRetroactivo(
-            personaId,
-            fechaEmision
-        );
-        
-        this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación retroactivo: ${JSON.stringify(validacionResult)}`);
-
-        if (!validacionResult.permitido) {
-            this.logger.error(`❌ [RECALCULO-TRACE] Validación movimiento retroactivo FALLÓ: ${validacionResult.mensaje}`);
-            throw new BadRequestException(
-                'No se pueden registrar comprobantes con fechas retroactivas más allá del límite configurado. ' +
-                'Contacte al administrador para ajustar la configuración de períodos.'
-            );
-        }
-        
-        this.logger.log(`✅ [RECALCULO-TRACE] Validación movimiento retroactivo EXITOSA - Se permite el movimiento`);
-    }
 
     /**
      * Obtiene el período contable activo para una persona
@@ -292,30 +223,6 @@ export class ComprobanteService {
         return await this.periodoContableService.obtenerPeriodoActivo(personaId);
     }
 
-    /**
-     * Valida que un comprobante pueda ser registrado en la fecha especificada
-     * @param personaId ID de la persona/empresa
-     * @param fechaEmision Fecha de emisión del comprobante
-     * @returns true si el comprobante puede ser registrado
-     */
-    async validarRegistroComprobante(personaId: number, fechaEmision: Date): Promise<boolean> {
-        try {
-            await this.validarPeriodoActivo(personaId, fechaEmision);
-            
-            // Si la fecha es retroactiva, validar también los límites
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            const fechaComparar = new Date(fechaEmision);
-            fechaComparar.setHours(0, 0, 0, 0);
-            
-            if (fechaComparar < hoy) {
-                await this.validarMovimientoRetroactivo(personaId, fechaEmision);
-            }
-            
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
+
 
 }
