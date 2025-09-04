@@ -19,15 +19,7 @@ export class ResponseInventarioDto {
     @Expose()
     id: number;
 
-    /**
-     * Stock actual del producto en el almacén
-     */
-    @ApiProperty({
-        description: 'Stock actual del producto',
-        example: 100.5
-    })
-    @Expose()
-    stockActual: number;
+    // stockActual se calcula dinámicamente y se incluye cuando es necesario
 
     /**
      * Información del almacén

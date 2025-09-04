@@ -32,16 +32,5 @@ export class CreateInventarioDto {
     @Type(() => Number)
     idProducto: number;
 
-    /**
-     * Stock actual del producto en el almacén
-     */
-    @ApiProperty({
-        description: 'Stock actual del producto',
-        example: 100.5,
-        default: 0
-    })
-    @IsNumber({ maxDecimalPlaces: 4 }, { message: 'El stock debe ser un número con máximo 4 decimales' })
-    @Min(0, { message: 'El stock no puede ser negativo' })
-    @Type(() => Number)
-    stockActual: number;
+    // stockActual eliminado - ahora se calcula dinámicamente a través de movimientos
 }

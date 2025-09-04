@@ -5,7 +5,8 @@ import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';
-import { RecalculoKardexService, ResultadoRecalculo } from './recalculo-kardex.service';
+import { StockCalculationService } from './stock-calculation.service';
+import { KardexCalculationService } from './kardex-calculation.service';
 import { PeriodoContableService } from 'src/modules/periodos/service';
 import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracion.enum';
 
@@ -16,12 +17,12 @@ export class KardexService {
   constructor(
     private readonly kardexRepository: KardexRepository,
     private readonly inventarioRepository: InventarioRepository,
-    private readonly recalculoKardexService: RecalculoKardexService,
+    private readonly kardexCalculationService: KardexCalculationService,
     private readonly periodoContableService: PeriodoContableService
   ) {}
 
   /**
-   * Genera el reporte Kardex para un inventario específico
+   * Genera el reporte Kardex para un inventario específico usando cálculo dinámico
    */
   async generateKardexReport(request: KardexRequestDto): Promise<KardexResponseDto> {
     const { idInventario, fechaInicio, fechaFin } = request;
@@ -30,62 +31,90 @@ export class KardexService {
     const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : undefined;
     const fechaFinDate = fechaFin ? new Date(fechaFin) : undefined;
 
-    // Obtener movimientos del repositorio
-    const movimientosData = await this.kardexRepository.getKardexMovements(
-      idInventario,
-      fechaInicioDate,
-      fechaFinDate
-    );
-
-
-
-    // Obtener stock inicial si hay fecha de inicio
-    let stockInicial = { cantidad: 0, costoTotal: 0 };
-    if (fechaInicioDate) {
-      stockInicial = await this.kardexRepository.getStockInicial(idInventario, fechaInicioDate);
+    // Obtener información del inventario para determinar el método de valoración
+    const inventario = await this.inventarioRepository.findById(idInventario);
+    if (!inventario) {
+      throw new Error('Inventario no encontrado');
     }
 
-    // Si no hay movimientos, obtener información del inventario directamente
-    if (movimientosData.length === 0) {
-      const inventario = await this.inventarioRepository.findById(idInventario);
+    // Determinar método de valoración (por defecto PROMEDIO)
+    // TODO: Agregar campo metodoValoracion a la entidad Inventario si es necesario
+    const metodoValoracion = MetodoValoracion.PROMEDIO;
 
-      if (!inventario) {
-        throw new Error('Inventario no encontrado');
-      }
+    // Usar KardexCalculationService para cálculo dinámico
+    const kardexResult = await this.kardexCalculationService.generarKardex(
+      idInventario,
+      fechaInicioDate || new Date('1900-01-01'), // Si no hay fecha inicio, usar fecha muy antigua
+      fechaFinDate || new Date(), // Si no hay fecha fin, usar fecha actual
+      metodoValoracion
+    );
 
+    if (!kardexResult) {
       return {
         producto: inventario.producto?.nombre || 'Producto no encontrado',
         almacen: inventario.almacen?.nombre || 'Almacén no encontrado',
-        inventarioInicialCantidad: Number(stockInicial.cantidad || 0).toFixed(4),
-        inventarioInicialCostoTotal: Number(stockInicial.costoTotal || 0).toFixed(8),
+        inventarioInicialCantidad: '0.0000',
+        inventarioInicialCostoTotal: '0.00000000',
         movimientos: [],
-        cantidadActual: Number(stockInicial.cantidad || 0).toFixed(4),
-        saldoActual: Number(stockInicial.costoTotal || 0).toFixed(8),
-        costoFinal: Number(stockInicial.costoTotal || 0).toFixed(8)
+        cantidadActual: '0.0000',
+        saldoActual: '0.0000',
+        costoFinal: '0.00000000'
       };
     }
 
-    // Calcular saldos acumulados
-    const resultado = this.calculateRunningBalances(movimientosData, stockInicial);
-    const movimientosConSaldo = resultado.movimientos;
-    const costoTotalFinal = resultado.costoTotalFinal;
+    // Convertir movimientos de KardexCalculationService al formato esperado por el DTO
+    const movimientosFormateados = kardexResult.movimientos.map(mov => {
+      const movimientoDto: any = {
+        fecha: this.formatDate(mov.fecha),
+        tipo: mov.tipoMovimiento === TipoMovimiento.ENTRADA ? 'Entrada' : 'Salida',
+        tComprob: mov.tipoComprobante || '',
+        nComprobante: mov.numeroComprobante || '',
+        cantidad: mov.cantidad ? Number(mov.cantidad.toFixed(4)) : 0,
+        saldo: mov.cantidadSaldo ? Number(mov.cantidadSaldo.toFixed(4)) : 0,
+        costoUnitario: mov.costoUnitario ? Number(mov.costoUnitario.toFixed(4)) : 0,
+        costoTotal: mov.costoTotal ? Number(mov.costoTotal.toFixed(8)) : 0
+      };
 
-    // Obtener información del primer movimiento para producto y almacén
-    const primerMovimiento = movimientosData[0];
+      // Agregar detalles de salida si existen
+      if (mov.detallesSalida && mov.detallesSalida.length > 0) {
+        movimientoDto.detallesSalida = mov.detallesSalida.map(detalle => ({
+          id: detalle.idLote, // Usar idLote como id para compatibilidad
+          idLote: detalle.idLote,
+          costoUnitarioDeLote: detalle.costoUnitarioDeLote ? Number(detalle.costoUnitarioDeLote.toFixed(4)) : 0,
+          cantidad: detalle.cantidad ? Number(detalle.cantidad.toFixed(4)) : 0
+        }));
+      }
+
+      return movimientoDto;
+    });
     
-    // Calcular totales finales
-    const ultimoMovimiento = movimientosConSaldo[movimientosConSaldo.length - 1];
-    const saldoFinal = ultimoMovimiento?.saldo || 0;
+    // Calcular saldo inicial basado en el primer movimiento o valores por defecto
+    const primerMovimiento = kardexResult.movimientos[0];
+    const ultimoMovimiento = kardexResult.movimientos[kardexResult.movimientos.length - 1];
+    
+    // Calcular saldo inicial restando el primer movimiento del saldo después del primer movimiento
+    let saldoInicialCantidad = 0;
+    let saldoInicialValor = 0;
+    
+    if (primerMovimiento) {
+      if (primerMovimiento.tipoMovimiento === TipoMovimiento.ENTRADA) {
+        saldoInicialCantidad = primerMovimiento.cantidadSaldo - primerMovimiento.cantidad;
+        saldoInicialValor = primerMovimiento.valorTotalSaldo - primerMovimiento.costoTotal;
+      } else {
+        saldoInicialCantidad = primerMovimiento.cantidadSaldo + primerMovimiento.cantidad;
+        saldoInicialValor = primerMovimiento.valorTotalSaldo + primerMovimiento.costoTotal;
+      }
+    }
     
     const response: KardexResponseDto = {
-      producto: primerMovimiento.nombreProducto,
-      almacen: primerMovimiento.nombreAlmacen,
-      inventarioInicialCantidad: Number(stockInicial.cantidad || 0).toFixed(4),
-      inventarioInicialCostoTotal: Number(stockInicial.costoTotal || 0).toFixed(8),
-      movimientos: movimientosConSaldo,
-      cantidadActual: saldoFinal.toFixed(4),
-      saldoActual: saldoFinal.toFixed(4),
-      costoFinal: costoTotalFinal.toFixed(8)
+      producto: kardexResult.producto.nombre,
+      almacen: kardexResult.almacen.nombre,
+      inventarioInicialCantidad: Number(saldoInicialCantidad).toFixed(4),
+      inventarioInicialCostoTotal: Number(saldoInicialValor).toFixed(8),
+      movimientos: movimientosFormateados,
+      cantidadActual: Number(kardexResult.stockFinal).toFixed(4),
+      saldoActual: Number(kardexResult.stockFinal).toFixed(4),
+      costoFinal: Number(kardexResult.valorTotalFinal).toFixed(8)
     };
 
     return plainToInstance(KardexResponseDto, response, {
@@ -109,8 +138,16 @@ export class KardexService {
       
       // Convertir valores a números para evitar concatenación de strings
       const cantidad = Number(movimiento.cantidad) || 0;
-      const costoTotal = Number(movimiento.costoTotal) || 0;
-      const costoUnitario = Number(movimiento.costoUnitario) || 0;
+      let costoTotal = Number(movimiento.costoTotal) || 0;
+      let costoUnitario = Number(movimiento.costoUnitario) || 0;
+      
+      // Para movimientos de salida con detallesSalida, calcular costo basado en los detalles
+      if (!isEntrada && movimiento.detallesSalida && movimiento.detallesSalida.length > 0) {
+        costoTotal = movimiento.detallesSalida.reduce((total, detalle) => {
+          return total + (Number(detalle.cantidad) * Number(detalle.costoUnitarioDeLote));
+        }, 0);
+        costoUnitario = cantidad > 0 ? costoTotal / cantidad : 0;
+      }
       
       // Calcular nuevo saldo
       if (isEntrada) {
@@ -176,6 +213,9 @@ export class KardexService {
    * Formatea la fecha para mostrar en el reporte
    */
   private formatDate(fecha: Date): string {
+    if (!fecha || isNaN(new Date(fecha).getTime())) {
+      return '-- - -- - ----';
+    }
     const date = new Date(fecha);
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -191,10 +231,10 @@ export class KardexService {
   }
 
   /**
-   * Procesa un movimiento retroactivo y ejecuta el recálculo automático
+   * Procesa un movimiento retroactivo - Con cálculo dinámico ya no se requiere recálculo
    * @param idPersona ID de la persona para validar período activo
    * @param fechaMovimiento Fecha del movimiento a procesar
-   * @param movimientoId ID del movimiento a recalcular
+   * @param movimientoId ID del movimiento a procesar
    * @param metodoValoracion Método de valoración a utilizar (PROMEDIO o FIFO)
    */
   async procesarMovimientoRetroactivo(
@@ -202,66 +242,48 @@ export class KardexService {
     fechaMovimiento: Date,
     movimientoId: number,
     metodoValoracion: MetodoValoracion
-  ): Promise<ResultadoRecalculo | { mensaje: string }> {
-    this.logger.log(`🔄 [RECALCULO-TRACE] Iniciando procesamiento de movimiento retroactivo: MovimientoId=${movimientoId}, PersonaId=${idPersona}, Fecha=${fechaMovimiento}, Método=${metodoValoracion}`);
+  ): Promise<{ mensaje: string }> {
+    this.logger.log(`🔄 [CALCULO-DINAMICO] Iniciando procesamiento de movimiento: MovimientoId=${movimientoId}, PersonaId=${idPersona}, Fecha=${fechaMovimiento}, Método=${metodoValoracion}`);
     
     // Validar que la fecha esté dentro del período activo
-    this.logger.log(`🔍 [RECALCULO-TRACE] Validando fecha en período activo`);
+    this.logger.log(`🔍 [CALCULO-DINAMICO] Validando fecha en período activo`);
     const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
       idPersona,
       fechaMovimiento
     );
     
-    this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación período activo: ${JSON.stringify(validacion)}`);
+    this.logger.log(`📊 [CALCULO-DINAMICO] Resultado validación período activo: ${JSON.stringify(validacion)}`);
 
     if (!validacion.valida) {
-      this.logger.error(`❌ [RECALCULO-TRACE] Validación período activo FALLÓ: ${validacion.mensaje}`);
+      this.logger.error(`❌ [CALCULO-DINAMICO] Validación período activo FALLÓ: ${validacion.mensaje}`);
       throw new Error(validacion.mensaje || 'La fecha del movimiento no está dentro del período contable activo');
     }
     
-    this.logger.log(`✅ [RECALCULO-TRACE] Validación período activo EXITOSA`);
+    this.logger.log(`✅ [CALCULO-DINAMICO] Validación período activo EXITOSA`);
 
     // Validar límite de movimientos retroactivos
-    this.logger.log(`🔍 [RECALCULO-TRACE] Validando límites de movimientos retroactivos`);
+    this.logger.log(`🔍 [CALCULO-DINAMICO] Validando límites de movimientos retroactivos`);
     const validacionRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
       idPersona,
       fechaMovimiento
     );
     
-    this.logger.log(`📊 [RECALCULO-TRACE] Resultado validación retroactivo: ${JSON.stringify(validacionRetroactivo)}`);
+    this.logger.log(`📊 [CALCULO-DINAMICO] Resultado validación retroactivo: ${JSON.stringify(validacionRetroactivo)}`);
 
     if (!validacionRetroactivo.permitido) {
-      this.logger.error(`❌ [RECALCULO-TRACE] Validación movimiento retroactivo FALLÓ: ${validacionRetroactivo.mensaje}`);
+      this.logger.error(`❌ [CALCULO-DINAMICO] Validación movimiento retroactivo FALLÓ: ${validacionRetroactivo.mensaje}`);
       throw new Error('No se pueden realizar movimientos retroactivos más allá del límite configurado');
     }
     
-    this.logger.log(`✅ [RECALCULO-TRACE] Validación movimiento retroactivo EXITOSA`);
+    this.logger.log(`✅ [CALCULO-DINAMICO] Validación movimiento retroactivo EXITOSA`);
 
     // Verificar si la fecha es retroactiva
     const esRetroactiva = this.esFechaRetroactiva(fechaMovimiento);
-    this.logger.log(`🔍 [RECALCULO-TRACE] Verificación fecha retroactiva: ${esRetroactiva ? 'SÍ' : 'NO'}`);
+    this.logger.log(`🔍 [CALCULO-DINAMICO] Verificación fecha retroactiva: ${esRetroactiva ? 'SÍ' : 'NO'}`);
     
-    if (!esRetroactiva) {
-      this.logger.log(`ℹ️ [RECALCULO-TRACE] Movimiento NO es retroactivo - No requiere recálculo especial`);
-      return { mensaje: 'Movimiento no requiere recálculo retroactivo' };
-    }
-
-    // Ejecutar recálculo del movimiento
-    this.logger.log(`🚀 [RECALCULO-TRACE] INICIANDO RECÁLCULO AUTOMÁTICO - MovimientoId=${movimientoId}, Método=${metodoValoracion}`);
+    this.logger.log(`✅ [CALCULO-DINAMICO] Movimiento procesado correctamente - Los cálculos se realizan dinámicamente`);
     
-    try {
-      const resultado = await this.recalculoKardexService.recalcularMovimientoRetroactivo(
-        movimientoId,
-        metodoValoracion
-      );
-      
-      this.logger.log(`✅ [RECALCULO-TRACE] RECÁLCULO COMPLETADO EXITOSAMENTE - Movimientos afectados: ${resultado.movimientosAfectados}, Lotes actualizados: ${resultado.lotesActualizados}, Tiempo: ${resultado.tiempoEjecucion}ms`);
-      
-      return resultado;
-    } catch (error) {
-      this.logger.error(`❌ [RECALCULO-TRACE] ERROR EN RECÁLCULO: ${error.message}`, error.stack);
-      throw error;
-    }
+    return { mensaje: 'Movimiento procesado correctamente. Los cálculos de stock y costos se realizan dinámicamente.' };
   }
 
   /**
@@ -280,35 +302,23 @@ export class KardexService {
   }
 
   /**
-   * Recalcula múltiples movimientos retroactivos
-   * @param movimientosIds Array de IDs de movimientos a recalcular
+   * Procesa múltiples movimientos - Con cálculo dinámico ya no se requiere recálculo
+   * @param movimientosIds Array de IDs de movimientos a procesar
    * @param metodoValoracion Método de valoración a utilizar
-   * @returns Resultado consolidado del recálculo
+   * @returns Resultado consolidado del procesamiento
    */
   async recalcularMovimientosRetroactivos(
     movimientosIds: number[],
     metodoValoracion: MetodoValoracion
-  ): Promise<Array<{ movimientoId: number; exito: boolean; resultado?: ResultadoRecalculo; error?: string }>> {
-    const resultados: Array<{ movimientoId: number; exito: boolean; resultado?: ResultadoRecalculo; error?: string }> = [];
+  ): Promise<Array<{ movimientoId: number; exito: boolean; mensaje: string }>> {
+    const resultados: Array<{ movimientoId: number; exito: boolean; mensaje: string }> = [];
     
     for (const movimientoId of movimientosIds) {
-      try {
-        const resultado = await this.recalculoKardexService.recalcularMovimientoRetroactivo(
-          movimientoId,
-          metodoValoracion
-        );
-        resultados.push({
-          movimientoId,
-          exito: true,
-          resultado
-        });
-      } catch (error) {
-        resultados.push({
-          movimientoId,
-          exito: false,
-          error: error.message
-        });
-      }
+      resultados.push({
+        movimientoId,
+        exito: true,
+        mensaje: 'Movimiento procesado correctamente. Los cálculos se realizan dinámicamente.'
+      });
     }
     
     return resultados;

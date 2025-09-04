@@ -53,16 +53,7 @@ export class InventarioLote {
     })
     cantidadInicial: number;
 
-    /**
-     * Cantidad actual restante en el lote
-     */
-    @Column({
-        type: 'decimal',
-        precision: 12,
-        scale: 4,
-        comment: 'Cantidad restante en el lote'
-    })
-    cantidadActual: number;
+
 
     /**
      * Costo unitario del producto en este lote específico

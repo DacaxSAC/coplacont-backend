@@ -39,15 +39,7 @@ export class ResponseMovimientoDetalleDto {
     @Expose()
     cantidad: number;
 
-    /**
-     * Costo unitario
-     */
-    @ApiProperty({
-        description: 'Costo unitario del producto',
-        example: 25.50
-    })
-    @Expose()
-    costoUnitario: number;
+    // costoUnitario se calcula dinámicamente basado en el método de valoración
 
     /**
      * Costo total (cantidad * costo unitario)

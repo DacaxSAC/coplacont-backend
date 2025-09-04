@@ -26,30 +26,7 @@ export class Inventario {
     @PrimaryGeneratedColumn('increment', { type: 'bigint' })
     id: number;
 
-    /**
-     * Stock actual disponible del producto en el almacén
-     */
-    @Column({
-        type: 'decimal',
-        precision: 12,
-        scale: 4,
-        default: 0,
-        comment: 'Cantidad total disponible del producto en el almacén'
-    })
-    stockActual: number;
 
-    /**
-     * Costo promedio ponderado actual del inventario
-     * Se actualiza solo con las entradas de mercancía
-     */
-    @Column({
-        type: 'decimal',
-        precision: 12,
-        scale: 4,
-        default: 0,
-        comment: 'Costo promedio ponderado actual del inventario'
-    })
-    costoPromedioActual: number;
 
     /**
      * Fecha de creación del registro

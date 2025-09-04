@@ -5,6 +5,7 @@ import { InventarioLote } from '../entities/inventario-lote.entity';
 import { Inventario } from '../entities/inventario.entity';
 import { CreateInventarioLoteDto } from '../dto/inventario-lote/create-inventario-lote.dto';
 import { UpdateInventarioLoteDto } from '../dto/inventario-lote/update-inventario-lote.dto';
+import { StockCalculationService } from './stock-calculation.service';
 
 /**
  * Servicio para la gestión de lotes de inventario
@@ -17,7 +18,8 @@ export class InventarioLoteService {
         @InjectRepository(InventarioLote)
         private readonly inventarioLoteRepository: Repository<InventarioLote>,
         @InjectRepository(Inventario)
-        private readonly inventarioRepository: Repository<Inventario>
+        private readonly inventarioRepository: Repository<Inventario>,
+        private readonly stockCalculationService: StockCalculationService
     ) {}
 
     /**
@@ -31,11 +33,11 @@ export class InventarioLoteService {
             fechaIngreso, 
             fechaVencimiento, 
             cantidadInicial, 
-            cantidadActual, 
+            // cantidadActual se calcula dinámicamente
             costoUnitario,
             numeroLote,
             observaciones,
-            estado = true
+            estado
         } = createInventarioLoteDto;
 
         // Verificar que el inventario existe
@@ -47,10 +49,7 @@ export class InventarioLoteService {
             throw new NotFoundException(`Inventario con ID ${idInventario} no encontrado`);
         }
 
-        // Validar que la cantidad actual no sea mayor que la inicial
-        if (cantidadActual > cantidadInicial) {
-            throw new BadRequestException('La cantidad actual no puede ser mayor que la cantidad inicial');
-        }
+        // La cantidad actual se calcula dinámicamente, no se valida aquí
 
         // Validar fecha de vencimiento si se proporciona
         if (fechaVencimiento) {
@@ -66,7 +65,7 @@ export class InventarioLoteService {
             fechaIngreso: new Date(fechaIngreso),
             fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : undefined,
             cantidadInicial,
-            cantidadActual,
+            // cantidadActual se calcula dinámicamente
             costoUnitario,
             numeroLote,
             observaciones,
@@ -76,11 +75,7 @@ export class InventarioLoteService {
 
         const loteGuardado = await this.inventarioLoteRepository.save(lote);
 
-        // Actualizar el stock del inventario sumando la cantidad del nuevo lote
-        await this.inventarioRepository.update(
-            { id: idInventario },
-            { stockActual: () => `"stockActual" + ${cantidadActual}` }
-        );
+        // El stock se calcula dinámicamente, no se actualiza directamente
 
         return loteGuardado;
     }
@@ -239,24 +234,21 @@ export class InventarioLoteService {
             fechaIngreso, 
             fechaVencimiento, 
             cantidadInicial, 
-            cantidadActual, 
+            // cantidadActual se calcula dinámicamente
             costoUnitario,
             numeroLote,
             observaciones,
             estado
         } = updateInventarioLoteDto;
 
-        const cantidadAnterior = lote.cantidadActual;
+        // cantidadActual se calcula dinámicamente
 
         // Validaciones
-        if (cantidadInicial !== undefined && cantidadActual !== undefined) {
-            if (cantidadActual > cantidadInicial) {
-                throw new BadRequestException('La cantidad actual no puede ser mayor que la cantidad inicial');
+        if (cantidadInicial !== undefined) {
+            // Validación de cantidad inicial (cantidadActual se calcula dinámicamente)
+            if (cantidadInicial < 0) {
+                throw new BadRequestException('La cantidad inicial no puede ser negativa');
             }
-        } else if (cantidadInicial !== undefined && cantidadInicial < lote.cantidadActual) {
-            throw new BadRequestException('La cantidad inicial no puede ser menor que la cantidad actual');
-        } else if (cantidadActual !== undefined && cantidadActual > (cantidadInicial || lote.cantidadInicial)) {
-            throw new BadRequestException('La cantidad actual no puede ser mayor que la cantidad inicial');
         }
 
         if (fechaVencimiento && fechaIngreso) {
@@ -278,7 +270,7 @@ export class InventarioLoteService {
             lote.fechaVencimiento = fechaVencimiento ? new Date(fechaVencimiento) : undefined;
         }
         if (cantidadInicial !== undefined) lote.cantidadInicial = cantidadInicial;
-        if (cantidadActual !== undefined) lote.cantidadActual = cantidadActual;
+        // cantidadActual se calcula dinámicamente, no se actualiza directamente
         if (costoUnitario !== undefined) lote.costoUnitario = costoUnitario;
         if (numeroLote !== undefined) lote.numeroLote = numeroLote;
         if (observaciones !== undefined) lote.observaciones = observaciones;
@@ -286,14 +278,7 @@ export class InventarioLoteService {
 
         const loteActualizado = await this.inventarioLoteRepository.save(lote);
 
-        // Actualizar el stock del inventario si cambió la cantidad actual
-        if (cantidadActual !== undefined && cantidadActual !== cantidadAnterior) {
-            const diferencia = cantidadActual - cantidadAnterior;
-            await this.inventarioRepository.update(
-                { id: lote.inventario.id },
-                { stockActual: () => `"stockActual" + ${diferencia}` }
-            );
-        }
+        // El stock se calcula dinámicamente, no se actualiza directamente
 
         return loteActualizado;
     }
@@ -313,7 +298,6 @@ export class InventarioLoteService {
         const lotes = await this.inventarioLoteRepository.find({
             where: { 
                 inventario: { id: idInventario }, 
-                cantidadActual: MoreThan(0),
                 estado: true
             },
             order: { fechaIngreso: 'ASC' },
@@ -338,12 +322,13 @@ export class InventarioLoteService {
         for (const lote of lotes) {
             if (cantidadRestante <= 0) break;
 
-            const cantidadAConsumir = Math.min(cantidadRestante, lote.cantidadActual);
+            // Calcular stock actual del lote dinámicamente
+            const stockLote = await this.stockCalculationService.calcularStockLote(lote.id);
+            if (!stockLote) continue; // Si no hay stock, continuar con el siguiente lote
+            const cantidadAConsumir = Math.min(cantidadRestante, stockLote.cantidadActual);
             const costoLote = cantidadAConsumir * lote.costoUnitario;
 
-            // Actualizar el lote
-            lote.cantidadActual -= cantidadAConsumir;
-            await this.inventarioLoteRepository.save(lote);
+            // El stock se actualiza a través de movimientos, no directamente en el lote
 
             // Registrar información del consumo
             lotesAfectados.push({
@@ -363,11 +348,7 @@ export class InventarioLoteService {
             throw new BadRequestException(`No hay suficiente stock. Disponible: ${cantidadTotalConsumida}, Solicitado: ${cantidad}`);
         }
 
-        // Actualizar el stock del inventario
-        await this.inventarioRepository.update(
-            { id: idInventario },
-            { stockActual: () => `"stockActual" - ${cantidadTotalConsumida}` }
-        );
+        // El stock del inventario se calcula dinámicamente, no se actualiza directamente
 
         const costoPromedio = cantidadTotalConsumida > 0 ? costoTotal / cantidadTotalConsumida : 0;
 
@@ -387,17 +368,14 @@ export class InventarioLoteService {
         const lote = await this.findOne(id);
         
         // Actualizar el stock del inventario restando la cantidad actual del lote
-        if (lote.cantidadActual > 0) {
-            await this.inventarioRepository.update(
-                { id: lote.inventario.id },
-                { stockActual: () => `"stockActual" - ${lote.cantidadActual}` }
-            );
-        }
-
+        // Calcular stock actual del lote dinámicamente
+        const stockLote = await this.stockCalculationService.calcularStockLote(id);
+        
         // Soft delete: marcar como inactivo
         lote.estado = false;
-        lote.cantidadActual = 0;
         await this.inventarioLoteRepository.save(lote);
+        
+        // Nota: El stock del inventario se calcula dinámicamente, no necesita actualización directa
 
         return { message: `Lote con ID ${id} eliminado correctamente` };
     }
@@ -412,7 +390,6 @@ export class InventarioLoteService {
         const lotes = await this.inventarioLoteRepository.find({
             where: { 
                 inventario: { id: idInventario }, 
-                cantidadActual: MoreThan(0),
                 estado: true
             }
         });
@@ -426,7 +403,9 @@ export class InventarioLoteService {
 
         for (const lote of lotes) {
             // Convertir strings a números para asegurar cálculos correctos
-            const cantidad = parseFloat(lote.cantidadActual.toString());
+            // Calcular cantidad actual del lote dinámicamente
+            const stockLote = await this.stockCalculationService.calcularStockLote(lote.id);
+            const cantidad = stockLote?.cantidadActual || 0;
             const costo = parseFloat(lote.costoUnitario.toString());
             
             costoTotal += cantidad * costo;

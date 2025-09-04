@@ -79,11 +79,19 @@ export class MovimientoFactory {
             
             const movimientoDetalle: CreateMovimientoDetalleDto = {
                 idInventario: detalle.inventario.id,
-                cantidad: detalle.cantidad,
-                costoUnitario: costoUnitario
+                cantidad: detalle.cantidad
+                // costoUnitario se calcula dinámicamente
             };
 
             console.log('Estos serian los detalles de salida',detallesSalida);
+
+            // Para compras, asignar el idLote del lote creado
+            if (tipoOperacion === TipoOperacion.COMPRA && indiceLote < precioYcantidadPorLote.length) {
+                const loteCompra = precioYcantidadPorLote[indiceLote];
+                movimientoDetalle.idLote = loteCompra.idLote;
+                console.log(`🔗 Asignando lote ${loteCompra.idLote} al movimiento de entrada para inventario ${detalle.inventario.id}`);
+                indiceLote++; // Avanzar al siguiente lote para el próximo detalle
+            }
 
             if (detallesSalida) {
                 movimientoDetalle.detallesSalida = detallesSalida;

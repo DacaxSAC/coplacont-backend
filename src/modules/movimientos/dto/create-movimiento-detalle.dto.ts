@@ -72,19 +72,7 @@ export class CreateMovimientoDetalleDto {
     @Type(() => Number)
     cantidad: number;
 
-    /**
-     * Costo unitario (opcional)
-     */
-    @ApiProperty({
-        description: 'Costo unitario del producto',
-        example: 25.50,
-        required: false
-    })
-    @IsOptional()
-    @IsNumber({ maxDecimalPlaces: 4 }, { message: 'El costo debe ser un número con máximo 4 decimales' })
-    @Min(0, { message: 'El costo no puede ser negativo' })
-    @Type(() => Number)
-    costoUnitario?: number;
+    // costoUnitario se calcula dinámicamente basado en el método de valoración
 
     /**
      * ID del lote (opcional)

@@ -47,7 +47,7 @@ export class CostoVentaRepository {
         COALESCE(SUM(
           CASE 
             WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' 
-            THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            THEN cd.cantidad * cd."precioUnitario"
             ELSE 0
           END
         ), 0) as total
@@ -98,7 +98,7 @@ export class CostoVentaRepository {
         COALESCE(SUM(
           CASE 
             WHEN COALESCE(m.tipo, 'ENTRADA') = 'SALIDA' 
-            THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            THEN cd.cantidad * cd."precioUnitario"
             ELSE 0
           END
         ), 0) as total
@@ -155,8 +155,8 @@ export class CostoVentaRepository {
         COALESCE(SUM(
           CASE 
             WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' 
-            THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
-            ELSE -COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            THEN cd.cantidad * cd."precioUnitario"
+            ELSE -cd.cantidad * cd."precioUnitario"
           END
         ), 0) as total
       FROM comprobante c
@@ -248,7 +248,7 @@ export class CostoVentaRepository {
         COALESCE(SUM(
           CASE 
             WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' 
-            THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            THEN cd.cantidad * cd."precioUnitario"
             ELSE 0
           END
         ), 0) as total
@@ -258,7 +258,6 @@ export class CostoVentaRepository {
       LEFT JOIN comprobante_detalle cd ON cd.id_inventario = i.id
       LEFT JOIN comprobante c ON c."idComprobante" = cd.id_comprobante
       LEFT JOIN movimientos m ON m.id_comprobante = c."idComprobante"
-      LEFT JOIN movimiento_detalles md ON m.id = md.id_movimiento AND md.id_inventario = i.id
       WHERE (c."fechaEmision" IS NULL OR EXTRACT(YEAR FROM c."fechaEmision") = $1)
     `;
 
@@ -295,17 +294,17 @@ export class CostoVentaRepository {
         i.id as "idInventario",
         COALESCE(SUM(
           CASE 
-            WHEN m.tipo = 'SALIDA' 
-            THEN md.cantidad * md.costo_unitario
+            WHEN COALESCE(m.tipo, 'ENTRADA') = 'SALIDA' 
+            THEN cd.cantidad * cd."precioUnitario"
             ELSE 0
           END
         ), 0) as total
       FROM inventario i
       INNER JOIN producto p ON i.id_producto = p.id
       INNER JOIN almacen a ON i.id_almacen = a.id
-      LEFT JOIN movimiento_detalles md ON md.id_inventario = i.id
-      LEFT JOIN movimientos m ON m.id = md.id_movimiento
-      LEFT JOIN comprobante c ON c."idComprobante" = m.id_comprobante
+      LEFT JOIN comprobante_detalle cd ON cd.id_inventario = i.id
+      LEFT JOIN comprobante c ON c."idComprobante" = cd.id_comprobante
+      LEFT JOIN movimientos m ON m.id_comprobante = c."idComprobante"
       WHERE (c."fechaEmision" IS NULL OR EXTRACT(YEAR FROM c."fechaEmision") = $1)
     `;
 
@@ -343,9 +342,9 @@ export class CostoVentaRepository {
         COALESCE(SUM(
           CASE 
             WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' 
-            THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            THEN cd.cantidad * cd."precioUnitario"
             WHEN m.tipo = 'SALIDA' 
-            THEN -(md.cantidad * md.costo_unitario)
+            THEN -(cd.cantidad * cd."precioUnitario")
             ELSE 0
           END
         ), 0) as total

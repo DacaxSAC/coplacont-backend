@@ -10,6 +10,8 @@ import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
 import { Producto } from '../../productos/entities/producto.entity';
 import { Almacen } from 'src/modules/almacen/entities/almacen.entity';
 import { Inventario, InventarioLote } from 'src/modules/inventario/entities';
+import { StockCalculationService } from 'src/modules/inventario/service/stock-calculation.service';
+import { StockCacheService } from 'src/modules/inventario/service/stock-cache.service';
 
 /**
  * Repositorio para encapsular la lógica de acceso a datos de movimientos
@@ -32,7 +34,9 @@ export class MovimientosRepository {
         private readonly inventarioRepository: Repository<Inventario>,
         @InjectRepository(InventarioLote)
         private readonly inventarioLoteRepository: Repository<InventarioLote>,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly stockCalculationService: StockCalculationService,
+        private readonly stockCacheService: StockCacheService
     ) {}
 
     /**
@@ -64,13 +68,10 @@ export class MovimientosRepository {
         // Crear los detalles
         const detalles: MovimientoDetalle[] = [];
         for (const detalle of createMovimientoDto.detalles) {
-            const costoTotal = detalle.costoUnitario ? detalle.cantidad * detalle.costoUnitario : undefined;
             const movimientoDetalle = manager.create(MovimientoDetalle, {
                 idMovimiento: savedMovimiento.id,
                 idInventario: detalle.idInventario,
                 cantidad: detalle.cantidad,
-                costoUnitario: detalle.costoUnitario,
-                costoTotal: costoTotal,
                 idLote: detalle.idLote
             });
             
@@ -293,23 +294,18 @@ export class MovimientosRepository {
         inventario: Inventario,
         detalle: MovimientoDetalle
     ): Promise<void> {
-        // Actualizar stock
-        inventario.stockActual += detalle.cantidad;
-        await manager.save(Inventario, inventario);
+        // Crear lote para la entrada
+        const lote = manager.create(InventarioLote, {
+            inventario: inventario,
+            numeroLote: `LOTE-${Date.now()}`,
+            fechaVencimiento: null,
+            cantidadInicial: detalle.cantidad,
+            fechaIngreso: new Date()
+        });
+        await manager.save(InventarioLote, lote);
 
-        // Crear lote si tiene costo
-        if (detalle.costoUnitario) {
-            const lote = manager.create(InventarioLote, {
-                inventario: inventario,
-                numeroLote: `LOTE-${Date.now()}`,
-                fechaVencimiento: null,
-                cantidadInicial: detalle.cantidad,
-                cantidadActual: detalle.cantidad,
-                costoUnitario: detalle.costoUnitario,
-                fechaIngreso: new Date()
-            });
-            await manager.save(InventarioLote, lote);
-        }
+        // Invalidar caché para recálculo dinámico
+        this.stockCacheService.invalidateInventario(inventario.id);
     }
 
     /**
@@ -320,15 +316,13 @@ export class MovimientosRepository {
         inventario: Inventario,
         detalle: MovimientoDetalle
     ): Promise<void> {
-        if (inventario.stockActual < detalle.cantidad) {
-            throw new Error(`Stock insuficiente. Disponible: ${inventario.stockActual}, Requerido: ${detalle.cantidad}`);
+        // Verificar stock disponible usando cálculo dinámico
+        const stockDisponible = await this.stockCalculationService.calcularStockInventario(inventario.id);
+        if (!stockDisponible || stockDisponible.stockActual < detalle.cantidad) {
+            throw new Error(`Stock insuficiente. Disponible: ${stockDisponible?.stockActual || 0}, Requerido: ${detalle.cantidad}`);
         }
 
-        // Actualizar stock
-        inventario.stockActual -= detalle.cantidad;
-        await manager.save(Inventario, inventario);
-
-        // Si se especifica un lote, actualizar ese lote
+        // Si se especifica un lote, verificar stock del lote
         if (detalle.idLote) {
             const lote = await manager.findOne(InventarioLote, {
                 where: { id: detalle.idLote }
@@ -338,12 +332,16 @@ export class MovimientosRepository {
                 throw new Error('Lote no encontrado');
             }
 
-            if (lote.cantidadActual < detalle.cantidad) {
-                throw new Error(`Stock insuficiente en el lote. Disponible: ${lote.cantidadActual}, Requerido: ${detalle.cantidad}`);
+            const stockLote = await this.stockCalculationService.calcularStockLote(detalle.idLote);
+            if (!stockLote || stockLote.cantidadActual < detalle.cantidad) {
+                throw new Error(`Stock insuficiente en el lote. Disponible: ${stockLote?.cantidadActual || 0}, Requerido: ${detalle.cantidad}`);
             }
+        }
 
-            lote.cantidadActual -= detalle.cantidad;
-            await manager.save(InventarioLote, lote);
+        // Invalidar caché para recálculo dinámico
+        this.stockCacheService.invalidateInventario(inventario.id);
+        if (detalle.idLote) {
+            this.stockCacheService.invalidateLote(detalle.idLote);
         }
     }
 
@@ -355,9 +353,18 @@ export class MovimientosRepository {
         inventario: Inventario,
         detalle: MovimientoDetalle
     ): Promise<void> {
-        // En ajustes, la cantidad puede ser positiva o negativa
-        inventario.stockActual = detalle.cantidad;
-        await manager.save(Inventario, inventario);
+        // Para ajustes, crear un lote de ajuste
+        const lote = manager.create(InventarioLote, {
+            inventario: inventario,
+            numeroLote: `AJUSTE-${Date.now()}`,
+            fechaVencimiento: null,
+            cantidadInicial: detalle.cantidad,
+            fechaIngreso: new Date()
+        });
+        await manager.save(InventarioLote, lote);
+
+        // Invalidar caché para recálculo dinámico
+        this.stockCacheService.invalidateInventario(inventario.id);
     }
 
     /**

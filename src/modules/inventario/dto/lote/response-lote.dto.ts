@@ -13,11 +13,8 @@ export class ResponseLoteDto {
     @Expose()
     cantidadInicial: number;
 
-    @Expose()
-    cantidadActual: number;
-
-    @Expose()
-    costoUnitario: number;
+    // cantidadActual se calcula dinámicamente
+    // costoUnitario se mantiene como campo persistido en la entidad
 
     @Expose()
     fechaVencimiento?: Date;

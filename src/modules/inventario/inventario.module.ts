@@ -10,8 +10,11 @@ import { MovimientoDetalle } from '../movimientos/entities/movimiento-detalle.en
 import { InventarioService } from './service/inventario.service';
 import { InventarioLoteService } from './service/inventario-lote.service';
 import { LoteService } from './service/lote.service';
+import { LoteCreationService } from './service/lote-creation.service';
+import { StockCalculationService } from './service/stock-calculation.service';
+import { StockCacheService } from './service/stock-cache.service';
+import { KardexCalculationService } from './service/kardex-calculation.service';
 import { KardexService } from './service/kardex.service';
-import { RecalculoKardexService } from './service/recalculo-kardex.service';
 import { CostoVentaService } from './service/costo-venta.service';
 import { InventarioRepository } from './repository';
 import { KardexRepository } from './repository/kardex.repository';
@@ -34,7 +37,7 @@ import { PeriodosModule } from '../periodos/periodos.module';
     PeriodosModule
   ],
   controllers: [InventarioController, InventarioLoteController, LoteController, KardexController, CostoVentaController],
-  providers: [InventarioService, InventarioLoteService, LoteService, KardexService, RecalculoKardexService, CostoVentaService, InventarioRepository, KardexRepository, CostoVentaRepository],
-  exports: [InventarioService, InventarioLoteService, LoteService, KardexService, RecalculoKardexService, CostoVentaService, TypeOrmModule],
+  providers: [InventarioService, InventarioLoteService, LoteService, LoteCreationService, StockCalculationService, StockCacheService, KardexCalculationService, KardexService, CostoVentaService, InventarioRepository, KardexRepository, CostoVentaRepository],
+  exports: [InventarioService, InventarioLoteService, LoteService, LoteCreationService, StockCalculationService, StockCacheService, KardexCalculationService, KardexService, CostoVentaService, TypeOrmModule],
 })
 export class InventarioModule {}

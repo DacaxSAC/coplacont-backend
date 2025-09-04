@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Comprobante } from "./comprobante";
-import { Inventario } from "src/modules/inventario/entities";
+import { Inventario } from "../../inventario/entities/inventario.entity";
 
 @Entity({ name: 'comprobante_detalle' })
 export class ComprobanteDetalle {

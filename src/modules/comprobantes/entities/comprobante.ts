@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { ComprobanteDetalle } from "./comprobante-detalle";
 import { ComprobanteTotales } from "./comprobante-totales";
-import { Entidad } from "src/modules/entidades/entities";
+import { Entidad } from "../../entidades/entities/entidad.entity";
 import { Persona } from "../../users/entities/persona.entity";
 import { PeriodoContable } from "../../periodos/entities/periodo-contable.entity";
 import { TipoOperacion } from "../enum/tipo-operacion.enum";

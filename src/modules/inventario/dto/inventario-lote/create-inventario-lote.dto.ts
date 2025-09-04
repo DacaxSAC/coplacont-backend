@@ -58,17 +58,7 @@ export class CreateInventarioLoteDto {
     @Type(() => Number)
     cantidadInicial: number;
 
-    /**
-     * Cantidad actual del lote
-     */
-    @ApiProperty({
-        description: 'Cantidad actual del lote',
-        example: 50.25
-    })
-    @IsNumber({ maxDecimalPlaces: 4 }, { message: 'La cantidad actual debe ser un número con máximo 4 decimales' })
-    @Min(0, { message: 'La cantidad actual no puede ser negativa' })
-    @Type(() => Number)
-    cantidadActual: number;
+    // cantidadActual se calcula dinámicamente basado en movimientos
 
     /**
      * Costo unitario del lote

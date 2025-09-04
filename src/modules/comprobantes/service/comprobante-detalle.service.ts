@@ -33,6 +33,7 @@ export class ComprobanteDetalleService {
             where: { idComprobante },
             relations: ['persona']
         });
+        console.log('Comprobante cargado:', comprobante);
         
         if (!comprobante) {
             throw new Error(`Comprobante no encontrado: ${idComprobante}`);

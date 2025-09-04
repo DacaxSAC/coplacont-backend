@@ -12,8 +12,10 @@ import { MetodoValoracion } from "../enum/metodo-valoracion.enum";
 import { Correlativo } from "../entities/correlativo";
 import { MovimientosService } from "src/modules/movimientos";
 import { MovimientoFactory } from "src/modules/movimientos/factory/MovimientoFactory";
-import { LoteService } from "src/modules/inventario/service/lote.service";
+import { LoteCreationService } from "src/modules/inventario/service/lote-creation.service";
 import { PeriodoContableService } from "src/modules/periodos/service";
+import { KardexService } from "src/modules/inventario/service/kardex.service";
+import { StockCacheService } from "src/modules/inventario/service/stock-cache.service";
 
 @Injectable()
 export class ComprobanteService {
@@ -26,8 +28,10 @@ export class ComprobanteService {
         private readonly personaService: EntidadService,
         private readonly movimientoService : MovimientosService,
         private readonly movimientoFactory : MovimientoFactory,
-        private readonly loteService: LoteService,
+        private readonly loteCreationService: LoteCreationService,
         private readonly periodoContableService: PeriodoContableService,
+        private readonly kardexService: KardexService,
+        private readonly stockCacheService: StockCacheService,
         private readonly dataSource: DataSource
     ) { }
 
@@ -95,7 +99,7 @@ export class ComprobanteService {
                 const correlativo = await this.findOrCreateCorrelativo(createComprobanteDto.tipoOperacion, personaId, queryRunner.manager);
                 correlativo.ultimoNumero += 1;
                 await queryRunner.manager.save(correlativo);
-                comprobante.correlativo = `corr-${correlativo.ultimoNumero}`;
+                comprobante.correlativo = `CORR-${correlativo.ultimoNumero}`;
             } else {
                 comprobante.correlativo = createComprobanteDto.correlativo;
             }
@@ -104,7 +108,19 @@ export class ComprobanteService {
             const comprobanteSaved = await queryRunner.manager.save(comprobante);
         
             let costosUnitarios: number[] = [];
-            let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
+        let precioYcantidadPorLote: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
+        let metodoValoracionFinal: MetodoValoracion;
+        let fechaEmisionFinal: Date;
+
+            // Obtener método de valoración desde la configuración del período
+            const configuracionPeriodo = await this.periodoContableService.obtenerConfiguracion(personaId);
+            console.log('Metodo de valoracion:',configuracionPeriodo);
+            metodoValoracionFinal = createComprobanteDto.metodoValoracion || configuracionPeriodo.metodoCalculoCosto;
+            
+            // Convertir fechaEmision a Date si es string
+            fechaEmisionFinal = typeof createComprobanteDto.fechaEmision === 'string' 
+                ? new Date(createComprobanteDto.fechaEmision) 
+                : createComprobanteDto.fechaEmision;
 
             // Verifica si el comprobante tiene detalles
             if (await this.existDetails(createComprobanteDto)) {
@@ -112,16 +128,13 @@ export class ComprobanteService {
                 const detallesSaved = await this.comprobanteDetalleService.register(comprobanteSaved.idComprobante, createComprobanteDto.detalles!, queryRunner.manager);
                 comprobanteSaved.detalles = detallesSaved;
                 
-                // Obtener método de valoración desde la configuración del período
-                const configuracionPeriodo = await this.periodoContableService.obtenerConfiguracion(personaId);
-                const metodoValoracion = createComprobanteDto.metodoValoracion || configuracionPeriodo.metodoCalculoCosto;
-                const {costoUnitario, lotes} = await this.loteService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracion, createComprobanteDto.fechaEmision);
+                const {costoUnitario, lotes} = await this.loteCreationService.procesarLotesComprobante(detallesSaved, createComprobanteDto.tipoOperacion, metodoValoracionFinal, fechaEmisionFinal);
                 costosUnitarios = costoUnitario;
                 precioYcantidadPorLote = lotes;
                 
                 // Validar que los lotes se crearon correctamente para compras
                 if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
-                    const lotesValidos = await this.loteService.validarLotesCompra(detallesSaved);
+                    const lotesValidos = await this.loteCreationService.validarLotesCompra(detallesSaved);
                     if (!lotesValidos) {
                         throw new Error('Error al crear los lotes para la compra. Verifique los logs para más detalles.');
                     }
@@ -130,9 +143,55 @@ export class ComprobanteService {
             
             // Crear movimiento
             const movimientoDto = await this.movimientoFactory.createMovimientoFromComprobante(comprobanteSaved, costosUnitarios, precioYcantidadPorLote);
-            await this.movimientoService.createWithManager(movimientoDto, queryRunner.manager);
+            const movimientoCreado = await this.movimientoService.createWithManager(movimientoDto, queryRunner.manager);
+            
+            // Verificar si es un movimiento retroactivo y ejecutar recálculo automático
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const fechaMovimiento = new Date(fechaEmisionFinal);
+            fechaMovimiento.setHours(0, 0, 0, 0);
+            const esMovimientoRetroactivo = fechaMovimiento < hoy;
             
             await queryRunner.commitTransaction();
+            
+            if (esMovimientoRetroactivo) {
+                console.log(`🔄 Detectado movimiento retroactivo. Ejecutando recálculo automático para fecha: ${fechaMovimiento.toISOString().split('T')[0]}`);
+                try {
+                    // Ejecutar recálculo automático para movimientos retroactivos
+                    await this.kardexService.procesarMovimientoRetroactivo(
+                        personaId,
+                        fechaMovimiento,
+                        movimientoCreado.id,
+                        metodoValoracionFinal
+                    );
+                    console.log(`✅ Recálculo automático completado exitosamente`);
+                    
+                    // Invalidar caché de stock para todos los inventarios afectados
+                    // Esto es necesario porque el cálculo dinámico usa caché y los movimientos retroactivos
+                    // pueden afectar el stock calculado de fechas posteriores
+                    const inventariosAfectados = new Set<number>();
+                    
+                    // Recopilar todos los inventarios afectados de los detalles
+                    if (createComprobanteDto.detalles) {
+                        for (const detalle of createComprobanteDto.detalles) {
+                            if (detalle.idInventario) {
+                                inventariosAfectados.add(detalle.idInventario);
+                            }
+                        }
+                    }
+                    
+                    // Invalidar caché para cada inventario afectado
+                     // Esto forzará el recálculo dinámico en las próximas consultas
+                     for (const idInventario of inventariosAfectados) {
+                         this.stockCacheService.invalidateInventario(idInventario);
+                         console.log(`🗑️ Caché invalidado para inventario: ${idInventario}`);
+                     }
+                } catch (error) {
+                    console.error(`❌ Error en recálculo automático:`, error.message);
+                    // No lanzamos el error para no afectar el registro del comprobante
+                    // El recálculo se puede ejecutar manualmente si es necesario
+                }
+            }
         } catch (error) {
             await queryRunner.rollbackTransaction();
             throw error;

@@ -51,8 +51,8 @@ export class KardexRepository {
         c."tipoComprobante" as "tipoComprobante",
         CONCAT(c.serie, '-', c.numero) as "numeroComprobante",
         COALESCE(md.cantidad, cd.cantidad) as cantidad,
-        COALESCE(md.costo_unitario, cd."precioUnitario") as "costoUnitario",
-        COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario") as "costoTotal",
+        cd."precioUnitario" as "costoUnitario",
+        cd.cantidad * cd."precioUnitario" as "costoTotal",
         i.id as "idInventario",
         p.nombre as "nombreProducto",
         a.nombre as "nombreAlmacen",
@@ -134,8 +134,8 @@ export class KardexRepository {
         ), 0) as cantidad,
         COALESCE(SUM(
           CASE 
-            WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' THEN COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
-            ELSE -COALESCE(md.cantidad * md.costo_unitario, cd.cantidad * cd."precioUnitario")
+            WHEN COALESCE(m.tipo, 'ENTRADA') = 'ENTRADA' THEN cd.cantidad * cd."precioUnitario"
+            ELSE -cd.cantidad * cd."precioUnitario"
           END
         ), 0) as "costoTotal"
       FROM comprobante c

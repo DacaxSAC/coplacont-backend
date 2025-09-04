@@ -3,17 +3,19 @@ import { plainToInstance } from 'class-transformer';
 import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from '../dto';
 import { InventarioRepository } from '../repository';
 import { Inventario } from '../entities';
+import { StockCalculationService } from './stock-calculation.service';
 
 @Injectable()
 export class InventarioService {
 
     constructor(
-        private readonly inventarioRepository: InventarioRepository
+        private readonly inventarioRepository: InventarioRepository,
+        private readonly stockCalculationService: StockCalculationService
     ) {}
 
 
     async create(createInventarioDto: CreateInventarioDto): Promise<ResponseInventarioDto> {
-        const { idAlmacen, idProducto, stockActual } = createInventarioDto;
+        const { idAlmacen, idProducto } = createInventarioDto;
 
         await this.validateAlmacenExists(idAlmacen);
         await this.validateProductoExists(idProducto);
@@ -23,7 +25,6 @@ export class InventarioService {
         const producto = await this.inventarioRepository.findProductoById(idProducto);
 
         const inventario = await this.inventarioRepository.create({
-            stockActual,
             almacen: almacen!,
             producto: producto!
         });
@@ -77,7 +78,7 @@ export class InventarioService {
 
     async update(id: number, updateInventarioDto: UpdateInventarioDto): Promise<ResponseInventarioDto> {
         const inventario = await this.getInventarioById(id);
-        const { idAlmacen, idProducto, stockActual } = updateInventarioDto;
+        const { idAlmacen, idProducto } = updateInventarioDto;
 
         await this.validateUpdateData(inventario, idAlmacen, idProducto, id);
 
@@ -91,10 +92,7 @@ export class InventarioService {
             inventario.producto = producto!;
         }
 
-        if (stockActual !== undefined) {
-            this.validateStockValue(stockActual);
-            inventario.stockActual = stockActual;
-        }
+        // stockActual ahora se calcula dinámicamente, no se actualiza directamente
 
         const updatedInventario = await this.inventarioRepository.update(inventario);
         return this.mapToResponseDto(updatedInventario);
@@ -102,15 +100,20 @@ export class InventarioService {
 
     async updateStock(id: number, cantidad: number): Promise<ResponseInventarioDto> {
         const inventario = await this.getInventarioById(id);
-        const nuevoStock = inventario.stockActual + cantidad;
+        
+        // Calcular stock actual dinámicamente
+        const stockResult = await this.stockCalculationService.calcularStockInventario(id);
+        const stockActual = stockResult?.stockActual || 0;
+        const nuevoStock = stockActual + cantidad;
 
         if (nuevoStock < 0) {
             throw new BadRequestException(
-                `No hay suficiente stock. Stock actual: ${inventario.stockActual}, cantidad solicitada: ${Math.abs(cantidad)}`
+                `No hay suficiente stock. Stock actual: ${stockActual}, cantidad solicitada: ${Math.abs(cantidad)}`
             );
         }
 
-        inventario.stockActual = nuevoStock;
+        // Nota: Con el nuevo sistema, el stock se actualiza a través de movimientos
+        // Este método podría necesitar crear un movimiento de ajuste en lugar de actualizar directamente
         const updatedInventario = await this.inventarioRepository.update(inventario);
         return this.mapToResponseDto(updatedInventario);
     }
@@ -121,11 +124,20 @@ export class InventarioService {
         const inventarios = await this.inventarioRepository.findByAlmacen(idAlmacen);
         
         const totalProductos = inventarios.length;
-        const stockBajo = inventarios.filter(inv => inv.stockActual <= inv.producto.stockMinimo).length;
-        const sinStock = inventarios.filter(inv => inv.stockActual === 0).length;
-        const valorTotal = inventarios.reduce((total, inv) => {
-            return total + (inv.stockActual * (inv.producto.precio || 0));
-        }, 0);
+        
+        // Calcular estadísticas usando stock dinámico
+        let stockBajo = 0;
+        let sinStock = 0;
+        let valorTotal = 0;
+        
+        for (const inv of inventarios) {
+            const stockResult = await this.stockCalculationService.calcularStockInventario(inv.id);
+            const stockActual = stockResult?.stockActual || 0;
+            
+            if (stockActual <= inv.producto.stockMinimo) stockBajo++;
+            if (stockActual === 0) sinStock++;
+            valorTotal += stockActual * (inv.producto.precio || 0);
+        }
 
         return {
             almacen: inventarios[0]?.almacen || null,

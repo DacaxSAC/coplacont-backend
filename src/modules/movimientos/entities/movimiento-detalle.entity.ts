@@ -9,7 +9,7 @@ import {
     JoinColumn
 } from 'typeorm';
 import { Movimiento } from './movimiento.entity';
-import { Inventario } from 'src/modules/inventario/entities';
+import { Inventario } from '../../inventario/entities/inventario.entity';
 import { DetalleSalida } from './detalle-salida.entity';
 
 /**
@@ -48,25 +48,7 @@ export class MovimientoDetalle {
     })
     cantidad: number;
 
-    @Column({
-        name: 'costo_unitario',
-        type: 'decimal',
-        precision: 10,
-        scale: 4,
-        nullable: true,
-        comment: 'Costo unitario del producto'
-    })
-    costoUnitario: number;
 
-    @Column({
-        name: 'costo_total',
-        type: 'decimal',
-        precision: 10,
-        scale: 4,
-        nullable: true,
-        comment: 'Costo total (cantidad * costo unitario)'
-    })
-    costoTotal: number;
 
     @CreateDateColumn({
         name: 'fecha_creacion',

@@ -49,15 +49,7 @@ export class ResponseInventarioLoteDto {
     @Expose()
     cantidadInicial: number;
 
-    /**
-     * Cantidad actual del lote
-     */
-    @ApiProperty({
-        description: 'Cantidad actual del lote',
-        example: 45.75
-    })
-    @Expose()
-    cantidadActual: number;
+    // cantidadActual se calcula dinámicamente y se incluye cuando es necesario
 
     /**
      * Costo unitario del lote

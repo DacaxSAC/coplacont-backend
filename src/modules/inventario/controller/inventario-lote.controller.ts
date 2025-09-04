@@ -323,8 +323,8 @@ export class InventarioLoteController {
                             id: { type: 'number' },
                             numeroLote: { type: 'string' },
                             cantidadConsumida: { type: 'number' },
-                            costoUnitario: { type: 'number' },
                             costoTotal: { type: 'number' }
+                            // costoUnitario se calcula dinámicamente
                         }
                     }
                 },
