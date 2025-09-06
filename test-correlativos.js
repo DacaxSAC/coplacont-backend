@@ -29,7 +29,7 @@ async function login() {
 /**
  * Función para crear un comprobante de prueba
  */
-async function crearComprobante(token, personaId, incluirCorrelativo = false) {
+async function crearComprobante(token, personaId) {
   const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -51,10 +51,7 @@ async function crearComprobante(token, personaId, incluirCorrelativo = false) {
     }]
   };
 
-  // Solo incluir correlativo si se especifica
-  if (incluirCorrelativo) {
-    comprobanteData.correlativo = `MANUAL-${Date.now()}`;
-  }
+  // El correlativo se genera automáticamente
 
   try {
     const response = await axios.post(

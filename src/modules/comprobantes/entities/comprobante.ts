@@ -72,9 +72,6 @@ export class Comprobante {
     @Column({ type: 'date', nullable: true })
     fechaVencimiento?: Date;
 
-    @Column({ length: 6 , nullable: true })
-    periodo: string;
-
     //Relación con período contable
     @ManyToOne(() => PeriodoContable, { nullable: true })
     @JoinColumn({ name: 'id_periodo_contable' })

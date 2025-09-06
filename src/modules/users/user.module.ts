@@ -59,6 +59,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     ],
     exports: [
       UserService,
+      PersonaService,
       AuthService,
       JwtAuthGuard,
       JwtModule

@@ -7,7 +7,7 @@
 #### CreateComprobanteDto
 ```typescript
 {
-  correlativo: "CORR-12345",
+  // correlativo se genera automáticamente
   idPersona: 1, // ID del proveedor
   tipoOperacion: TipoOperacion.COMPRA,
   tipoComprobante: TipoComprobante.FACTURA,

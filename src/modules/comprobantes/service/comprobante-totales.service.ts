@@ -14,7 +14,6 @@ export class ComprobanteTotalesService {
     ) { }
 
     async register(idComprobante: number, detalles: ComprobanteDetalle[], manager?: EntityManager) {
-
         const comprobante = new Comprobante();
         comprobante.idComprobante = idComprobante;
 
