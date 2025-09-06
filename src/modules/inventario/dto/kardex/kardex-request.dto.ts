@@ -4,6 +4,20 @@ import { IsDateString, IsNumber, IsOptional, IsPositive } from 'class-validator'
 
 export class KardexRequestDto {
   /**
+   * ID de la persona/empresa propietaria (se asigna automáticamente desde el usuario autenticado)
+   */
+  @ApiProperty({
+    description: 'ID de la persona/empresa propietaria (se asigna automáticamente)',
+    example: 1,
+    required: false
+  })
+  @IsOptional()
+  @IsNumber({}, { message: 'El ID de la persona debe ser un número' })
+  @IsPositive({ message: 'El ID de la persona debe ser positivo' })
+  @Type(() => Number)
+  personaId?: number;
+
+  /**
    * ID del inventario (producto en almacén específico)
    */
   @ApiProperty({

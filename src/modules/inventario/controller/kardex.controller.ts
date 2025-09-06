@@ -1,9 +1,14 @@
-import { Controller, Get, Query, ValidationPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, ValidationPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { KardexService } from '../service/kardex.service';
 import { KardexRequestDto, KardexResponseDto } from '../dto';
+import { CurrentUser } from '../../users/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../users/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
 
 @ApiTags('Kardex')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('api/kardex')
 export class KardexController {
   constructor(private readonly kardexService: KardexService) {}
@@ -14,7 +19,7 @@ export class KardexController {
   @Get()
   @ApiOperation({ 
     summary: 'Generar reporte Kardex',
-    description: 'Muestra el detalle de movimientos y saldos del producto seleccionado, incluyendo inventario inicial (cantidad y costo total)'
+    description: 'Muestra el detalle de movimientos y saldos del producto seleccionado, incluyendo inventario inicial (cantidad y costo total). El personaId se obtiene automáticamente del usuario autenticado.'
   })
   @ApiQuery({ 
     name: 'idInventario', 
@@ -50,8 +55,16 @@ export class KardexController {
     description: 'No se encontraron movimientos para el inventario especificado'
   })
   async generateKardex(
-    @Query(new ValidationPipe({ transform: true })) query: KardexRequestDto
+    @Query(new ValidationPipe({ transform: true })) query: KardexRequestDto,
+    @CurrentUser() user: AuthenticatedUser
   ): Promise<KardexResponseDto> {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene una empresa asociada');
+    }
+    
+    // Asignar personaId del usuario autenticado
+    query.personaId = user.personaId;
+    
     return await this.kardexService.generateKardexReport(query);
   }
 }

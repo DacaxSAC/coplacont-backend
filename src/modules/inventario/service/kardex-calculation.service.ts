@@ -68,6 +68,9 @@ export interface KardexResult {
  */
 @Injectable()
 export class KardexCalculationService {
+  // Estado temporal para el cálculo FIFO durante el procesamiento del Kardex
+  private lotesDisponiblesTemporales: Map<number, { cantidadDisponible: number; costoUnitario: number; fechaIngreso: Date }> = new Map();
+
   constructor(
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
@@ -184,7 +187,16 @@ export class KardexCalculationService {
       .addOrderBy('m.id', 'ASC')
       .getRawMany();
     
-
+    console.log('🔍 DEBUG obtenerMovimientosInventario - Total movimientos encontrados:', movimientos.length);
+    console.log('🔍 DEBUG obtenerMovimientosInventario - Primeros 5 movimientos:', 
+      movimientos.slice(0, 5).map(m => ({
+        idMovimientoDetalle: m.idmovimientodetalle,
+        idMovimiento: m.idmovimiento,
+        fecha: m.m_fecha,
+        tipo: m.tipomovimiento,
+        cantidad: m.md_cantidad
+      }))
+    );
     
     return movimientos;
   }
@@ -227,21 +239,45 @@ export class KardexCalculationService {
     metodoValoracion: MetodoValoracion,
     idInventario: number
   ): Promise<KardexMovement[]> {
+    console.log('🔍 DEBUG procesarMovimientos - Iniciando procesamiento con', movimientos.length, 'movimientos');
+    console.log('🔍 DEBUG procesarMovimientos - Método de valoración:', metodoValoracion);
+    
     const movimientosKardex: KardexMovement[] = [];
     let saldoActual = { ...saldoInicial };
 
-    for (const mov of movimientos) {
+    // Inicializar estado temporal de lotes para FIFO
+    if (metodoValoracion === MetodoValoracion.FIFO) {
+      await this.inicializarLotesTemporales(idInventario, movimientos[0]?.fecha || new Date());
+    }
+
+    for (let i = 0; i < movimientos.length; i++) {
+      const mov = movimientos[i];
+      console.log(`🔍 DEBUG procesarMovimientos - Procesando movimiento ${i + 1}/${movimientos.length}:`, {
+        idMovimientoDetalle: mov.idmovimientodetalle,
+        idMovimiento: mov.idmovimiento,
+        fecha: mov.m_fecha,
+        tipo: mov.tipomovimiento,
+        cantidad: mov.md_cantidad
+      });
+      
       const esEntrada = this.esMovimientoEntrada(mov.tipomovimiento, mov.c_tipoOperacion);
       
       let movimientoKardex: KardexMovement;
 
       if (esEntrada) {
+        console.log('🔍 DEBUG procesarMovimientos - Procesando como ENTRADA');
         movimientoKardex = await this.procesarEntrada(
           mov,
           saldoActual,
           metodoValoracion
         );
+        
+        // Actualizar lotes temporales para FIFO en entradas
+        if (metodoValoracion === MetodoValoracion.FIFO && mov.idLote) {
+          this.actualizarLoteTemporalEntrada(mov.idLote, mov.cantidad, mov.costoUnitario, mov.fecha);
+        }
       } else {
+        console.log('🔍 DEBUG procesarMovimientos - Procesando como SALIDA');
         movimientoKardex = await this.procesarSalida(
           mov,
           saldoActual,
@@ -258,7 +294,14 @@ export class KardexCalculationService {
         costoUnitario: movimientoKardex.costoUnitarioSaldo,
         valorTotal: movimientoKardex.valorTotalSaldo
       };
+      
+      console.log(`🔍 DEBUG procesarMovimientos - Saldo actualizado después del movimiento ${i + 1}:`, saldoActual);
     }
+
+    // Limpiar estado temporal
+    this.lotesDisponiblesTemporales.clear();
+    
+    console.log('🔍 DEBUG procesarMovimientos - Procesamiento completado. Total movimientos kardex:', movimientosKardex.length);
 
     return movimientosKardex;
   }
@@ -374,7 +417,63 @@ export class KardexCalculationService {
   }
 
   /**
-   * Calcula el costo FIFO para una salida específica
+   * Inicializa el estado temporal de lotes para el cálculo FIFO
+   */
+  private async inicializarLotesTemporales(idInventario: number, fechaInicio: Date): Promise<void> {
+    this.lotesDisponiblesTemporales.clear();
+    
+    // Obtener lotes disponibles al inicio del período
+    const lotesDisponibles = await this.stockCalculationService.obtenerLotesDisponiblesFIFO(
+      idInventario,
+      fechaInicio
+    );
+    
+    // Cargar en el estado temporal
+    for (const lote of lotesDisponibles) {
+      this.lotesDisponiblesTemporales.set(lote.idLote, {
+        cantidadDisponible: lote.cantidadDisponible,
+        costoUnitario: lote.costoUnitario,
+        fechaIngreso: lote.fechaIngreso
+      });
+    }
+    
+    console.log('🔍 DEBUG inicializarLotesTemporales - Lotes inicializados:', 
+      Array.from(this.lotesDisponiblesTemporales.entries()).map(([id, lote]) => ({
+        idLote: id,
+        cantidadDisponible: lote.cantidadDisponible,
+        costoUnitario: lote.costoUnitario
+      }))
+    );
+  }
+
+  /**
+   * Actualiza el estado temporal cuando hay una entrada (nuevo lote)
+   */
+  private actualizarLoteTemporalEntrada(idLote: number, cantidad: number, costoUnitario: number, fechaIngreso: Date): void {
+    const loteExistente = this.lotesDisponiblesTemporales.get(idLote);
+    
+    if (loteExistente) {
+      // Actualizar cantidad del lote existente
+      loteExistente.cantidadDisponible += cantidad;
+    } else {
+      // Agregar nuevo lote
+      this.lotesDisponiblesTemporales.set(idLote, {
+        cantidadDisponible: cantidad,
+        costoUnitario: costoUnitario,
+        fechaIngreso: fechaIngreso
+      });
+    }
+    
+    console.log('🔍 DEBUG actualizarLoteTemporalEntrada - Lote actualizado:', {
+      idLote,
+      cantidad,
+      costoUnitario,
+      cantidadDisponibleTotal: this.lotesDisponiblesTemporales.get(idLote)?.cantidadDisponible
+    });
+  }
+
+  /**
+   * Calcula el costo FIFO para una salida específica usando el estado temporal
    */
   private async calcularCostoFIFO(
     idInventario: number,
@@ -384,11 +483,35 @@ export class KardexCalculationService {
     costoUnitarioPromedio: number;
     detallesSalida: DetalleSalidaCalculado[];
   }> {
-    // Obtener lotes disponibles hasta la fecha del movimiento
-    const lotesDisponibles = await this.stockCalculationService.obtenerLotesDisponiblesFIFO(
+    console.log('🔍 DEBUG calcularCostoFIFO - Parámetros:', {
       idInventario,
-      fechaMovimiento
-    );
+      cantidadSalida,
+      fechaMovimiento: fechaMovimiento.toISOString()
+    });
+
+    // Usar lotes temporales en lugar de consultar la base de datos
+    const lotesDisponibles = Array.from(this.lotesDisponiblesTemporales.entries())
+      .filter(([_, lote]) => lote.cantidadDisponible > 0)
+      .map(([idLote, lote]) => ({
+        idLote,
+        cantidadDisponible: lote.cantidadDisponible,
+        costoUnitario: lote.costoUnitario,
+        fechaIngreso: lote.fechaIngreso
+      }))
+      .sort((a, b) => {
+        // Primero ordenar por fecha de ingreso
+        const fechaDiff = a.fechaIngreso.getTime() - b.fechaIngreso.getTime();
+        if (fechaDiff !== 0) return fechaDiff;
+        // Si las fechas son iguales, ordenar por ID del lote (FIFO estricto)
+        return a.idLote - b.idLote;
+      });
+
+    console.log('🔍 DEBUG calcularCostoFIFO - Lotes disponibles (temporal):', lotesDisponibles.map(l => ({
+      idLote: l.idLote,
+      cantidadDisponible: l.cantidadDisponible,
+      costoUnitario: l.costoUnitario,
+      fechaIngreso: l.fechaIngreso
+    })));
 
     const detallesSalida: DetalleSalidaCalculado[] = [];
     let cantidadRestante = cantidadSalida;
@@ -400,6 +523,13 @@ export class KardexCalculationService {
       const cantidadDelLote = Math.min(cantidadRestante, lote.cantidadDisponible);
       const costoDelLote = cantidadDelLote * lote.costoUnitario;
 
+      console.log('🔍 DEBUG calcularCostoFIFO - Procesando lote:', {
+        idLote: lote.idLote,
+        cantidadDelLote,
+        costoUnitario: lote.costoUnitario,
+        costoDelLote
+      });
+
       detallesSalida.push({
         idLote: lote.idLote,
         cantidad: cantidadDelLote,
@@ -407,11 +537,29 @@ export class KardexCalculationService {
         costoTotal: costoDelLote
       });
 
+      // Actualizar el estado temporal del lote
+      const loteTemp = this.lotesDisponiblesTemporales.get(lote.idLote);
+      if (loteTemp) {
+        loteTemp.cantidadDisponible -= cantidadDelLote;
+        console.log('🔍 DEBUG calcularCostoFIFO - Lote actualizado después de salida:', {
+          idLote: lote.idLote,
+          cantidadConsumida: cantidadDelLote,
+          cantidadRestanteEnLote: loteTemp.cantidadDisponible
+        });
+      }
+
       costoTotalSalida += costoDelLote;
       cantidadRestante -= cantidadDelLote;
     }
 
     const costoUnitarioPromedio = cantidadSalida > 0 ? costoTotalSalida / cantidadSalida : 0;
+
+    console.log('🔍 DEBUG calcularCostoFIFO - Resultado:', {
+      costoTotalSalida,
+      cantidadSalida,
+      costoUnitarioPromedio,
+      detallesSalida: detallesSalida.length
+    });
 
     return {
       costoUnitarioPromedio,

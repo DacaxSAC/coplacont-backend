@@ -8,14 +8,11 @@ import { ComprobanteDetalleService } from './comprobante-detalle.service';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 import { plainToInstance } from 'class-transformer';
 import { TipoOperacion } from '../enum/tipo-operacion.enum';
-import { MetodoValoracion } from '../enum/metodo-valoracion.enum';
 import { Correlativo } from '../entities/correlativo';
 import { MovimientosService } from 'src/modules/movimientos';
 import { MovimientoFactory } from 'src/modules/movimientos/factory/MovimientoFactory';
 import { LoteCreationService } from 'src/modules/inventario/service/lote-creation.service';
 import { PeriodoContableService } from 'src/modules/periodos/service';
-import { KardexService } from 'src/modules/inventario/service/kardex.service';
-import { StockCacheService } from 'src/modules/inventario/service/stock-cache.service';
 import { PersonaService } from 'src/modules/users/services/person.service';
 
 @Injectable()

@@ -120,7 +120,7 @@ export class StockCalculationService {
       cantidadActual: Math.max(0, cantidadActual), // No permitir stock negativo
       cantidadInicial: Number(lote.cantidadInicial),
       costoUnitario: Number(lote.costoUnitario),
-      fechaIngreso: lote.fechaIngreso,
+      fechaIngreso: new Date(lote.fechaIngreso), // Asegurar que sea un objeto Date
       numeroLote: lote.numeroLote
     };
 
@@ -140,10 +140,11 @@ export class StockCalculationService {
     idInventario: number,
     fechaHasta?: Date
   ): Promise<InventarioStockResult | null> {
-    // Intentar obtener del caché primero
+    // Para el método FIFO, necesitamos siempre calcular los lotes individuales
+    // No usar caché cuando se necesiten los detalles de lotes
     const cachedResult = this.stockCacheService.getInventarioStock(idInventario, fechaHasta);
-    if (cachedResult) {
-      // Convertir resultado de caché a formato completo
+    if (cachedResult && !fechaHasta) {
+      // Solo usar caché para consultas sin fecha específica y cuando no se necesiten lotes
       const inventario = await this.inventarioRepository.findOne({
         where: { id: idInventario },
         relations: ['lotes']
@@ -217,13 +218,29 @@ export class StockCalculationService {
     idInventario: number,
     fechaHasta?: Date
   ): Promise<LoteDisponible[]> {
+    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Parámetros:', {
+      idInventario,
+      fechaHasta: fechaHasta?.toISOString()
+    });
+
     const stockInventario = await this.calcularStockInventario(idInventario, fechaHasta);
     
+    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Stock inventario:', {
+      stockActual: stockInventario?.stockActual,
+      lotesCount: stockInventario?.lotes?.length || 0,
+      lotes: stockInventario?.lotes?.map(l => ({
+        idLote: l.idLote,
+        cantidadActual: l.cantidadActual,
+        costoUnitario: l.costoUnitario
+      }))
+    });
+    
     if (!stockInventario) {
+      console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - No se encontró stock inventario');
       return [];
     }
 
-    return stockInventario.lotes
+    const lotesDisponibles = stockInventario.lotes
       .filter(lote => lote.cantidadActual > 0)
       .map(lote => ({
         idLote: lote.idLote,
@@ -232,6 +249,10 @@ export class StockCalculationService {
         fechaIngreso: lote.fechaIngreso
       }))
       .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime());
+
+    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Lotes disponibles finales:', lotesDisponibles.length);
+    
+    return lotesDisponibles;
   }
 
   /**

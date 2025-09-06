@@ -5,7 +5,6 @@ import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';
-import { StockCalculationService } from './stock-calculation.service';
 import { KardexCalculationService } from './kardex-calculation.service';
 import { PeriodoContableService } from 'src/modules/periodos/service';
 import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracion.enum';
@@ -24,23 +23,43 @@ export class KardexService {
   /**
    * Genera el reporte Kardex para un inventario específico usando cálculo dinámico
    */
+  /**
+   * Genera el reporte Kardex para un inventario específico usando cálculo dinámico
+   * @param request - Datos de la solicitud incluyendo personaId
+   */
   async generateKardexReport(request: KardexRequestDto): Promise<KardexResponseDto> {
-    const { idInventario, fechaInicio, fechaFin } = request;
+    const { personaId, idInventario, fechaInicio, fechaFin } = request;
     
     // Convertir fechas string a Date si están presentes
     const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : undefined;
     const fechaFinDate = fechaFin ? new Date(fechaFin) : undefined;
-
-    // Obtener información del inventario para determinar el método de valoración
+  
+    // Obtener información del inventario
     const inventario = await this.inventarioRepository.findById(idInventario);
+    
     if (!inventario) {
       throw new Error('Inventario no encontrado');
     }
+  
+    // Verificar que tanto el almacén como el producto pertenecen a la empresa del usuario
+    // Necesitamos cargar las relaciones con persona para validar el acceso
+    const almacenConPersona = await this.inventarioRepository.findAlmacenById(inventario.almacen.id);
+    const productoConPersona = await this.inventarioRepository.findProductoById(inventario.producto.id);
+    
+    if (!almacenConPersona || !productoConPersona) {
+      throw new Error('Error al validar permisos de acceso');
+    }
 
-    // Determinar método de valoración (por defecto PROMEDIO)
-    // TODO: Agregar campo metodoValoracion a la entidad Inventario si es necesario
-    const metodoValoracion = MetodoValoracion.PROMEDIO;
-
+    if (!personaId) {
+      throw new Error('ID de persona no proporcionado');
+    }
+    
+    // Determinar método de valoración
+     const configuracionPeriodo =
+        await this.periodoContableService.obtenerConfiguracion(personaId);
+    const metodoValoracion = configuracionPeriodo.metodoCalculoCosto;
+    console.log('Metodo de costeo:', metodoValoracion);
+  
     // Usar KardexCalculationService para cálculo dinámico
     const kardexResult = await this.kardexCalculationService.generarKardex(
       idInventario,
@@ -48,7 +67,7 @@ export class KardexService {
       fechaFinDate || new Date(), // Si no hay fecha fin, usar fecha actual
       metodoValoracion
     );
-
+  
     if (!kardexResult) {
       return {
         producto: inventario.producto?.nombre || 'Producto no encontrado',
@@ -123,93 +142,6 @@ export class KardexService {
   }
 
   /**
-   * Calcula los saldos acumulados para cada movimiento
-   */
-  private calculateRunningBalances(
-    movimientos: KardexMovementData[],
-    stockInicial: { cantidad: number; costoTotal: number }
-  ): { movimientos: KardexReportMovementDto[]; costoTotalFinal: number } {
-    let saldoAcumulado = Number(stockInicial.cantidad) || 0;
-    let costoTotalAcumulado = Number(stockInicial.costoTotal) || 0;
-    console.log('COSTO TOTAL ACUMULADO', costoTotalAcumulado);
-
-    const movimientosCalculados = movimientos.map(movimiento => {
-      const isEntrada = this.isMovimientoEntrada(movimiento.tipoOperacion, movimiento.tipoMovimiento);
-      
-      // Convertir valores a números para evitar concatenación de strings
-      const cantidad = Number(movimiento.cantidad) || 0;
-      let costoTotal = Number(movimiento.costoTotal) || 0;
-      let costoUnitario = Number(movimiento.costoUnitario) || 0;
-      
-      // Para movimientos de salida con detallesSalida, calcular costo basado en los detalles
-      if (!isEntrada && movimiento.detallesSalida && movimiento.detallesSalida.length > 0) {
-        costoTotal = movimiento.detallesSalida.reduce((total, detalle) => {
-          return total + (Number(detalle.cantidad) * Number(detalle.costoUnitarioDeLote));
-        }, 0);
-        costoUnitario = cantidad > 0 ? costoTotal / cantidad : 0;
-      }
-      
-      // Calcular nuevo saldo
-      if (isEntrada) {
-        saldoAcumulado += cantidad;
-        costoTotalAcumulado += costoTotal;
-      } else {
-        saldoAcumulado -= cantidad;
-        costoTotalAcumulado -= costoTotal;
-      }
-
-      // Calcular costo unitario promedio
-      const costoUnitarioPromedio = saldoAcumulado > 0 ? costoTotalAcumulado / saldoAcumulado : 0;
-
-      const movimientoCalculado = {
-        fecha: this.formatDate(movimiento.fecha),
-        tipo: isEntrada ? 'Entrada' : 'Salida',
-        tComprob: movimiento.tipoComprobante,
-        nComprobante: movimiento.numeroComprobante,
-        cantidad: Number(cantidad.toFixed(4)),
-        saldo: Number(saldoAcumulado.toFixed(4)),
-        costoUnitario: Number(costoUnitario.toFixed(4)),
-        costoTotal: Number(costoTotal.toFixed(8))
-      };
-
-      // Agregar detalles de salida si es un movimiento de salida y tiene detalles
-      if (!isEntrada && movimiento.detallesSalida && movimiento.detallesSalida.length > 0) {
-        movimientoCalculado['detallesSalida'] = movimiento.detallesSalida.map(detalle => ({
-          id: detalle.id,
-          idLote: detalle.idLote,
-          costoUnitarioDeLote: Number(Number(detalle.costoUnitarioDeLote).toFixed(4)),
-          cantidad: Number(Number(detalle.cantidad).toFixed(4))
-        }));
-      }
-
-      return movimientoCalculado;
-    });
-
-    return {
-      movimientos: movimientosCalculados,
-      costoTotalFinal: costoTotalAcumulado
-    };
-  }
-
-  /**
-   * Determina si un movimiento es de entrada basado en los enums
-   */
-  private isMovimientoEntrada(tipoOperacion: TipoOperacion, tipoMovimiento: TipoMovimiento): boolean {
-    // Si viene de comprobante con TipoOperacion.COMPRA, es entrada
-    if (tipoOperacion === TipoOperacion.COMPRA) {
-      return true;
-    }
-    
-    // Si viene de movimiento directo con TipoMovimiento.ENTRADA, es entrada
-    if (tipoMovimiento === TipoMovimiento.ENTRADA) {
-      return true;
-    }
-    
-    // Cualquier otro caso es salida
-    return false;
-  }
-
-  /**
    * Formatea la fecha para mostrar en el reporte
    */
   private formatDate(fecha: Date): string {
@@ -223,132 +155,4 @@ export class KardexService {
     return `${day} - ${month} - ${year}`;
   }
 
-  /**
-   * Calcula el costo total basado en cantidad y costo unitario
-   */
-  private calculateTotalCost(cantidad: number, costoUnitario: number): number {
-    return cantidad * costoUnitario;
-  }
-
-  /**
-   * Procesa un movimiento retroactivo - Con cálculo dinámico ya no se requiere recálculo
-   * @param idPersona ID de la persona para validar período activo
-   * @param fechaMovimiento Fecha del movimiento a procesar
-   * @param movimientoId ID del movimiento a procesar
-   * @param metodoValoracion Método de valoración a utilizar (PROMEDIO o FIFO)
-   */
-  async procesarMovimientoRetroactivo(
-    idPersona: number,
-    fechaMovimiento: Date,
-    movimientoId: number,
-    metodoValoracion: MetodoValoracion
-  ): Promise<{ mensaje: string }> {
-    this.logger.log(`🔄 [CALCULO-DINAMICO] Iniciando procesamiento de movimiento: MovimientoId=${movimientoId}, PersonaId=${idPersona}, Fecha=${fechaMovimiento}, Método=${metodoValoracion}`);
-    
-    // Validar que la fecha esté dentro del período activo
-    this.logger.log(`🔍 [CALCULO-DINAMICO] Validando fecha en período activo`);
-    const validacion = await this.periodoContableService.validarFechaEnPeriodoActivo(
-      idPersona,
-      fechaMovimiento
-    );
-    
-    this.logger.log(`📊 [CALCULO-DINAMICO] Resultado validación período activo: ${JSON.stringify(validacion)}`);
-
-    if (!validacion.valida) {
-      this.logger.error(`❌ [CALCULO-DINAMICO] Validación período activo FALLÓ: ${validacion.mensaje}`);
-      throw new Error(validacion.mensaje || 'La fecha del movimiento no está dentro del período contable activo');
-    }
-    
-    this.logger.log(`✅ [CALCULO-DINAMICO] Validación período activo EXITOSA`);
-
-    // Validar límite de movimientos retroactivos
-    this.logger.log(`🔍 [CALCULO-DINAMICO] Validando límites de movimientos retroactivos`);
-    const validacionRetroactivo = await this.periodoContableService.validarMovimientoRetroactivo(
-      idPersona,
-      fechaMovimiento
-    );
-    
-    this.logger.log(`📊 [CALCULO-DINAMICO] Resultado validación retroactivo: ${JSON.stringify(validacionRetroactivo)}`);
-
-    if (!validacionRetroactivo.permitido) {
-      this.logger.error(`❌ [CALCULO-DINAMICO] Validación movimiento retroactivo FALLÓ: ${validacionRetroactivo.mensaje}`);
-      throw new Error('No se pueden realizar movimientos retroactivos más allá del límite configurado');
-    }
-    
-    this.logger.log(`✅ [CALCULO-DINAMICO] Validación movimiento retroactivo EXITOSA`);
-
-    // Verificar si la fecha es retroactiva
-    const esRetroactiva = this.esFechaRetroactiva(fechaMovimiento);
-    this.logger.log(`🔍 [CALCULO-DINAMICO] Verificación fecha retroactiva: ${esRetroactiva ? 'SÍ' : 'NO'}`);
-    
-    this.logger.log(`✅ [CALCULO-DINAMICO] Movimiento procesado correctamente - Los cálculos se realizan dinámicamente`);
-    
-    return { mensaje: 'Movimiento procesado correctamente. Los cálculos de stock y costos se realizan dinámicamente.' };
-  }
-
-  /**
-   * Verifica si una fecha es retroactiva comparándola con la fecha actual
-   * @param fechaMovimiento Fecha del movimiento a verificar
-   * @returns true si la fecha es retroactiva (anterior a hoy)
-   */
-  private esFechaRetroactiva(fechaMovimiento: Date): boolean {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fechas
-    
-    const fechaComparar = new Date(fechaMovimiento);
-    fechaComparar.setHours(0, 0, 0, 0);
-    
-    return fechaComparar < hoy;
-  }
-
-  /**
-   * Procesa múltiples movimientos - Con cálculo dinámico ya no se requiere recálculo
-   * @param movimientosIds Array de IDs de movimientos a procesar
-   * @param metodoValoracion Método de valoración a utilizar
-   * @returns Resultado consolidado del procesamiento
-   */
-  async recalcularMovimientosRetroactivos(
-    movimientosIds: number[],
-    metodoValoracion: MetodoValoracion
-  ): Promise<Array<{ movimientoId: number; exito: boolean; mensaje: string }>> {
-    const resultados: Array<{ movimientoId: number; exito: boolean; mensaje: string }> = [];
-    
-    for (const movimientoId of movimientosIds) {
-      resultados.push({
-        movimientoId,
-        exito: true,
-        mensaje: 'Movimiento procesado correctamente. Los cálculos se realizan dinámicamente.'
-      });
-    }
-    
-    return resultados;
-  }
-
-  /**
-   * Obtiene estadísticas de recálculo para un período
-   * @param fechaInicio Fecha de inicio del período
-   * @param fechaFin Fecha de fin del período
-   * @returns Estadísticas del recálculo
-   */
-  async obtenerEstadisticasRecalculo(
-    fechaInicio: Date,
-    fechaFin: Date
-  ): Promise<{
-    periodo: { inicio: Date; fin: Date };
-    movimientosRetroactivos: number;
-    recalculosEjecutados: number;
-    erroresEncontrados: number;
-  }> {
-    // Implementar lógica para obtener estadísticas de recálculo
-    // Por ahora retornamos un objeto básico
-    return {
-      periodo: {
-        inicio: fechaInicio,
-        fin: fechaFin
-      },
-      movimientosRetroactivos: 0,
-      recalculosEjecutados: 0,
-      erroresEncontrados: 0
-    };
-  }
 }
