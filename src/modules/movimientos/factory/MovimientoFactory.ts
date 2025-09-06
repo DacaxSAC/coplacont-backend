@@ -19,6 +19,7 @@ export class MovimientoFactory {
         const detalles = await this.createMovimientosDetallesFromDetallesComprobante(comprobante.detalles, comprobante.tipoOperacion, costosUnitarios, precioYcantidadPorLote);
         
         return {
+            numeroDocumento: comprobante.serie + '-' + comprobante.numero,
             tipo: this.generateTipoFromTipoOperacion(comprobante.tipoOperacion),
             fecha: comprobante.fechaEmision,
             observaciones: `Movimiento generado desde comprobante ${comprobante.serie}-${comprobante.numero}`,

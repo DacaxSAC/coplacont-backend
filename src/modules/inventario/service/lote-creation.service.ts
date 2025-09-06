@@ -33,6 +33,7 @@ export class LoteCreationService {
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
     fechaEmision?: Date,
   ): Promise<{costoUnitario: number[], lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
+    
     let costosUnitariosDeDetalles: number[] = [];
     let lotesUsados: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
 

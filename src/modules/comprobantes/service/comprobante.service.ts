@@ -162,6 +162,10 @@ export class ComprobanteService {
         );
         comprobanteSaved.detalles = detallesSaved;
 
+        /**
+         * HASTA ESTE PUNTO TODO ESTA FUNCIONAL
+         */
+
         const { costoUnitario, lotes } =
           await this.loteCreationService.procesarLotesComprobante(
             detallesSaved,
@@ -169,6 +173,8 @@ export class ComprobanteService {
             metodoValoracionFinal,
             fechaEmisionFinal,
           );
+
+        //Hay que ver si aun son necesarios  
         costosUnitarios = costoUnitario;
         precioYcantidadPorLote = lotes;
 
