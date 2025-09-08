@@ -8,7 +8,7 @@ import { Movimiento } from '../../movimientos/entities/movimiento.entity';
 import { TipoMovimiento } from '../../movimientos/enum/tipo-movimiento.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
 import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
-import { StockCalculationService, LoteStockResult } from './stock-calculation.service';
+import { StockCalculationService } from './stock-calculation.service';
 
 /**
  * Interfaz para un movimiento de Kardex calculado dinámicamente
