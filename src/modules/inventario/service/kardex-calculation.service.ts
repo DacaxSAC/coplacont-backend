@@ -278,12 +278,31 @@ export class KardexCalculationService {
         }
       } else {
         console.log('🔍 DEBUG procesarMovimientos - Procesando como SALIDA');
-        movimientoKardex = await this.procesarSalida(
+        const resultado = await this.procesarSalida(
           mov,
           saldoActual,
           metodoValoracion,
           idInventario
         );
+        
+        // Manejar el caso en que procesarSalida devuelve un array (FIFO con múltiples lotes)
+        if (Array.isArray(resultado)) {
+          console.log('🔍 DEBUG procesarMovimientos - Salida FIFO con múltiples lotes:', resultado.length);
+          // Agregar todos los movimientos al kardex
+          movimientosKardex.push(...resultado);
+          // Actualizar saldo con el último movimiento del array
+          const ultimoMovimiento = resultado[resultado.length - 1];
+          saldoActual = {
+            cantidad: ultimoMovimiento.cantidadSaldo,
+            costoUnitario: ultimoMovimiento.costoUnitarioSaldo,
+            valorTotal: ultimoMovimiento.valorTotalSaldo
+          };
+          // Continuar con el siguiente movimiento
+          continue;
+        } else {
+          // Caso normal (un solo movimiento)
+          movimientoKardex = resultado;
+        }
       }
 
       movimientosKardex.push(movimientoKardex);
@@ -352,50 +371,96 @@ export class KardexCalculationService {
     saldoAnterior: { cantidad: number; costoUnitario: number; valorTotal: number },
     metodoValoracion: MetodoValoracion,
     idInventario: number
-  ): Promise<KardexMovement> {
+  ): Promise<KardexMovement | KardexMovement[]> {
     const cantidad = Number(mov.md_cantidad);
     
-    let costoUnitario: number;
-    let detallesSalida: DetalleSalidaCalculado[] = [];
-
+    // Para método PROMEDIO, mantener el comportamiento original
     if (metodoValoracion === MetodoValoracion.PROMEDIO) {
-      // PROMEDIO: usar el costo promedio actual
-      costoUnitario = saldoAnterior.costoUnitario;
-    } else {
-      // FIFO: calcular costo basado en los lotes más antiguos
+      const costoUnitario = saldoAnterior.costoUnitario;
+      const costoTotal = cantidad * costoUnitario;
+
+      // Calcular nuevo saldo
+      const nuevaCantidad = Math.max(0, saldoAnterior.cantidad - cantidad);
+      const nuevoValorTotal = Math.max(0, saldoAnterior.valorTotal - costoTotal);
+      const nuevoCostoUnitario = nuevaCantidad > 0 ? nuevoValorTotal / nuevaCantidad : 0;
+
+      return {
+        fecha: new Date(mov.m_fecha),
+        tipoOperacion: mov.c_tipoOperacion,
+        tipoMovimiento: mov.tipomovimiento,
+        tipoComprobante: mov.c_tipoComprobante,
+        numeroComprobante: mov.c_correlativo || mov.m_numeroDocumento,
+        cantidad,
+        costoUnitario,
+        costoTotal,
+        cantidadSaldo: nuevaCantidad,
+        costoUnitarioSaldo: nuevoCostoUnitario,
+        valorTotalSaldo: nuevoValorTotal,
+        idInventario: Number(mov.md_id_inventario),
+        idMovimiento: Number(mov.idmovimiento),
+        idMovimientoDetalle: Number(mov.idmovimientodetalle)
+      };
+    } 
+    
+    // Para método FIFO, crear un movimiento por cada lote consumido
+    else {
+      // Calcular los lotes a consumir usando FIFO
       const resultadoFIFO = await this.calcularCostoFIFO(
         idInventario,
         cantidad,
         new Date(mov.m_fecha)
       );
-      costoUnitario = resultadoFIFO.costoUnitarioPromedio;
-      detallesSalida = resultadoFIFO.detallesSalida;
+      
+      const movimientosPorLote: KardexMovement[] = [];
+      let saldoActualizado = { ...saldoAnterior };
+      
+      // Crear un movimiento por cada lote consumido
+      for (const detalle of resultadoFIFO.detallesSalida) {
+        const cantidadLote = detalle.cantidad;
+        const costoUnitarioLote = detalle.costoUnitarioDeLote;
+        const costoTotalLote = detalle.costoTotal;
+        
+        // Calcular nuevo saldo después de este lote
+        const nuevaCantidad = Math.max(0, saldoActualizado.cantidad - cantidadLote);
+        const nuevoValorTotal = Math.max(0, saldoActualizado.valorTotal - costoTotalLote);
+        const nuevoCostoUnitario = nuevaCantidad > 0 ? nuevoValorTotal / nuevaCantidad : 0;
+        
+        // Crear movimiento para este lote
+        const movimientoLote: KardexMovement = {
+          fecha: new Date(mov.m_fecha),
+          tipoOperacion: mov.c_tipoOperacion,
+          tipoMovimiento: mov.tipomovimiento,
+          tipoComprobante: mov.c_tipoComprobante,
+          numeroComprobante: mov.c_correlativo || mov.m_numeroDocumento,
+          cantidad: cantidadLote,
+          costoUnitario: costoUnitarioLote,
+          costoTotal: costoTotalLote,
+          cantidadSaldo: nuevaCantidad,
+          costoUnitarioSaldo: nuevoCostoUnitario,
+          valorTotalSaldo: nuevoValorTotal,
+          idInventario: Number(mov.md_id_inventario),
+          idMovimiento: Number(mov.idmovimiento),
+          idMovimientoDetalle: Number(mov.idmovimientodetalle),
+          detallesSalida: [{
+            idLote: detalle.idLote,
+            cantidad: cantidadLote,
+            costoUnitarioDeLote: costoUnitarioLote,
+            costoTotal: costoTotalLote
+          }]
+        };
+        
+        movimientosPorLote.push(movimientoLote);
+        
+        // Actualizar saldo para el siguiente lote
+        saldoActualizado = {
+          cantidad: nuevaCantidad,
+          costoUnitario: nuevoCostoUnitario,
+          valorTotal: nuevoValorTotal
+        };
+      }
+      
+      return movimientosPorLote;
     }
-
-    const costoTotal = cantidad * costoUnitario;
-
-    // Calcular nuevo saldo
-    const nuevaCantidad = Math.max(0, saldoAnterior.cantidad - cantidad);
-    const nuevoValorTotal = Math.max(0, saldoAnterior.valorTotal - costoTotal);
-    const nuevoCostoUnitario = nuevaCantidad > 0 ? nuevoValorTotal / nuevaCantidad : 0;
-
-    return {
-      fecha: new Date(mov.m_fecha),
-      tipoOperacion: mov.c_tipoOperacion,
-      tipoMovimiento: mov.tipomovimiento,
-      tipoComprobante: mov.c_tipoComprobante,
-      numeroComprobante: mov.c_correlativo || mov.m_numeroDocumento,
-      cantidad,
-      costoUnitario,
-      costoTotal,
-      cantidadSaldo: nuevaCantidad,
-      costoUnitarioSaldo: nuevoCostoUnitario,
-      valorTotalSaldo: nuevoValorTotal,
-      idInventario: Number(mov.md_id_inventario),
-      idMovimiento: Number(mov.idmovimiento),
-      idMovimientoDetalle: Number(mov.idmovimientodetalle),
-      detallesSalida: detallesSalida.length > 0 ? detallesSalida : undefined
-    };
   }
 
   /**
@@ -536,6 +601,9 @@ export class KardexCalculationService {
         costoUnitarioDeLote: lote.costoUnitario,
         costoTotal: costoDelLote
       });
+      
+      // Acumular costo total para el cálculo del promedio
+      costoTotalSalida += costoDelLote;
 
       // Actualizar el estado temporal del lote
       const loteTemp = this.lotesDisponiblesTemporales.get(lote.idLote);
@@ -548,7 +616,6 @@ export class KardexCalculationService {
         });
       }
 
-      costoTotalSalida += costoDelLote;
       cantidadRestante -= cantidadDelLote;
     }
 
