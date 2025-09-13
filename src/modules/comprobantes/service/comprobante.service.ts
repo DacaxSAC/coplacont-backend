@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { Comprobante } from '../entities/comprobante';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +14,7 @@ import { MovimientoFactory } from 'src/modules/movimientos/factory/MovimientoFac
 import { LoteCreationService } from 'src/modules/inventario/service/lote-creation.service';
 import { PeriodoContableService } from 'src/modules/periodos/service';
 import { PersonaService } from 'src/modules/users/services/person.service';
+import { InventarioService } from 'src/modules/inventario/service/inventario.service';
 
 @Injectable()
 export class ComprobanteService {
@@ -29,6 +30,7 @@ export class ComprobanteService {
     private readonly movimientoFactory: MovimientoFactory,
     private readonly loteCreationService: LoteCreationService,
     private readonly periodoContableService: PeriodoContableService,
+    private readonly inventarioService: InventarioService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -80,6 +82,9 @@ export class ComprobanteService {
     createComprobanteDto: CreateComprobanteDto,
     personaId: number,
   ): Promise<void> {
+    // Validar stock antes de iniciar la transacción (solo para ventas)
+    await this.validateStockForVenta(createComprobanteDto, personaId);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -238,6 +243,50 @@ export class ComprobanteService {
     return plainToInstance(ResponseComprobanteDto, comprobantes, {
       excludeExtraneousValues: true,
     });
+  }
+
+  /**
+   * Valida que haya suficiente stock para todos los items en una venta
+   * @param createComprobanteDto - Datos del comprobante con los detalles
+   * @param personaId - ID de la empresa
+   * @throws BadRequestException si algún item no tiene suficiente stock
+   */
+  private async validateStockForVenta(
+    createComprobanteDto: CreateComprobanteDto,
+    personaId: number,
+  ): Promise<void> {
+    // Solo validar stock para ventas
+    if (createComprobanteDto.tipoOperacion !== TipoOperacion.VENTA) {
+      return;
+    }
+
+    // Verificar que existan detalles
+    if (!createComprobanteDto.detalles || createComprobanteDto.detalles.length === 0) {
+      return;
+    }
+
+    // Validar stock para cada detalle
+    for (const detalle of createComprobanteDto.detalles) {
+      // Calcular stock actual usando el método del InventarioService
+      const stockActual = await this.inventarioService.calculateStock(
+        detalle.idInventario,
+        personaId,
+      );
+
+      // Verificar si hay suficiente stock
+      if (stockActual < detalle.cantidad) {
+        // Obtener información del inventario para el mensaje de error
+        const inventario = await this.inventarioService.findOne(
+          detalle.idInventario,
+          personaId,
+        );
+        
+        throw new BadRequestException(
+          `Stock insuficiente para el producto "${inventario.producto.nombre}" en almacén "${inventario.almacen.nombre}". ` +
+          `Stock disponible: ${stockActual}, Cantidad solicitada: ${detalle.cantidad}`,
+        );
+      }
+    }
   }
 
   async existDetails(

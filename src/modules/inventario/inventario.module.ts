@@ -6,6 +6,7 @@ import { Almacen } from '../almacen/entities/almacen.entity';
 import { Producto } from '../productos/entities/producto.entity';
 import { Movimiento } from '../movimientos/entities/movimiento.entity';
 import { MovimientoDetalle } from '../movimientos/entities/movimiento-detalle.entity';
+import { ComprobanteDetalle } from '../comprobantes/entities/comprobante-detalle';
 
 import { InventarioService } from './service/inventario.service';
 import { InventarioLoteService } from './service/inventario-lote.service';
@@ -31,7 +32,7 @@ import { PeriodosModule } from '../periodos/periodos.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Inventario, InventarioLote, Almacen, Producto, Movimiento, MovimientoDetalle]),
+    TypeOrmModule.forFeature([Inventario, InventarioLote, Almacen, Producto, Movimiento, MovimientoDetalle, ComprobanteDetalle]),
     ProductosModule,
     UserModule,
     PeriodosModule

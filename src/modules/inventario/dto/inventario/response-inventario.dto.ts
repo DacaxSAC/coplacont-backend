@@ -19,7 +19,15 @@ export class ResponseInventarioDto {
     @Expose()
     id: number;
 
-    // stockActual se calcula dinámicamente y se incluye cuando es necesario
+    /**
+     * Stock actual calculado dinámicamente basado en compras y ventas
+     */
+    @ApiProperty({
+        description: 'Stock actual calculado dinámicamente',
+        example: 150.5
+    })
+    @Expose()
+    stockActual: number;
 
     /**
      * Información del almacén

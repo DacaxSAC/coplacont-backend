@@ -4,13 +4,19 @@ import { CreateInventarioDto, UpdateInventarioDto, ResponseInventarioDto } from 
 import { InventarioRepository } from '../repository';
 import { Inventario } from '../entities';
 import { StockCalculationService } from './stock-calculation.service';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ComprobanteDetalle } from '../../comprobantes/entities/comprobante-detalle';
+import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
 
 @Injectable()
 export class InventarioService {
 
     constructor(
         private readonly inventarioRepository: InventarioRepository,
-        private readonly stockCalculationService: StockCalculationService
+        private readonly stockCalculationService: StockCalculationService,
+        @InjectRepository(ComprobanteDetalle)
+        private readonly comprobanteDetalleRepository: Repository<ComprobanteDetalle>
     ) {}
 
 
@@ -32,25 +38,66 @@ export class InventarioService {
         return this.mapToResponseDto(inventario);
     }
 
-
+    /**
+     * Obtiene todos los inventarios con stock calculado dinámicamente
+     * El stock se calcula sumando todas las compras y restando todas las ventas
+     * @param personaId - ID de la empresa (opcional, requerido para cálculo de stock)
+     * @returns Promise<ResponseInventarioDto[]> Lista de inventarios con stock actual
+     */
     async findAll(personaId?: number): Promise<ResponseInventarioDto[]> {
         const inventarios = await this.inventarioRepository.findAll(personaId);
-        return inventarios.map(inventario => this.mapToResponseDto(inventario));
+
+        // Calcular stock dinámicamente para cada inventario
+        const inventariosWithStock = await Promise.all(
+            inventarios.map(async (inventario) => {
+                const stockActual = personaId 
+                    ? await this.calculateStock(inventario.id, personaId)
+                    : 0; // Si no hay personaId, no podemos calcular el stock
+                
+                return this.mapToResponseDto(inventario, stockActual);
+            })
+        );
+
+        return inventariosWithStock;
     }
 
 
-    async findOne(id: number): Promise<ResponseInventarioDto> {
+    /**
+     * Obtiene un inventario específico con stock calculado dinámicamente
+     * @param id - ID del inventario
+     * @param personaId - ID de la empresa (opcional, requerido para cálculo de stock)
+     * @returns Promise<ResponseInventarioDto> Inventario con stock actual
+     */
+    async findOne(id: number, personaId?: number): Promise<ResponseInventarioDto> {
         const inventario = await this.inventarioRepository.findById(id);
         if (!inventario) {
             throw new NotFoundException(`Inventario con ID ${id} no encontrado`);
         }
-        return this.mapToResponseDto(inventario);
+        
+        // Calcular stock dinámicamente si se proporciona personaId
+        const stockActual = personaId 
+            ? await this.calculateStock(inventario.id, personaId)
+            : undefined;
+            
+        return this.mapToResponseDto(inventario, stockActual);
     }
 
 
     async findByAlmacen(idAlmacen: number, personaId?: number): Promise<ResponseInventarioDto[]> {
         await this.validateAlmacenExists(idAlmacen);
         const inventarios = await this.inventarioRepository.findByAlmacen(idAlmacen, personaId);
+        
+        // Calcular stock dinámicamente para cada inventario si se proporciona personaId
+        if (personaId) {
+            const inventariosWithStock = await Promise.all(
+                inventarios.map(async (inventario) => {
+                    const stockActual = await this.calculateStock(inventario.id, personaId);
+                    return this.mapToResponseDto(inventario, stockActual);
+                })
+            );
+            return inventariosWithStock;
+        }
+        
         return inventarios.map(inventario => this.mapToResponseDto(inventario));
     }
 
@@ -58,6 +105,18 @@ export class InventarioService {
     async findByProducto(idProducto: number, personaId?: number): Promise<ResponseInventarioDto[]> {
         await this.validateProductoExists(idProducto);
         const inventarios = await this.inventarioRepository.findByProducto(idProducto, personaId);
+        
+        // Calcular stock dinámicamente para cada inventario si se proporciona personaId
+        if (personaId) {
+            const inventariosWithStock = await Promise.all(
+                inventarios.map(async (inventario) => {
+                    const stockActual = await this.calculateStock(inventario.id, personaId);
+                    return this.mapToResponseDto(inventario, stockActual);
+                })
+            );
+            return inventariosWithStock;
+        }
+        
         return inventarios.map(inventario => this.mapToResponseDto(inventario));
     }
 
@@ -148,6 +207,41 @@ export class InventarioService {
         };
     }
 
+    /**
+     * Calcula el stock actual de un inventario basándose en compras y ventas
+     * @param inventarioId - ID del inventario
+     * @param personaId - ID de la empresa
+     * @returns Promise<number> Stock actual calculado
+     */
+    async calculateStock(inventarioId: number, personaId: number): Promise<number> {
+        // Obtener todas las compras (entradas) para este inventario
+        const compras = await this.comprobanteDetalleRepository
+            .createQueryBuilder('detalle')
+            .leftJoin('detalle.comprobante', 'comprobante')
+            .leftJoin('comprobante.persona', 'persona')
+            .select('SUM(detalle.cantidad)', 'totalCompras')
+            .where('detalle.inventario.id = :inventarioId', { inventarioId })
+            .andWhere('comprobante.tipoOperacion = :tipoCompra', { tipoCompra: TipoOperacion.COMPRA })
+            .andWhere('persona.id = :personaId', { personaId })
+            .getRawOne();
+
+        // Obtener todas las ventas (salidas) para este inventario
+        const ventas = await this.comprobanteDetalleRepository
+            .createQueryBuilder('detalle')
+            .leftJoin('detalle.comprobante', 'comprobante')
+            .leftJoin('comprobante.persona', 'persona')
+            .select('SUM(detalle.cantidad)', 'totalVentas')
+            .where('detalle.inventario.id = :inventarioId', { inventarioId })
+            .andWhere('comprobante.tipoOperacion = :tipoVenta', { tipoVenta: TipoOperacion.VENTA })
+            .andWhere('persona.id = :personaId', { personaId })
+            .getRawOne();
+
+        const totalCompras = parseFloat(compras?.totalCompras) || 0;
+        const totalVentas = parseFloat(ventas?.totalVentas) || 0;
+
+        return totalCompras - totalVentas;
+    }
+
     private async validateAlmacenExists(idAlmacen: number): Promise<void> {
         const almacen = await this.inventarioRepository.findAlmacenById(idAlmacen);
         if (!almacen) {
@@ -218,9 +312,16 @@ export class InventarioService {
         }
     }
 
-    private mapToResponseDto(inventario: Inventario): ResponseInventarioDto {
-        return plainToInstance(ResponseInventarioDto, inventario, {
+    private mapToResponseDto(inventario: Inventario, stockActual?: number): ResponseInventarioDto {
+        const dto = plainToInstance(ResponseInventarioDto, inventario, {
             excludeExtraneousValues: true
         });
+        
+        // Agregar el stock calculado dinámicamente si se proporciona
+        if (stockActual !== undefined) {
+            dto.stockActual = stockActual;
+        }
+        
+        return dto;
     }
 }
