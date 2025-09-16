@@ -5,6 +5,7 @@ import { TipoOperacion } from "../../enum/tipo-operacion.enum";
 import { ResponseComprobanteTotalesDto } from "../comprobante-totales/response-comprobante-totales.dto";
 import { EntidadResponseDto } from "../../../entidades/dto/entidad-response.dto";
 import { ResponseComprobanteDetalleDto } from "../comprobante-detalle/response-comprobante-detalle.dto";
+import { PersonaResponseDto } from "src/modules/users/dto/persona/persona-response-dto";
 
 export class ResponseComprobanteDto {
   @Expose()
@@ -33,7 +34,11 @@ export class ResponseComprobanteDto {
     
     @Expose()
     @Type(() => EntidadResponseDto)
-    persona?: EntidadResponseDto;
+    persona?: PersonaResponseDto;
+
+    @Expose()
+    @Type(() => EntidadResponseDto)
+    entidad?: EntidadResponseDto;
     
     @Expose()
     @Type(() => ResponseComprobanteDetalleDto)
