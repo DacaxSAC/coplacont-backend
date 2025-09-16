@@ -26,7 +26,7 @@ export class VentasService {
                 tipoOperacion: TipoOperacion.VENTA,
                 persona: { id: personaId }
             },
-            relations: ['totales', 'persona', 'detalles'],
+            relations: ['totales', 'persona', 'detalles', 'entidad'],
             order: { fechaRegistro: 'DESC' }
         });
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -47,7 +47,7 @@ export class VentasService {
                 tipoOperacion: TipoOperacion.VENTA,
                 persona: { id: personaId }
             },
-            relations: ['totales', 'persona', 'detalles', 'detalles.producto']
+            relations: ['totales', 'persona', 'detalles', 'detalles.producto', 'entidad']
         });
         
         if (!comprobante) {

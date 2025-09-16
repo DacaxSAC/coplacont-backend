@@ -171,7 +171,7 @@ export class ComprobanteService {
             fechaEmisionFinal,
           );
 
-        //Hay que ver si aun son necesarios  
+        //Hay que ver si aun son necesarios
         costosUnitarios = costoUnitario;
         precioYcantidadPorLote = lotes;
 
@@ -249,42 +249,6 @@ export class ComprobanteService {
       Array.isArray(createComprobanteDto.detalles) &&
       createComprobanteDto.detalles.length > 0
     );
-  }
-
-  /**
-   * Obtiene todos los comprobantes de tipo COMPRA filtrados por empresa
-   * @param personaId ID de la empresa (Persona)
-   * @returns Lista de comprobantes de compra de la empresa
-   */
-  async findCompras(personaId: number): Promise<ResponseComprobanteDto[]> {
-    const comprobantes = await this.comprobanteRepository.find({
-      where: {
-        tipoOperacion: TipoOperacion.COMPRA,
-        persona: { id: personaId },
-      },
-      relations: ['totales', 'persona'],
-    });
-    return plainToInstance(ResponseComprobanteDto, comprobantes, {
-      excludeExtraneousValues: true,
-    });
-  }
-
-  /**
-   * Obtiene todos los comprobantes de tipo VENTA filtrados por empresa
-   * @param personaId ID de la empresa (Persona)
-   * @returns Lista de comprobantes de venta de la empresa
-   */
-  async findVentas(personaId: number): Promise<ResponseComprobanteDto[]> {
-    const comprobantes = await this.comprobanteRepository.find({
-      where: {
-        tipoOperacion: TipoOperacion.VENTA,
-        persona: { id: personaId },
-      },
-      relations: ['totales', 'persona'],
-    });
-    return plainToInstance(ResponseComprobanteDto, comprobantes, {
-      excludeExtraneousValues: true,
-    });
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, HttpCode, HttpStatus } from "@nestjs/common";
+import { Body, Controller, Post, HttpCode, HttpStatus } from "@nestjs/common";
 import { AuthService } from "../services/auth.service";
 import { AuthLoginDto } from "../dto/auth/auth-login.dto";
 import { AuthResponseDto } from "../dto/auth/auth-response.dto";
@@ -17,7 +17,7 @@ export class AuthController {
     @ApiOperation({ summary: 'Iniciar sesión' })
     @ApiResponse({ status: 200, description: 'Login exitoso' })
     @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
-    create (@Body() authLoginDto : AuthLoginDto ) : Promise<AuthResponseDto>{
+    async create (@Body() authLoginDto : AuthLoginDto ) : Promise<AuthResponseDto>{
         return this.authService.login(authLoginDto);
     }
 

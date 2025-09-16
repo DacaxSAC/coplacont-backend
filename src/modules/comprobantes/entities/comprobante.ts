@@ -14,21 +14,19 @@ export class Comprobante {
     @PrimaryGeneratedColumn()
     idComprobante: number;
 
-    //Manual
     @Column({unique : false , nullable : false})
     correlativo : string;
 
-    //Manual - Relación con cliente/proveedor
+    // Relación con cliente/proveedor
     @ManyToOne(() => Entidad, { nullable: true })
     @JoinColumn({ name: 'id_entidad' })
     entidad: Entidad;
 
-    //Manual - Relación con empresa propietaria del comprobante
+    // Relación con empresa propietaria del comprobante
     @ManyToOne(() => Persona, { nullable: false })
     @JoinColumn({ name: 'id_persona' })
     persona: Persona;
 
-    //Manual
     @Column({
         type: 'enum',
         enum: TipoOperacion,
@@ -36,7 +34,6 @@ export class Comprobante {
     })
     tipoOperacion: TipoOperacion;
 
-    //Manual
     @Column({
         type: 'enum',
         enum: TipoComprobante,

@@ -29,10 +29,12 @@ export class ComprasService {
                 'totales', 
                 'persona', 
                 'detalles', 
-                'detalles.inventario'
+                'detalles.inventario',
+                'entidad'
             ],
             order: { fechaRegistro: 'DESC' }
         });
+        console.log(comprobantes);
         return plainToInstance(ResponseComprobanteDto, comprobantes, {
             excludeExtraneousValues: true,
         });
@@ -55,7 +57,8 @@ export class ComprasService {
                 'totales', 
                 'persona', 
                 'detalles', 
-                'detalles.inventario'
+                'detalles.inventario',
+                'entidad'
             ]
         });
         

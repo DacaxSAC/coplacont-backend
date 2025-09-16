@@ -30,26 +30,6 @@ export class ComprobanteController {
         return this.comprobanteService.findAll(user.personaId);
     }
 
-    @Get('compras')
-    @ApiOperation({ summary: 'Obtener todos los comprobantes de compra' })
-    @ApiResponse({ status: 200, description: 'Lista de comprobantes de compra obtenida exitosamente', type: [ResponseComprobanteDto] })
-    findCompras(@CurrentUser() user: AuthenticatedUser): Promise<ResponseComprobanteDto[]> {
-        if (!user.personaId) {
-            throw new Error('Usuario no tiene una empresa asociada');
-        }
-        return this.comprobanteService.findCompras(user.personaId);
-    }
-
-    @Get('ventas')
-    @ApiOperation({ summary: 'Obtener todos los comprobantes de venta' })
-    @ApiResponse({ status: 200, description: 'Lista de comprobantes de venta obtenida exitosamente', type: [ResponseComprobanteDto] })
-    findVentas(@CurrentUser() user: AuthenticatedUser): Promise<ResponseComprobanteDto[]> {
-        if (!user.personaId) {
-            throw new Error('Usuario no tiene una empresa asociada');
-        }
-        return this.comprobanteService.findVentas(user.personaId);
-    }
-
     @Get('siguiente-correlativo')
     @ApiOperation({ summary: 'Obtener el siguiente correlativo para un tipo de operación' })
     @ApiQuery({ 
