@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PersonaService } from '../services/person.service';
-import { PersonaWithUsersResponseDto, UserInPersonaResponseDto } from '../dto/persona/persona-with-users-response.dto';
+import {PersonaWithUsersResponseDto, UserInPersonaResponseDto} from '../dto/persona/persona-with-users-response.dto';
 import { plainToInstance } from 'class-transformer';
 
 /**

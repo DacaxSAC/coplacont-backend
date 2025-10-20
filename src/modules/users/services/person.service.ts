@@ -83,6 +83,16 @@ export class PersonaService {
     }
 
     /**
+     * Busca todas las empresas incluyendo sus usuarios y roles
+     * @returns Array de empresas con usuarios asociados
+     */
+    async findAllWithUsers(): Promise<Persona[]> {
+        return await this.personaRepository.find({
+            relations: ['usuarios', 'usuarios.userRoles', 'usuarios.userRoles.role']
+        });
+    }
+
+    /**
      * Crea una nueva empresa junto con su usuario principal
      * @param createPersonaWithUserDto Datos de la empresa y usuario
      * @returns Empresa creada con usuario principal
