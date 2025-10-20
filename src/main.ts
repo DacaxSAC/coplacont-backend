@@ -7,10 +7,20 @@ import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
 import { addTransactionalDataSource, initializeTransactionalContext } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express from 'express';
 
-async function bootstrap() {
+let cachedApp: any;
+
+async function createApp() {
+  if (cachedApp) {
+    return cachedApp;
+  }
+
   initializeTransactionalContext();
-  const app = await NestFactory.create(AppModule);
+  
+  const expressApp = express();
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
 
   const dataSource = app.get(DataSource);
   addTransactionalDataSource(dataSource);
@@ -41,6 +51,27 @@ async function bootstrap() {
     next();
   });
   
-  await app.listen(process.env.PORT ?? 3000);
+  await app.init();
+  cachedApp = expressApp;
+  return expressApp;
 }
-bootstrap();
+
+// Para desarrollo local
+async function bootstrap() {
+  const app = await createApp();
+  const port = process.env.PORT ?? 3000;
+  app.listen(port, () => {
+    console.log(`Application is running on port ${port}`);
+  });
+}
+
+// Para Vercel
+export default async (req: any, res: any) => {
+  const app = await createApp();
+  return app(req, res);
+};
+
+// Solo ejecutar bootstrap en desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+  bootstrap();
+}
