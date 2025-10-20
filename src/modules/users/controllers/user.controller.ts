@@ -7,6 +7,7 @@ import { CreateUserForPersonaDto } from '../dto/user/create-user-for-persona.dto
 import { CreatePersonaWithUserDto } from '../dto/persona/create-persona-with-user.dto';
 import { ResponseUserDto } from '../dto/user/response-user.dto';
 import { UpdateUserDto } from '../dto/user/update-user.dto';
+import { hash } from 'bcrypt';
 
 @ApiTags('Usuarios')
 @Controller('api/user')
@@ -280,6 +281,57 @@ export class UserController {
     @ApiResponse({ status: 400, description: 'Error al desactivar el usuario' })
     disableUser(@Param('id') id: number): Promise<void> {
         return this.userService.softDelete(id);
+    }
+
+    /**
+     * Actualiza la contraseña de un usuario sin requerir la contraseña actual
+     * @param id ID del usuario
+     * @param body Objeto con la nueva contraseña
+     */
+    @Patch(':id/password')
+    @ApiOperation({ 
+        summary: 'Actualizar contraseña de usuario',
+        description: 'Actualiza la contraseña de un usuario específico sin requerir la contraseña actual. Útil para administradores o procesos de recuperación.'
+    })
+    @ApiParam({ 
+        name: 'id', 
+        description: 'ID del usuario cuya contraseña se actualizará', 
+        example: 1 
+    })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                password: {
+                    type: 'string',
+                    description: 'Nueva contraseña del usuario',
+                    example: 'nuevaPassword123!',
+                    minLength: 8
+                }
+            },
+            required: ['password']
+        },
+        examples: {
+            ejemplo1: {
+                summary: 'Actualizar contraseña',
+                value: {
+                    password: 'nuevaPassword123!'
+                }
+            }
+        }
+    })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Contraseña actualizada exitosamente',
+        example: {
+            message: 'Contraseña actualizada exitosamente'
+        }
+    })
+    @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+    @ApiResponse({ status: 400, description: 'Contraseña inválida o muy débil' })
+    async updatePassword(@Param('id') id: number, @Body() body: { password: string }): Promise<void> {
+        const hashedPassword = await hash(body.password, 10);
+        return this.userService.updatePassword(id, hashedPassword);
     }
 
     /**
