@@ -1,20 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dist/src/main.js",
-      "use": "@vercel/node"
+  "functions": {
+    "dist/src/main.js": {
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
       "dest": "dist/src/main.js"
     }
-  ],
-  "functions": {
-    "dist/src/main.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
