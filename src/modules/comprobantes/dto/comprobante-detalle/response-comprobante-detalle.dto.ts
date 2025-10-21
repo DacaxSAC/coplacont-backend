@@ -1,4 +1,4 @@
-import { Expose, Transform } from "class-transformer";
+import { Expose, Transform } from 'class-transformer';
 
 export class ResponseComprobanteDetalleDto {
   @Expose()

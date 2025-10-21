@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Persona } from '../../users/entities/persona.entity';
 
 /**
@@ -7,69 +13,72 @@ import { Persona } from '../../users/entities/persona.entity';
  */
 @Entity({ name: 'almacen' })
 export class Almacen {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  /**
+   * Relación con Persona (empresa propietaria del almacén)
+   * Un almacén pertenece a una empresa específica
+   */
+  @ManyToOne(() => Persona, { nullable: false })
+  @JoinColumn({ name: 'id_persona' })
+  persona: Persona;
 
-    /**
-     * Relación con Persona (empresa propietaria del almacén)
-     * Un almacén pertenece a una empresa específica
-     */
-    @ManyToOne(() => Persona, { nullable: false })
-    @JoinColumn({ name: 'id_persona' })
-    persona: Persona;
+  /**
+   * Nombre del almacén
+   */
+  @Column({ length: 100, nullable: false })
+  nombre: string;
 
-    /**
-     * Nombre del almacén
-     */
-    @Column({ length: 100, nullable: false })
-    nombre: string;
+  /**
+   * Ubicación física del almacén
+   */
+  @Column({ length: 255, nullable: false })
+  ubicacion: string;
 
-    /**
-     * Ubicación física del almacén
-     */
-    @Column({ length: 255, nullable: false })
-    ubicacion: string;
+  /**
+   * Estado del almacén (activo/inactivo)
+   */
+  @Column({ default: true })
+  estado: boolean;
 
-    /**
-     * Estado del almacén (activo/inactivo)
-     */
-    @Column({ default: true })
-    estado: boolean;
+  /**
+   * Descripción adicional del almacén
+   */
+  @Column({ length: 500, nullable: true })
+  descripcion: string;
 
-    /**
-     * Descripción adicional del almacén
-     */
-    @Column({ length: 500, nullable: true })
-    descripcion: string;
+  /**
+   * Capacidad máxima del almacén
+   */
+  @Column({ nullable: true })
+  capacidadMaxima: number;
 
-    /**
-     * Capacidad máxima del almacén
-     */
-    @Column({ nullable: true })
-    capacidadMaxima: number;
+  /**
+   * Responsable del almacén
+   */
+  @Column({ length: 100, nullable: true })
+  responsable: string;
 
-    /**
-     * Responsable del almacén
-     */
-    @Column({ length: 100, nullable: true })
-    responsable: string;
+  /**
+   * Teléfono de contacto del almacén
+   */
+  @Column({ length: 20, nullable: true })
+  telefono: string;
 
-    /**
-     * Teléfono de contacto del almacén
-     */
-    @Column({ length: 20, nullable: true })
-    telefono: string;
+  /**
+   * Fecha de creación del registro
+   */
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  fechaCreacion: Date;
 
-    /**
-     * Fecha de creación del registro
-     */
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    fechaCreacion: Date;
-
-    /**
-     * Fecha de última actualización
-     */
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    fechaActualizacion: Date;
+  /**
+   * Fecha de última actualización
+   */
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  fechaActualizacion: Date;
 }

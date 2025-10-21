@@ -1,5 +1,17 @@
-import { Controller, Get, Query, ValidationPipe, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Query,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { KardexService } from '../service/kardex.service';
 import { KardexRequestDto, KardexResponseDto } from '../dto';
 import { CurrentUser } from '../../users/decorators/current-user.decorator';
@@ -17,54 +29,56 @@ export class KardexController {
    * Genera el reporte Kardex para un inventario específico
    */
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Generar reporte Kardex',
-    description: 'Muestra el detalle de movimientos y saldos del producto seleccionado, incluyendo inventario inicial (cantidad y costo total). El personaId se obtiene automáticamente del usuario autenticado.'
+    description:
+      'Muestra el detalle de movimientos y saldos del producto seleccionado, incluyendo inventario inicial (cantidad y costo total). El personaId se obtiene automáticamente del usuario autenticado.',
   })
-  @ApiQuery({ 
-    name: 'idInventario', 
+  @ApiQuery({
+    name: 'idInventario',
     description: 'ID del inventario para generar el kardex',
     example: 1,
-    type: Number
+    type: Number,
   })
-  @ApiQuery({ 
-    name: 'fechaInicio', 
+  @ApiQuery({
+    name: 'fechaInicio',
     description: 'Fecha de inicio del reporte (opcional)',
     example: '2024-01-01',
     required: false,
-    type: String
+    type: String,
   })
-  @ApiQuery({ 
-    name: 'fechaFin', 
+  @ApiQuery({
+    name: 'fechaFin',
     description: 'Fecha de fin del reporte (opcional)',
     example: '2024-12-31',
     required: false,
-    type: String
+    type: String,
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Reporte Kardex generado exitosamente',
-    type: KardexResponseDto
+    type: KardexResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Parámetros inválidos'
+  @ApiResponse({
+    status: 400,
+    description: 'Parámetros inválidos',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'No se encontraron movimientos para el inventario especificado'
+  @ApiResponse({
+    status: 404,
+    description:
+      'No se encontraron movimientos para el inventario especificado',
   })
   async generateKardex(
     @Query(new ValidationPipe({ transform: true })) query: KardexRequestDto,
-    @CurrentUser() user: AuthenticatedUser
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<KardexResponseDto> {
     if (!user.personaId) {
       throw new Error('Usuario no tiene una empresa asociada');
     }
-    
+
     // Asignar personaId del usuario autenticado
     query.personaId = user.personaId;
-    
+
     return await this.kardexService.generateKardexReport(query);
   }
 }

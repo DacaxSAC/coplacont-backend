@@ -50,7 +50,7 @@ export class ValuationItemDto {
 
   @ApiProperty({
     description: 'Costo unitario FIFO',
-    example: 25.40,
+    example: 25.4,
   })
   @Expose()
   costoUnitarioFIFO: number;

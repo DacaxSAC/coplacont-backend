@@ -1,6 +1,6 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { TipoOperacion } from "../enum/tipo-operacion.enum";
-import { Persona } from "../../users/entities/persona.entity";
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { TipoOperacion } from '../enum/tipo-operacion.enum';
+import { Persona } from '../../users/entities/persona.entity';
 
 /**
  * Entidad que maneja los correlativos por empresa y tipo de operación
@@ -8,33 +8,33 @@ import { Persona } from "../../users/entities/persona.entity";
  */
 @Entity({ name: 'correlativos' })
 export class Correlativo {
-    /**
-     * Tipo de operación (COMPRA, VENTA, etc.)
-     * Parte de la clave primaria compuesta
-     */
-    @PrimaryColumn({
-        type: 'enum',
-        enum: TipoOperacion
-    })
-    tipo: TipoOperacion;
+  /**
+   * Tipo de operación (COMPRA, VENTA, etc.)
+   * Parte de la clave primaria compuesta
+   */
+  @PrimaryColumn({
+    type: 'enum',
+    enum: TipoOperacion,
+  })
+  tipo: TipoOperacion;
 
-    /**
-     * ID de la persona/empresa propietaria del correlativo
-     * Parte de la clave primaria compuesta
-     */
-    @PrimaryColumn()
-    personaId: number;
+  /**
+   * ID de la persona/empresa propietaria del correlativo
+   * Parte de la clave primaria compuesta
+   */
+  @PrimaryColumn()
+  personaId: number;
 
-    /**
-     * Relación con la persona/empresa
-     */
-    @ManyToOne(() => Persona, { nullable: false })
-    @JoinColumn({ name: 'personaId' })
-    persona: Persona;
+  /**
+   * Relación con la persona/empresa
+   */
+  @ManyToOne(() => Persona, { nullable: false })
+  @JoinColumn({ name: 'personaId' })
+  persona: Persona;
 
-    /**
-     * Último número utilizado para este tipo de operación y empresa
-     */
-    @Column({ default: 0 })
-    ultimoNumero: number;
+  /**
+   * Último número utilizado para este tipo de operación y empresa
+   */
+  @Column({ default: 0 })
+  ultimoNumero: number;
 }

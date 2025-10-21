@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Query, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { TipoCambioService } from '../service/tipo-cambio.service';
 import {
@@ -51,14 +46,17 @@ export class TipoCambioController {
   async obtenerTipoCambio(
     @Query() query: TipoCambioQueryDto,
   ): Promise<ApiResponseDto<TipoCambioResponseDto>> {
-    this.logger.log(`Consultando tipo de cambio para fecha: ${query.date || 'hoy'}`);
+    this.logger.log(
+      `Consultando tipo de cambio para fecha: ${query.date || 'hoy'}`,
+    );
     return await this.tipoCambioService.obtenerTipoCambio(query.date);
   }
 
   @Get('todos')
   @ApiOperation({
     summary: 'Obtener todos los tipos de cambio',
-    description: 'Obtiene todos los tipos de cambio almacenados en la base de datos (ordenados por fecha descendente)',
+    description:
+      'Obtiene todos los tipos de cambio almacenados en la base de datos (ordenados por fecha descendente)',
   })
   @ApiResponse({
     status: 200,
@@ -73,13 +71,16 @@ export class TipoCambioController {
   @Get('actualizar-diario')
   @ApiOperation({
     summary: 'Actualizar tipo de cambio diario',
-    description: 'Fuerza la actualización del tipo de cambio del día actual desde el API de SUNAT',
+    description:
+      'Fuerza la actualización del tipo de cambio del día actual desde el API de SUNAT',
   })
   @ApiResponse({
     status: 200,
     description: 'Tipo de cambio actualizado exitosamente',
   })
-  async actualizarTipoCambioDiario(): Promise<ApiResponseDto<TipoCambioResponseDto>> {
+  async actualizarTipoCambioDiario(): Promise<
+    ApiResponseDto<TipoCambioResponseDto>
+  > {
     this.logger.log('Forzando actualización del tipo de cambio diario');
     return await this.tipoCambioService.actualizarTipoCambioDiario();
   }

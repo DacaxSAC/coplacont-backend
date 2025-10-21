@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsNumber, IsDateString, IsOptional, IsString, Min, Max } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -12,7 +20,7 @@ export class CreatePeriodoContableDto {
     description: 'Año del período contable',
     example: 2024,
     minimum: 2000,
-    maximum: 2100
+    maximum: 2100,
   })
   @IsNotEmpty({ message: 'El año es requerido' })
   @IsNumber({}, { message: 'El año debe ser un número' })
@@ -26,7 +34,7 @@ export class CreatePeriodoContableDto {
   @ApiProperty({
     description: 'Fecha de inicio del período',
     example: '2024-01-01',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de inicio debe ser una fecha válida' })
@@ -38,7 +46,7 @@ export class CreatePeriodoContableDto {
   @ApiProperty({
     description: 'Fecha de fin del período',
     example: '2024-12-31',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de fin debe ser una fecha válida' })
@@ -49,7 +57,7 @@ export class CreatePeriodoContableDto {
    */
   @ApiProperty({
     description: 'ID de la persona/empresa propietaria del período',
-    example: 1
+    example: 1,
   })
   @IsNotEmpty({ message: 'El ID de la persona es requerido' })
   @IsNumber({}, { message: 'El ID de la persona debe ser un número' })
@@ -62,7 +70,7 @@ export class CreatePeriodoContableDto {
     description: 'Observaciones del período',
     example: 'Período contable 2024',
     required: false,
-    maxLength: 500
+    maxLength: 500,
   })
   @IsOptional()
   @IsString({ message: 'Las observaciones deben ser texto' })

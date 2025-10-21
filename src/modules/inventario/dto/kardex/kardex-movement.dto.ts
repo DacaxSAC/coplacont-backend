@@ -46,7 +46,7 @@ export class KardexMovementDto {
 
   @ApiProperty({
     description: 'Costo unitario de entrada',
-    example: 25.50,
+    example: 25.5,
   })
   @Expose()
   costoUnitarioEntrada: number;
@@ -67,14 +67,14 @@ export class KardexMovementDto {
 
   @ApiProperty({
     description: 'Costo unitario de salida',
-    example: 25.50,
+    example: 25.5,
   })
   @Expose()
   costoUnitarioSalida: number;
 
   @ApiProperty({
     description: 'Valor total de salida',
-    example: 127.50,
+    example: 127.5,
   })
   @Expose()
   valorTotalSalida: number;
@@ -88,7 +88,7 @@ export class KardexMovementDto {
 
   @ApiProperty({
     description: 'Costo unitario promedio del saldo',
-    example: 25.50,
+    example: 25.5,
   })
   @Expose()
   costoUnitarioSaldo: number;

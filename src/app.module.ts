@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { UserModule } from './modules/users/user.module';
 import { EntidadModule } from './modules/entidades/entidad.module';
 import { AlmacenModule } from './modules/almacen/almacen.module';
-import { TypeOrmModule } from '@nestjs/typeorm';  
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriaModule } from './modules/categoria/categoria.module';
 import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
@@ -20,16 +20,14 @@ import { Role } from './modules/users/entities/role.entity';
 import { User } from './modules/users/entities/user.entity';
 import { UserRole } from './modules/users/entities/user-role.entity';
 
-
 @Module({
   imports: [
-
     ConfigModule.forRoot({
       isGlobal: true,
     }),
     // Conexión global a la base de datos
     TypeOrmModule.forRoot(databaseConfig),
-    
+
     // TypeORM para el servicio de seed
     TypeOrmModule.forFeature([Role, User, UserRole]),
 
@@ -43,7 +41,7 @@ import { UserRole } from './modules/users/entities/user-role.entity';
     TipoCambioModule,
     MovimientosModule,
     InventarioModule,
-    PeriodosModule
+    PeriodosModule,
   ],
   controllers: [AppController, ComprobanteController],
   providers: [AppService, DatabaseSeedService],

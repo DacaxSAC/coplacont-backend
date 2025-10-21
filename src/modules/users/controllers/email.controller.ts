@@ -2,7 +2,11 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { EmailService } from '../services/email.service';
 import { EmailOptions, EmailResponse } from '../../../config/email.config';
-import { SendEmailDto, WelcomeEmailDto, PasswordResetEmailDto } from '../dto/email';
+import {
+  SendEmailDto,
+  WelcomeEmailDto,
+  PasswordResetEmailDto,
+} from '../dto/email';
 
 @ApiTags('Email')
 @Controller('api/email')
@@ -35,13 +39,18 @@ export class EmailController {
   @Post('welcome')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enviar email de bienvenida' })
-  @ApiResponse({ status: 200, description: 'Email de bienvenida enviado exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email de bienvenida enviado exitosamente',
+  })
   @ApiResponse({ status: 400, description: 'Error en los datos enviados' })
   @ApiBody({ type: WelcomeEmailDto })
-  async sendWelcomeEmail(@Body() welcomeEmailDto: WelcomeEmailDto): Promise<EmailResponse> {
+  async sendWelcomeEmail(
+    @Body() welcomeEmailDto: WelcomeEmailDto,
+  ): Promise<EmailResponse> {
     return this.emailService.sendWelcomeEmail(
       welcomeEmailDto.email,
-      welcomeEmailDto.nombre
+      welcomeEmailDto.nombre,
     );
   }
 
@@ -51,13 +60,18 @@ export class EmailController {
   @Post('password-reset')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enviar email de recuperación de contraseña' })
-  @ApiResponse({ status: 200, description: 'Email de recuperación enviado exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email de recuperación enviado exitosamente',
+  })
   @ApiResponse({ status: 400, description: 'Error en los datos enviados' })
   @ApiBody({ type: PasswordResetEmailDto })
-  async sendPasswordResetEmail(@Body() passwordResetDto: PasswordResetEmailDto): Promise<EmailResponse> {
+  async sendPasswordResetEmail(
+    @Body() passwordResetDto: PasswordResetEmailDto,
+  ): Promise<EmailResponse> {
     return this.emailService.sendPasswordResetEmail(
       passwordResetDto.email,
-      passwordResetDto.resetToken
+      passwordResetDto.resetToken,
     );
   }
 

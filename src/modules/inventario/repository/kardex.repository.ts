@@ -30,7 +30,7 @@ export interface KardexMovementData {
 export class KardexRepository {
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -41,7 +41,7 @@ export class KardexRepository {
   async getKardexMovements(
     idInventario: number,
     fechaInicio?: Date,
-    fechaFin?: Date
+    fechaFin?: Date,
   ): Promise<KardexMovementData[]> {
     let sql = `
       SELECT 
@@ -66,30 +66,33 @@ export class KardexRepository {
       LEFT JOIN movimiento_detalles md ON m.id = md.id_movimiento AND md.id_inventario = i.id
       WHERE i.id = $1
     `;
-    
+
     const params: any[] = [idInventario];
     let paramIndex = 2;
-    
+
     if (fechaInicio) {
       sql += ` AND c."fechaEmision" >= $${paramIndex}`;
       params.push(fechaInicio);
       paramIndex++;
     }
-    
+
     if (fechaFin) {
       sql += ` AND c."fechaEmision" <= $${paramIndex}`;
       params.push(fechaFin);
       paramIndex++;
     }
-    
+
     sql += ` ORDER BY c."fechaEmision" ASC, c."idComprobante" ASC`;
-    
+
     const movimientos = await this.dataSource.query(sql, params);
-    
+
     // Obtener detalles de salida para movimientos de tipo SALIDA
     const movimientosConDetalles = await Promise.all(
       movimientos.map(async (movimiento) => {
-        if (movimiento.tipoMovimiento === 'SALIDA' && movimiento.idMovimientoDetalle) {
+        if (
+          movimiento.tipoMovimiento === 'SALIDA' &&
+          movimiento.idMovimientoDetalle
+        ) {
           const detallesSalidaSql = `
             SELECT 
               ds.id,
@@ -99,21 +102,25 @@ export class KardexRepository {
             FROM detalle_salidas ds
             WHERE ds.id_movimiento_detalle = $1
           `;
-          
-          const detallesSalida = await this.dataSource.query(detallesSalidaSql, [movimiento.idMovimientoDetalle]);
-          
+
+          const detallesSalida = await this.dataSource.query(
+            detallesSalidaSql,
+            [movimiento.idMovimientoDetalle],
+          );
+
           return {
             ...movimiento,
-            detallesSalida: detallesSalida.length > 0 ? detallesSalida : undefined
+            detallesSalida:
+              detallesSalida.length > 0 ? detallesSalida : undefined,
           };
         }
-        
+
         // Remover el campo idMovimientoDetalle del resultado final
         const { idMovimientoDetalle, ...movimientoSinId } = movimiento;
         return movimientoSinId;
-      })
+      }),
     );
-    
+
     return movimientosConDetalles;
   }
 
@@ -122,7 +129,7 @@ export class KardexRepository {
    */
   async getStockInicial(
     idInventario: number,
-    fechaCorte: Date
+    fechaCorte: Date,
   ): Promise<{ cantidad: number; costoTotal: number }> {
     const sql = `
       SELECT 
@@ -145,7 +152,7 @@ export class KardexRepository {
       LEFT JOIN movimiento_detalles md ON m.id = md.id_movimiento AND md.id_inventario = i.id
       WHERE i.id = $1 AND c."fechaEmision" < $2
     `;
-    
+
     const result = await this.dataSource.query(sql, [idInventario, fechaCorte]);
     return result[0] || { cantidad: 0, costoTotal: 0 };
   }

@@ -1,30 +1,28 @@
-import { Injectable } from "@nestjs/common";
-import { UserService } from "./user.service";
+import { Injectable } from '@nestjs/common';
+import { UserService } from './user.service';
 import * as bcrypt from 'bcrypt';
-import { User } from "../entities/user.entity";
-import { Persona } from "../entities/persona.entity";
-import { JwtService } from "@nestjs/jwt";
-import { AuthLoginDto } from "../dto/auth/auth-login.dto";
-import { UserRolService } from "./user-role.service";
-import { RolePermissionService } from "./role-permission.service";
-import { Role } from "../entities/role.entity";
-import { Permission } from "../entities/permission.entity";
-import { Payload } from "../dto/auth/payload";
-import { AuthResponseDto } from "../dto/auth/auth-response.dto";
-import { EmailService } from "./email.service";
+import { User } from '../entities/user.entity';
+import { Persona } from '../entities/persona.entity';
+import { JwtService } from '@nestjs/jwt';
+import { AuthLoginDto } from '../dto/auth/auth-login.dto';
+import { UserRolService } from './user-role.service';
+import { RolePermissionService } from './role-permission.service';
+import { Role } from '../entities/role.entity';
+import { Permission } from '../entities/permission.entity';
+import { Payload } from '../dto/auth/payload';
+import { AuthResponseDto } from '../dto/auth/auth-response.dto';
+import { EmailService } from './email.service';
 import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
-
   constructor(
     private readonly usersService: UserService,
-    private readonly userRoleService : UserRolService,
-    private readonly rolePermissionService : RolePermissionService,
+    private readonly userRoleService: UserRolService,
+    private readonly rolePermissionService: RolePermissionService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-  ) {
-  }
+  ) {}
 
   /**
    * Valida las credenciales del usuario
@@ -34,15 +32,15 @@ export class AuthService {
    */
   async validateUser(email: string, contrasena: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
-    
+
     if (user && user.contrasena && contrasena) {
       const isPasswordValid = await bcrypt.compare(contrasena, user.contrasena);
-      
+
       if (isPasswordValid) {
         return user;
       }
     }
-    
+
     return null;
   }
 
@@ -51,17 +49,31 @@ export class AuthService {
    * @param authLoginDto Datos de login (email y contraseña)
    * @returns Respuesta de autenticación con mensaje, email, JWT y datos de persona (si es exitoso)
    */
-  async login(authLoginDto : AuthLoginDto): Promise<AuthResponseDto> {
-    const user = await this.validateUser(authLoginDto.email, authLoginDto.contrasena);
+  async login(authLoginDto: AuthLoginDto): Promise<AuthResponseDto> {
+    const user = await this.validateUser(
+      authLoginDto.email,
+      authLoginDto.contrasena,
+    );
 
     if (!user) {
       return this.buildAuthResponse('Credenciales inválidas', false);
     }
-    
+
     const roles = await this.userRoleService.findRolesByUser(user);
-    const permissions = await this.rolePermissionService.findPermissionsByRoles(roles);
-    const payload = this.jwtService.sign(this.buildPayload(user,roles,permissions))
-    return this.buildAuthResponse('Inicio de sesión exitoso', true, user.nombre, user.email, payload, user.persona, roles)
+    const permissions =
+      await this.rolePermissionService.findPermissionsByRoles(roles);
+    const payload = this.jwtService.sign(
+      this.buildPayload(user, roles, permissions),
+    );
+    return this.buildAuthResponse(
+      'Inicio de sesión exitoso',
+      true,
+      user.nombre,
+      user.email,
+      payload,
+      user.persona,
+      roles,
+    );
   }
 
   /**
@@ -79,14 +91,21 @@ export class AuthService {
     }
 
     const resetToken = randomBytes(32).toString('hex');
-    
+
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
-    await this.usersService.updateResetPasswordToken(user.id, resetToken, expiresAt);
+    await this.usersService.updateResetPasswordToken(
+      user.id,
+      resetToken,
+      expiresAt,
+    );
 
-    const emailResult = await this.emailService.sendPasswordResetEmail(email, resetToken);
-    
+    const emailResult = await this.emailService.sendPasswordResetEmail(
+      email,
+      resetToken,
+    );
+
     if (!emailResult.success) {
       return {
         message: 'Error al enviar el correo de recuperación',
@@ -107,7 +126,7 @@ export class AuthService {
    */
   async validateResetToken(token: string) {
     const user = await this.usersService.findByResetToken(token);
-    
+
     if (!user) {
       return {
         message: 'Token inválido o expirado',
@@ -138,13 +157,13 @@ export class AuthService {
    */
   async resetPassword(token: string, password: string) {
     const tokenValidation = await this.validateResetToken(token);
-    
+
     if (!tokenValidation.success) {
       return tokenValidation;
     }
 
     const user = await this.usersService.findByResetToken(token);
-    
+
     if (!user) {
       return {
         message: 'Token inválido',
@@ -154,10 +173,10 @@ export class AuthService {
 
     // Hashear la nueva contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Actualizar contraseña
     await this.usersService.updatePassword(user.id, hashedPassword);
-    
+
     // Limpiar token de recuperación
     await this.usersService.clearResetPasswordToken(user.id);
 
@@ -167,13 +186,17 @@ export class AuthService {
     };
   }
 
-  private buildPayload (user : User , roles : Role[] , permissions : Permission[]): Payload {
+  private buildPayload(
+    user: User,
+    roles: Role[],
+    permissions: Permission[],
+  ): Payload {
     return {
-        sub: user.id,
-        email: user.email,
-        roles,
-        permissions
-    }
+      sub: user.id,
+      email: user.email,
+      roles,
+      permissions,
+    };
   }
 
   /**
@@ -184,25 +207,32 @@ export class AuthService {
    * @returns Objeto de respuesta de autenticación
    */
   /**
-    * Construye la respuesta de autenticación
-    * @param message Mensaje de respuesta
-    * @param success Indica si la operación fue exitosa
-    * @param email Email del usuario (opcional)
-    * @param jwt Token JWT (opcional)
-    * @param persona Datos de la persona (opcional)
-    * @param roles Roles del usuario (opcional)
-    * @returns Respuesta de autenticación
-    */
-   private buildAuthResponse (message: string, success: boolean, nombre?: string, email?: string, jwt?: string, persona?: Persona, roles?: Role[]) : AuthResponseDto {
-     const response: AuthResponseDto = { message, success };
-     
-     if(nombre) response.nombre = nombre;
-     if (email) response.email = email;
-     if (jwt) response.jwt = jwt;
-     if (persona) response.persona = persona;
-     if (roles) response.roles = roles;
-     
-     return response;
-   }
+   * Construye la respuesta de autenticación
+   * @param message Mensaje de respuesta
+   * @param success Indica si la operación fue exitosa
+   * @param email Email del usuario (opcional)
+   * @param jwt Token JWT (opcional)
+   * @param persona Datos de la persona (opcional)
+   * @param roles Roles del usuario (opcional)
+   * @returns Respuesta de autenticación
+   */
+  private buildAuthResponse(
+    message: string,
+    success: boolean,
+    nombre?: string,
+    email?: string,
+    jwt?: string,
+    persona?: Persona,
+    roles?: Role[],
+  ): AuthResponseDto {
+    const response: AuthResponseDto = { message, success };
 
+    if (nombre) response.nombre = nombre;
+    if (email) response.email = email;
+    if (jwt) response.jwt = jwt;
+    if (persona) response.persona = persona;
+    if (roles) response.roles = roles;
+
+    return response;
+  }
 }

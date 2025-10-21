@@ -34,7 +34,9 @@ export class EmailConfig {
    */
   static getTransporter(): Transporter {
     if (!this.transporter) {
-      throw new Error('Transporter no ha sido inicializado. Llama a createTransporter primero.');
+      throw new Error(
+        'Transporter no ha sido inicializado. Llama a createTransporter primero.',
+      );
     }
     return this.transporter;
   }

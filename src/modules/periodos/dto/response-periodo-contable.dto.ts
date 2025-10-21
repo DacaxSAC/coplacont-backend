@@ -9,7 +9,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'ID único del período contable',
-    example: 1
+    example: 1,
   })
   id: number;
 
@@ -18,7 +18,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Año del período contable',
-    example: 2024
+    example: 2024,
   })
   año: number;
 
@@ -27,7 +27,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Fecha de inicio del período',
-    example: '2024-01-01'
+    example: '2024-01-01',
   })
   fechaInicio: string;
 
@@ -36,7 +36,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Fecha de fin del período',
-    example: '2024-12-31'
+    example: '2024-12-31',
   })
   fechaFin: string;
 
@@ -45,7 +45,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Indica si el período está activo',
-    example: true
+    example: true,
   })
   activo: boolean;
 
@@ -54,7 +54,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Indica si el período está cerrado',
-    example: false
+    example: false,
   })
   cerrado: boolean;
 
@@ -64,7 +64,7 @@ export class ResponsePeriodoContableDto {
   @ApiProperty({
     description: 'Fecha en que se cerró el período',
     example: '2025-01-15T10:30:00Z',
-    required: false
+    required: false,
   })
   fechaCierre?: string;
 
@@ -74,7 +74,7 @@ export class ResponsePeriodoContableDto {
   @ApiProperty({
     description: 'Usuario que cerró el período',
     example: 'admin@empresa.com',
-    required: false
+    required: false,
   })
   usuarioCierre?: string;
 
@@ -84,7 +84,7 @@ export class ResponsePeriodoContableDto {
   @ApiProperty({
     description: 'Observaciones del período',
     example: 'Período contable 2024',
-    required: false
+    required: false,
   })
   observaciones?: string;
 
@@ -96,8 +96,8 @@ export class ResponsePeriodoContableDto {
     example: {
       id: 1,
       razonSocial: 'Empresa SAC',
-      ruc: '20123456789'
-    }
+      ruc: '20123456789',
+    },
   })
   persona: {
     id: number;
@@ -110,7 +110,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Descripción legible del período',
-    example: 'Período 2024 (2024-01-01 - 2024-12-31)'
+    example: 'Período 2024 (2024-01-01 - 2024-12-31)',
   })
   descripcion: string;
 
@@ -119,7 +119,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Fecha de creación del período',
-    example: '2024-01-01T00:00:00Z'
+    example: '2024-01-01T00:00:00Z',
   })
   fechaCreacion: string;
 
@@ -128,7 +128,7 @@ export class ResponsePeriodoContableDto {
    */
   @ApiProperty({
     description: 'Fecha de última actualización',
-    example: '2024-01-01T00:00:00Z'
+    example: '2024-01-01T00:00:00Z',
   })
   fechaActualizacion: string;
 }

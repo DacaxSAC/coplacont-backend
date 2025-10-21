@@ -1,5 +1,4 @@
 export enum TipoOperacion {
-    VENTA = 'venta',
-    COMPRA = 'compra',
+  VENTA = 'venta',
+  COMPRA = 'compra',
 }
-  

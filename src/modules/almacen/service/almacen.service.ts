@@ -32,14 +32,16 @@ export class AlmacenService {
   ): Promise<ResponseAlmacenDto> {
     // Verificar si ya existe un almacén con el mismo nombre en la empresa
     const existingAlmacen = await this.almacenRepository.findOne({
-      where: { 
+      where: {
         nombre: createAlmacenDto.nombre,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
     });
 
     if (existingAlmacen) {
-      throw new ConflictException('Ya existe un almacén con este nombre en su empresa');
+      throw new ConflictException(
+        'Ya existe un almacén con este nombre en su empresa',
+      );
     }
 
     // Crear nuevo almacén asociado a la empresa
@@ -61,7 +63,10 @@ export class AlmacenService {
    * @param includeInactive - Si es true, incluye almacenes inactivos. Por defecto false (solo activos)
    * @returns Promise<ResponseAlmacenDto[]> - Lista de almacenes
    */
-  async findAll(personaId: number, includeInactive: boolean = false): Promise<ResponseAlmacenDto[]> {
+  async findAll(
+    personaId: number,
+    includeInactive: boolean = false,
+  ): Promise<ResponseAlmacenDto[]> {
     const queryBuilder = this.almacenRepository
       .createQueryBuilder('almacen')
       .leftJoinAndSelect('almacen.persona', 'persona')
@@ -90,15 +95,17 @@ export class AlmacenService {
    */
   async findOne(personaId: number, id: number): Promise<ResponseAlmacenDto> {
     const almacen = await this.almacenRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
       relations: ['persona'],
     });
 
     if (!almacen) {
-      throw new NotFoundException(`Almacén con ID ${id} no encontrado en su empresa`);
+      throw new NotFoundException(
+        `Almacén con ID ${id} no encontrado en su empresa`,
+      );
     }
 
     return plainToClass(ResponseAlmacenDto, almacen, {
@@ -119,28 +126,32 @@ export class AlmacenService {
     updateAlmacenDto: UpdateAlmacenDto,
   ): Promise<ResponseAlmacenDto> {
     const almacen = await this.almacenRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
       relations: ['persona'],
     });
 
     if (!almacen) {
-      throw new NotFoundException(`Almacén con ID ${id} no encontrado en su empresa`);
+      throw new NotFoundException(
+        `Almacén con ID ${id} no encontrado en su empresa`,
+      );
     }
 
     // Verificar si el nuevo nombre ya existe en la empresa (si se está cambiando)
     if (updateAlmacenDto.nombre && updateAlmacenDto.nombre !== almacen.nombre) {
       const existingAlmacen = await this.almacenRepository.findOne({
-        where: { 
+        where: {
           nombre: updateAlmacenDto.nombre,
-          persona: { id: personaId }
+          persona: { id: personaId },
         },
       });
 
       if (existingAlmacen) {
-        throw new ConflictException('Ya existe un almacén con este nombre en su empresa');
+        throw new ConflictException(
+          'Ya existe un almacén con este nombre en su empresa',
+        );
       }
     }
 
@@ -161,15 +172,17 @@ export class AlmacenService {
    */
   async remove(personaId: number, id: number): Promise<ResponseAlmacenDto> {
     const almacen = await this.almacenRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
       relations: ['persona'],
     });
 
     if (!almacen) {
-      throw new NotFoundException(`Almacén con ID ${id} no encontrado en su empresa`);
+      throw new NotFoundException(
+        `Almacén con ID ${id} no encontrado en su empresa`,
+      );
     }
 
     // Soft delete - cambiar estado a false
@@ -187,7 +200,10 @@ export class AlmacenService {
    * @param nombre - Nombre a buscar
    * @returns Promise<ResponseAlmacenDto[]> - Almacenes encontrados
    */
-  async findByName(personaId: number, nombre: string): Promise<ResponseAlmacenDto[]> {
+  async findByName(
+    personaId: number,
+    nombre: string,
+  ): Promise<ResponseAlmacenDto[]> {
     const almacenes = await this.almacenRepository
       .createQueryBuilder('almacen')
       .leftJoinAndSelect('almacen.persona', 'persona')
@@ -210,7 +226,10 @@ export class AlmacenService {
    * @param ubicacion - Ubicación a buscar
    * @returns Promise<ResponseAlmacenDto[]> - Almacenes encontrados
    */
-  async findByLocation(personaId: number, ubicacion: string): Promise<ResponseAlmacenDto[]> {
+  async findByLocation(
+    personaId: number,
+    ubicacion: string,
+  ): Promise<ResponseAlmacenDto[]> {
     const almacenes = await this.almacenRepository
       .createQueryBuilder('almacen')
       .leftJoinAndSelect('almacen.persona', 'persona')
@@ -235,7 +254,10 @@ export class AlmacenService {
    * @param responsable - Responsable a buscar
    * @returns Promise<ResponseAlmacenDto[]> - Almacenes encontrados
    */
-  async findByResponsible(personaId: number, responsable: string): Promise<ResponseAlmacenDto[]> {
+  async findByResponsible(
+    personaId: number,
+    responsable: string,
+  ): Promise<ResponseAlmacenDto[]> {
     const almacenes = await this.almacenRepository
       .createQueryBuilder('almacen')
       .leftJoinAndSelect('almacen.persona', 'persona')
@@ -260,7 +282,10 @@ export class AlmacenService {
    * @param minCapacidad - Capacidad mínima
    * @returns Promise<ResponseAlmacenDto[]> - Almacenes con capacidad mayor o igual
    */
-  async findByMinCapacity(personaId: number, minCapacidad: number): Promise<ResponseAlmacenDto[]> {
+  async findByMinCapacity(
+    personaId: number,
+    minCapacidad: number,
+  ): Promise<ResponseAlmacenDto[]> {
     const almacenes = await this.almacenRepository
       .createQueryBuilder('almacen')
       .leftJoinAndSelect('almacen.persona', 'persona')

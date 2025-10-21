@@ -1,6 +1,13 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { Persona } from "./persona.entity";
-import { UserRole } from "./user-role.entity";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Persona } from './persona.entity';
+import { UserRole } from './user-role.entity';
 
 @Entity()
 export class User {
@@ -25,14 +32,13 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   resetPasswordExpires?: Date;
 
-  @ManyToOne(() => Persona, persona => persona.usuarios, { nullable: true })
+  @ManyToOne(() => Persona, (persona) => persona.usuarios, { nullable: true })
   @JoinColumn()
   persona: Persona;
 
   @Column({ default: false })
   esPrincipal: boolean;
 
-  @OneToMany(() => UserRole, userRole => userRole.user)
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
   userRoles: UserRole[];
-  
 }

@@ -1,7 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { RolEnum } from "../../enums/RoleEnum";
+import { ApiProperty } from '@nestjs/swagger';
+import { RolEnum } from '../../enums/RoleEnum';
 
 export class CreateRolDto {
-    @ApiProperty()
-    nombre : RolEnum;
+  @ApiProperty()
+  nombre: RolEnum;
 }

@@ -12,7 +12,7 @@ export class CostoVentaRequestDto {
   @ApiProperty({
     description: 'Año para el reporte de costo de venta',
     example: 2024,
-    minimum: 2000
+    minimum: 2000,
   })
   @IsNotEmpty({ message: 'El año es requerido' })
   @IsNumber({}, { message: 'El año debe ser un número' })
@@ -26,7 +26,7 @@ export class CostoVentaRequestDto {
   @ApiProperty({
     description: 'ID del almacén (opcional)',
     example: 1,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber({}, { message: 'El ID del almacén debe ser un número' })
@@ -39,7 +39,7 @@ export class CostoVentaRequestDto {
   @ApiProperty({
     description: 'ID del producto (opcional)',
     example: 1,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber({}, { message: 'El ID del producto debe ser un número' })

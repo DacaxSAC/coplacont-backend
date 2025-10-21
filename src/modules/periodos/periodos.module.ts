@@ -11,21 +11,11 @@ import { UserModule } from '../users/user.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      PeriodoContable,
-      ConfiguracionPeriodo
-    ]),
-    UserModule
+    TypeOrmModule.forFeature([PeriodoContable, ConfiguracionPeriodo]),
+    UserModule,
   ],
-  controllers: [
-    PeriodoContableController
-  ],
-  providers: [
-    PeriodoContableService
-  ],
-  exports: [
-    PeriodoContableService,
-    TypeOrmModule
-  ]
+  controllers: [PeriodoContableController],
+  providers: [PeriodoContableService],
+  exports: [PeriodoContableService, TypeOrmModule],
 })
 export class PeriodosModule {}

@@ -1,14 +1,14 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
   BeforeUpdate,
   ManyToOne,
   JoinColumn,
-  Unique
+  Unique,
 } from 'typeorm';
 import { EntidadType } from '../enums/EntidadType.enum';
 import { Persona } from '../../users/entities/persona.entity';
@@ -32,7 +32,7 @@ export class Entidad {
   @Column({
     type: 'enum',
     enum: EntidadType,
-    nullable: false
+    nullable: false,
   })
   tipo: EntidadType;
 
@@ -103,7 +103,7 @@ export class Entidad {
         throw new Error('El DNI debe tener 8 dígitos');
       }
     } else if (this.tipo === EntidadType.JURIDICA) {
-      if (!/^\d{11}$/.test(this.numeroDocumento)) { 
+      if (!/^\d{11}$/.test(this.numeroDocumento)) {
         throw new Error('El RUC debe tener 11 dígitos');
       }
     }
@@ -116,10 +116,14 @@ export class Entidad {
         throw new Error('El nombre es requerido para personas naturales');
       }
       if (!this.apellidoMaterno) {
-        throw new Error('El apellido materno es requerido para personas naturales');
+        throw new Error(
+          'El apellido materno es requerido para personas naturales',
+        );
       }
       if (!this.apellidoPaterno) {
-        throw new Error('El apellido paterno es requerido para personas naturales');
+        throw new Error(
+          'El apellido paterno es requerido para personas naturales',
+        );
       }
     } else if (this.tipo === EntidadType.JURIDICA) {
       if (!this.razonSocial) {
@@ -130,7 +134,10 @@ export class Entidad {
 
   // Valida el formato de la dirección
   private validateAddress() {
-    if (this.direccion && (this.direccion.length < 5 || this.direccion.length > 255)) {
+    if (
+      this.direccion &&
+      (this.direccion.length < 5 || this.direccion.length > 255)
+    ) {
       throw new Error('La dirección debe tener entre 5 y 255 caracteres');
     }
   }
@@ -152,6 +159,8 @@ export class Entidad {
 
   // Obtiene el nombre para mostrar según el tipo de persona
   get nombreCompletoMostrado(): string {
-    return this.tipo === EntidadType.NATURAL ? this.nombreCompleto : this.razonSocial || '';
+    return this.tipo === EntidadType.NATURAL
+      ? this.nombreCompleto
+      : this.razonSocial || '';
   }
 }

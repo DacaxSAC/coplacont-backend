@@ -1,5 +1,11 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Comprobante } from "./comprobante";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Comprobante } from './comprobante';
 
 @Entity({ name: 'comprobante_totales' })
 export class ComprobanteTotales {

@@ -17,8 +17,6 @@ import { MetodoValoracion } from '../../enum/metodo-valoracion.enum';
 import { CreateComprobanteDetalleDto } from '../comprobante-detalle/create-comprobante-detalle.dto';
 
 export class CreateComprobanteDto {
-
-
   @ApiProperty({
     description: 'Referencia a la persona (id)',
     example: 1,

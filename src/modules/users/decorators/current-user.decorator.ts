@@ -24,7 +24,7 @@ export interface AuthenticatedUser {
 /**
  * Decorador para obtener el usuario autenticado del request
  * Debe usarse junto con el JwtAuthGuard
- * 
+ *
  * @example
  * @UseGuards(JwtAuthGuard)
  * @Get()
@@ -33,14 +33,19 @@ export interface AuthenticatedUser {
  * }
  */
 export const CurrentUser = createParamDecorator(
-  (data: keyof AuthenticatedUser | undefined, ctx: ExecutionContext): AuthenticatedUser | any => {
+  (
+    data: keyof AuthenticatedUser | undefined,
+    ctx: ExecutionContext,
+  ): AuthenticatedUser | any => {
     const request = ctx.switchToHttp().getRequest<Request>();
     const user = request['user'] as AuthenticatedUser;
-    
+
     if (!user) {
-      throw new Error('Usuario no encontrado en el request. Asegúrate de usar JwtAuthGuard.');
+      throw new Error(
+        'Usuario no encontrado en el request. Asegúrate de usar JwtAuthGuard.',
+      );
     }
-    
+
     return data ? user[data] : user;
   },
 );

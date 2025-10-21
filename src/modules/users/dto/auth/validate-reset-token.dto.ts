@@ -7,7 +7,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ValidateResetTokenDto {
   @ApiProperty({
     description: 'Token de recuperación de contraseña',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   @IsString({ message: 'El token debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El token es requerido' })

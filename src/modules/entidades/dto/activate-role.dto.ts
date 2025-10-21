@@ -8,8 +8,9 @@ import { IsBoolean, IsOptional } from 'class-validator';
 export class ActivateRoleDto {
   @ApiProperty({
     example: true,
-    description: 'Activar rol de cliente (solo se puede activar, no desactivar)',
-    required: false
+    description:
+      'Activar rol de cliente (solo se puede activar, no desactivar)',
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'isCliente debe ser un valor booleano' })
@@ -17,8 +18,9 @@ export class ActivateRoleDto {
 
   @ApiProperty({
     example: true,
-    description: 'Activar rol de proveedor (solo se puede activar, no desactivar)',
-    required: false
+    description:
+      'Activar rol de proveedor (solo se puede activar, no desactivar)',
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'isProveedor debe ser un valor booleano' })

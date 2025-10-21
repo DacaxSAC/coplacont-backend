@@ -10,7 +10,7 @@ export class CerrarPeriodoDto {
    */
   @ApiProperty({
     description: 'Usuario que cierra el período',
-    example: 'admin@empresa.com'
+    example: 'admin@empresa.com',
   })
   @IsNotEmpty({ message: 'El usuario es requerido' })
   @IsString({ message: 'El usuario debe ser texto' })
@@ -23,7 +23,7 @@ export class CerrarPeriodoDto {
     description: 'Observaciones del cierre del período',
     example: 'Cierre del período 2024 - Todos los movimientos revisados',
     required: false,
-    maxLength: 500
+    maxLength: 500,
   })
   @IsOptional()
   @IsString({ message: 'Las observaciones deben ser texto' })

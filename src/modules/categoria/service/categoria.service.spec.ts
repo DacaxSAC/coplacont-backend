@@ -46,7 +46,9 @@ describe('CategoriaService', () => {
     }).compile();
 
     service = module.get<CategoriaService>(CategoriaService);
-    repository = module.get<Repository<Categoria>>(getRepositoryToken(Categoria));
+    repository = module.get<Repository<Categoria>>(
+      getRepositoryToken(Categoria),
+    );
 
     // Reset mocks
     jest.clearAllMocks();
@@ -106,9 +108,9 @@ describe('CategoriaService', () => {
 
       mockRepository.findOne.mockResolvedValue(existingCategoria);
 
-      await expect(service.create(createCategoriaDto, personaId)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.create(createCategoriaDto, personaId),
+      ).rejects.toThrow(ConflictException);
       expect(mockRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -129,7 +131,9 @@ describe('CategoriaService', () => {
 
       const result = await service.findAll(personaId);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('categoria');
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'categoria',
+      );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'categoria.persona.id = :personaId',
         { personaId },
@@ -161,7 +165,9 @@ describe('CategoriaService', () => {
 
       const result = await service.findAll(personaId, true);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('categoria');
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'categoria',
+      );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'categoria.persona.id = :personaId',
         { personaId },
@@ -233,7 +239,11 @@ describe('CategoriaService', () => {
         .mockResolvedValueOnce(null);
       mockRepository.save.mockResolvedValue(updatedCategoria);
 
-      const result = await service.update(categoriaId, updateCategoriaDto, personaId);
+      const result = await service.update(
+        categoriaId,
+        updateCategoriaDto,
+        personaId,
+      );
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: {
@@ -272,7 +282,9 @@ describe('CategoriaService', () => {
 
       const result = await service.findByName(nombre, personaId);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('categoria');
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'categoria',
+      );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'categoria.nombre ILIKE :nombre',
         { nombre: `%${nombre}%` },

@@ -7,28 +7,28 @@ import { Expose, Type } from 'class-transformer';
 export class KardexDetalleSalidaDto {
   @ApiProperty({
     description: 'ID del detalle de salida',
-    example: 1
+    example: 1,
   })
   @Expose()
   id: number;
 
   @ApiProperty({
     description: 'ID del lote utilizado',
-    example: 5
+    example: 5,
   })
   @Expose()
   idLote: number;
 
   @ApiProperty({
     description: 'Costo unitario específico del lote',
-    example: 25.50
+    example: 25.5,
   })
   @Expose()
   costoUnitarioDeLote: number;
 
   @ApiProperty({
     description: 'Cantidad utilizada del lote',
-    example: 10.5
+    example: 10.5,
   })
   @Expose()
   cantidad: number;
@@ -40,7 +40,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Fecha del movimiento',
-    example: '15 - 10 - 2025'
+    example: '15 - 10 - 2025',
   })
   @Expose()
   fecha: string;
@@ -50,7 +50,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Tipo de movimiento',
-    example: 'Entrada'
+    example: 'Entrada',
   })
   @Expose()
   tipo: string;
@@ -60,7 +60,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Tipo de comprobante',
-    example: 'Factura'
+    example: 'Factura',
   })
   @Expose()
   tComprob: string;
@@ -70,7 +70,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Número de comprobante',
-    example: 'F001-00012345'
+    example: 'F001-00012345',
   })
   @Expose()
   nComprobante: string;
@@ -80,7 +80,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Cantidad del movimiento',
-    example: 10
+    example: 10,
   })
   @Expose()
   cantidad: number;
@@ -90,7 +90,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Saldo acumulado',
-    example: 100
+    example: 100,
   })
   @Expose()
   saldo: number;
@@ -100,7 +100,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Costo unitario',
-    example: 100
+    example: 100,
   })
   @Expose()
   costoUnitario: number;
@@ -110,7 +110,7 @@ export class KardexReportMovementDto {
    */
   @ApiProperty({
     description: 'Costo total',
-    example: 1000
+    example: 1000,
   })
   @Expose()
   costoTotal: number;
@@ -121,7 +121,7 @@ export class KardexReportMovementDto {
   @ApiProperty({
     description: 'Detalles de salida con información de lotes utilizados',
     type: [KardexDetalleSalidaDto],
-    required: false
+    required: false,
   })
   @Expose()
   @Type(() => KardexDetalleSalidaDto)
@@ -134,7 +134,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Nombre del producto',
-    example: 'Producto A'
+    example: 'Producto A',
   })
   @Expose()
   producto: string;
@@ -144,7 +144,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Nombre del almacén',
-    example: 'Almacén Principal'
+    example: 'Almacén Principal',
   })
   @Expose()
   almacen: string;
@@ -154,7 +154,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Cantidad inicial del inventario al inicio del período',
-    example: '50.0000'
+    example: '50.0000',
   })
   @Expose()
   inventarioInicialCantidad: string;
@@ -164,7 +164,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Costo total inicial del inventario al inicio del período',
-    example: '1250.50000000'
+    example: '1250.50000000',
   })
   @Expose()
   inventarioInicialCostoTotal: string;
@@ -174,7 +174,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Lista de movimientos del kardex',
-    type: [KardexReportMovementDto]
+    type: [KardexReportMovementDto],
   })
   @Expose()
   movimientos: KardexReportMovementDto[];
@@ -184,7 +184,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Cantidad actual',
-    example: 'XXXXXX'
+    example: 'XXXXXX',
   })
   @Expose()
   cantidadActual: string;
@@ -194,7 +194,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Saldo actual',
-    example: 'XXXXXX'
+    example: 'XXXXXX',
   })
   @Expose()
   saldoActual: string;
@@ -204,7 +204,7 @@ export class KardexResponseDto {
    */
   @ApiProperty({
     description: 'Costo final',
-    example: 'XXXXXX'
+    example: 'XXXXXX',
   })
   @Expose()
   costoFinal: string;

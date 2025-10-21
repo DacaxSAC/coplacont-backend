@@ -10,7 +10,7 @@ export class CostoVentaPorInventarioRequestDto {
     example: 2024,
     description: 'Año para el cual generar el reporte',
     minimum: 2000,
-    maximum: 2030
+    maximum: 2030,
   })
   @IsInt({ message: 'El año debe ser un número entero' })
   @Min(2000, { message: 'El año debe ser mayor o igual a 2000' })
@@ -20,8 +20,9 @@ export class CostoVentaPorInventarioRequestDto {
 
   @ApiProperty({
     example: 1,
-    description: 'ID del almacén para filtrar (opcional, si no se especifica incluye todos los almacenes)',
-    required: false
+    description:
+      'ID del almacén para filtrar (opcional, si no se especifica incluye todos los almacenes)',
+    required: false,
   })
   @IsOptional()
   @IsInt({ message: 'El ID del almacén debe ser un número entero' })
@@ -31,8 +32,9 @@ export class CostoVentaPorInventarioRequestDto {
 
   @ApiProperty({
     example: 1,
-    description: 'ID del producto para filtrar (opcional, si no se especifica incluye todos los productos)',
-    required: false
+    description:
+      'ID del producto para filtrar (opcional, si no se especifica incluye todos los productos)',
+    required: false,
   })
   @IsOptional()
   @IsInt({ message: 'El ID del producto debe ser un número entero' })

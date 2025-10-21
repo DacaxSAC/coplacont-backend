@@ -17,30 +17,22 @@ import { UserModule } from '../users/user.module';
  * Módulo para la gestión de movimientos de inventario
  */
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            Movimiento,
-            MovimientoDetalle,
-            DetalleSalida,
-            // Agregar entidades necesarias para los repositorios
-            Producto,
-            Almacen,
-            Inventario,
-            InventarioLote
-        ]),
-        InventarioModule,
-        UserModule
-    ],
-    controllers: [MovimientosController],
-    providers: [
-        MovimientosService,
-        MovimientosRepository,
-        MovimientoFactory
-    ],
-    exports: [
-        MovimientosService,
-        MovimientosRepository,
-        MovimientoFactory
-    ]
+  imports: [
+    TypeOrmModule.forFeature([
+      Movimiento,
+      MovimientoDetalle,
+      DetalleSalida,
+      // Agregar entidades necesarias para los repositorios
+      Producto,
+      Almacen,
+      Inventario,
+      InventarioLote,
+    ]),
+    InventarioModule,
+    UserModule,
+  ],
+  controllers: [MovimientosController],
+  providers: [MovimientosService, MovimientosRepository, MovimientoFactory],
+  exports: [MovimientosService, MovimientosRepository, MovimientoFactory],
 })
 export class MovimientosModule {}

@@ -59,12 +59,18 @@ export class KardexSummaryDto {
  * DTO principal para el reporte Kardex completo
  */
 export class KardexReportDto {
-  @ApiProperty({ description: 'Lista de movimientos del Kardex', type: [KardexMovementReportDto] })
+  @ApiProperty({
+    description: 'Lista de movimientos del Kardex',
+    type: [KardexMovementReportDto],
+  })
   @Expose()
   @Type(() => KardexMovementReportDto)
   movimientos: KardexMovementReportDto[];
 
-  @ApiProperty({ description: 'Resumen final del Kardex', type: KardexSummaryDto })
+  @ApiProperty({
+    description: 'Resumen final del Kardex',
+    type: KardexSummaryDto,
+  })
   @Expose()
   @Type(() => KardexSummaryDto)
   resumen: KardexSummaryDto;

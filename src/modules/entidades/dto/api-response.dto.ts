@@ -6,19 +6,19 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ApiResponseDto<T = any> {
   @ApiProperty({
     example: true,
-    description: 'Indica si la operación fue exitosa'
+    description: 'Indica si la operación fue exitosa',
   })
   success: boolean;
 
   @ApiProperty({
     example: 'Operación completada exitosamente',
-    description: 'Mensaje descriptivo de la operación'
+    description: 'Mensaje descriptivo de la operación',
   })
   message: string;
 
   @ApiProperty({
     description: 'Datos de respuesta (opcional)',
-    required: false
+    required: false,
   })
   data?: T;
 

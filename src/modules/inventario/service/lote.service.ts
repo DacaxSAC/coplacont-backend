@@ -12,8 +12,6 @@ export class LoteService {
     private readonly stockCalculationService: StockCalculationService,
   ) {}
 
-
-
   /**
    * Obtener lotes recientes (últimos 10)
    */
@@ -59,7 +57,9 @@ export class LoteService {
     // Filtrar lotes con stock disponible usando cálculo dinámico
     const lotesConStock: InventarioLote[] = [];
     for (const lote of lotes) {
-      const stockLote = await this.stockCalculationService.calcularStockLote(lote.id);
+      const stockLote = await this.stockCalculationService.calcularStockLote(
+        lote.id,
+      );
       if (stockLote && stockLote.cantidadActual > 0) {
         // Agregar el stock calculado dinámicamente al objeto lote
         (lote as any).cantidadActual = stockLote.cantidadActual;

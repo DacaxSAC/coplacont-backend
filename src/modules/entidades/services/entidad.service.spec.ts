@@ -255,7 +255,10 @@ describe('EntidadService', () => {
 
       mockRepository.findOne.mockResolvedValue(entidad);
 
-      const result = await service.findByDocumentNumber(documentNumber, personaId);
+      const result = await service.findByDocumentNumber(
+        documentNumber,
+        personaId,
+      );
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: {
@@ -273,7 +276,10 @@ describe('EntidadService', () => {
     it('should return error if entidad not found by document number', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.findByDocumentNumber(documentNumber, personaId);
+      const result = await service.findByDocumentNumber(
+        documentNumber,
+        personaId,
+      );
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('no encontrada');
@@ -301,7 +307,11 @@ describe('EntidadService', () => {
       mockRepository.findOne.mockResolvedValueOnce(existingEntidad);
       mockRepository.save.mockResolvedValue(updatedEntidad);
 
-      const result = await service.update(entidadId, personaId, updateEntidadDto);
+      const result = await service.update(
+        entidadId,
+        personaId,
+        updateEntidadDto,
+      );
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: {
@@ -318,7 +328,11 @@ describe('EntidadService', () => {
     it('should return error if entidad not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.update(entidadId, personaId, updateEntidadDto);
+      const result = await service.update(
+        entidadId,
+        personaId,
+        updateEntidadDto,
+      );
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('no encontrada');
@@ -349,7 +363,11 @@ describe('EntidadService', () => {
       mockRepository.findOne.mockResolvedValueOnce(existingEntidad);
       mockRepository.save.mockResolvedValue(updatedEntidad);
 
-      const result = await service.activateRole(entidadId, personaId, activateRoleDto);
+      const result = await service.activateRole(
+        entidadId,
+        personaId,
+        activateRoleDto,
+      );
 
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: {

@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Categoria } from '../../categoria/entities';
 import { TipoProducto } from '../enum/tipo-producto.enum';
 import { Persona } from '../../users/entities/persona.entity';
@@ -9,82 +15,85 @@ import { Persona } from '../../users/entities/persona.entity';
  */
 @Entity({ name: 'producto' })
 export class Producto {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  /**
+   * Relación con Persona (empresa propietaria del producto)
+   * Un producto pertenece a una empresa específica
+   */
+  @ManyToOne(() => Persona, { nullable: false })
+  @JoinColumn({ name: 'id_persona' })
+  persona: Persona;
 
-    /**
-     * Relación con Persona (empresa propietaria del producto)
-     * Un producto pertenece a una empresa específica
-     */
-    @ManyToOne(() => Persona, { nullable: false })
-    @JoinColumn({ name: 'id_persona' })
-    persona: Persona;
+  /**
+   * Nombre del producto
+   */
+  @Column({ length: 255, nullable: false })
+  nombre: string;
 
-    /**
-     * Nombre del producto
-     */
-    @Column({ length: 255, nullable: false })
-    nombre: string;
+  /**
+   * Relación muchos a uno con categoría
+   */
+  @ManyToOne(() => Categoria, (categoria) => categoria.productos)
+  @JoinColumn({ name: 'id_categoria' })
+  categoria: Categoria;
 
-    /**
-     * Relación muchos a uno con categoría
-     */
-    @ManyToOne(() => Categoria, (categoria) => categoria.productos)
-    @JoinColumn({ name: 'id_categoria' })
-    categoria: Categoria;
+  /**
+   * Tipo del registro (producto o servicio)
+   */
+  @Column({ type: 'enum', enum: TipoProducto, default: TipoProducto.PRODUCTO })
+  tipo: TipoProducto;
 
-    /**
-     * Tipo del registro (producto o servicio)
-     */
-    @Column({ type: 'enum', enum: TipoProducto, default: TipoProducto.PRODUCTO })
-    tipo: TipoProducto;
+  /**
+   * Descripción del producto
+   */
+  @Column({ length: 255, nullable: true })
+  descripcion?: string;
 
-    /**
-     * Descripción del producto
-     */
-    @Column({ length: 255, nullable: true })
-    descripcion?: string;
+  /**
+   * Unidad de medida del producto (kg, unidad, litro, etc.)
+   */
+  @Column({ length: 50, nullable: false })
+  unidadMedida: string;
 
-    /**
-     * Unidad de medida del producto (kg, unidad, litro, etc.)
-     */
-    @Column({ length: 50, nullable: false })
-    unidadMedida: string;
+  /**
+   * Estado del producto (activo/inactivo)
+   */
+  @Column({ default: true })
+  estado: boolean;
 
-    /**
-     * Estado del producto (activo/inactivo)
-     */
-    @Column({ default: true })
-    estado: boolean;
+  /**
+   * Código único del producto (opcional)
+   */
+  @Column({ length: 50, nullable: true, unique: true })
+  codigo: string;
 
-    /**
-     * Código único del producto (opcional)
-     */
-    @Column({ length: 50, nullable: true, unique: true })
-    codigo: string;
+  /**
+   * Precio unitario del producto
+   */
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  precio: number;
 
-    /**
-     * Precio unitario del producto
-     */
-    @Column('decimal', { precision: 10, scale: 2, nullable: true })
-    precio: number;
+  /**
+   * Stock mínimo requerido
+   */
+  @Column({ nullable: true, default: 0 })
+  stockMinimo: number;
 
-    /**
-     * Stock mínimo requerido
-     */
-    @Column({ nullable: true, default: 0 })
-    stockMinimo: number;
+  /**
+   * Fecha de creación del registro
+   */
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  fechaCreacion: Date;
 
-    /**
-     * Fecha de creación del registro
-     */
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    fechaCreacion: Date;
-
-    /**
-     * Fecha de última actualización
-     */
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    fechaActualizacion: Date;
+  /**
+   * Fecha de última actualización
+   */
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  fechaActualizacion: Date;
 }

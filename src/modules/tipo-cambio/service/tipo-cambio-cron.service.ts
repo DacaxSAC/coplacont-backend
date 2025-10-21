@@ -25,12 +25,17 @@ export class TipoCambioCronService implements OnModuleInit {
     cron.schedule(
       '0 0 14 * * *',
       async () => {
-        this.logger.log('Iniciando job diario de actualización de tipo de cambio');
-        
-        const resultado = await this.tipoCambioService.actualizarTipoCambioDiario();
-        
+        this.logger.log(
+          'Iniciando job diario de actualización de tipo de cambio',
+        );
+
+        const resultado =
+          await this.tipoCambioService.actualizarTipoCambioDiario();
+
         if (resultado.success) {
-          this.logger.log('Job diario de tipo de cambio completado exitosamente');
+          this.logger.log(
+            'Job diario de tipo de cambio completado exitosamente',
+          );
         } else {
           this.logger.error(
             'Error en job diario de tipo de cambio:',
@@ -51,9 +56,9 @@ export class TipoCambioCronService implements OnModuleInit {
   // Método para ejecutar manualmente el job (útil para testing)
   async ejecutarJobManual(): Promise<void> {
     this.logger.log('Ejecutando job de tipo de cambio manualmente');
-    
+
     const resultado = await this.tipoCambioService.actualizarTipoCambioDiario();
-    
+
     if (resultado.success) {
       this.logger.log('Job manual de tipo de cambio completado exitosamente');
     } else {

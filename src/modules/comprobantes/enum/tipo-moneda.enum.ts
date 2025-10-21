@@ -1,5 +1,4 @@
 export enum Moneda {
-    PEN = 'PEN',
-    USD = 'USD',
+  PEN = 'PEN',
+  USD = 'USD',
 }
-  

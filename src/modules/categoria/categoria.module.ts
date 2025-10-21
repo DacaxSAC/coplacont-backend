@@ -6,7 +6,6 @@ import { CategoriaController } from './controller';
 import { CategoriaService } from './service';
 import { UserModule } from '../users/user.module';
 
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([Categoria]),

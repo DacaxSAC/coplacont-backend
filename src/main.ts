@@ -4,7 +4,10 @@ dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { setupSwagger } from './config/swagger.config';
-import { addTransactionalDataSource, initializeTransactionalContext } from 'typeorm-transactional';
+import {
+  addTransactionalDataSource,
+  initializeTransactionalContext,
+} from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
@@ -17,20 +20,16 @@ async function createApp() {
   }
 
   initializeTransactionalContext();
-  
+
   const expressApp = express();
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+  const app = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(expressApp),
+  );
 
   const dataSource = app.get(DataSource);
   addTransactionalDataSource(dataSource);
-  
-  // Configurar ValidationPipe global con transformación
-  //app.useGlobalPipes(new ValidationPipe({
-  //  transform: true,
-  //  whitelist: true,
-  //  forbidNonWhitelisted: true,
-  //}));
-  
+
   // Habilitar CORS
   app.enableCors({
     origin: true, // Permitir todos los orígenes
@@ -38,10 +37,10 @@ async function createApp() {
     allowedHeaders: ['Content-Type', 'Authorization'], // Headers permitidos
     credentials: true, // Permitir cookies y credenciales
   });
-  
+
   // Configurar Swagger
   setupSwagger(app);
-  
+
   // Redirección automática de / a /api/docs
   app.use('/', (req, res, next) => {
     if (req.url === '/') {
@@ -49,7 +48,7 @@ async function createApp() {
     }
     next();
   });
-  
+
   await app.init();
   cachedApp = expressApp;
   return expressApp;

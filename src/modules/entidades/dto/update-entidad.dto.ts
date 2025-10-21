@@ -9,7 +9,7 @@ export class UpdateEntidadDto {
   @ApiProperty({
     example: 'Juan',
     description: 'Nombre (requerido para entidades naturales)',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'El nombre debe ser una cadena' })
@@ -18,7 +18,7 @@ export class UpdateEntidadDto {
   @ApiProperty({
     example: 'García',
     description: 'Apellido materno (requerido para entidades naturales)',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'El apellido materno debe ser una cadena' })
@@ -27,7 +27,7 @@ export class UpdateEntidadDto {
   @ApiProperty({
     example: 'Pérez',
     description: 'Apellido paterno (requerido para entidades naturales)',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'El apellido paterno debe ser una cadena' })
@@ -36,7 +36,7 @@ export class UpdateEntidadDto {
   @ApiProperty({
     example: 'Empresa ABC S.A.C.',
     description: 'Razón social (requerido para entidades jurídicas)',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'La razón social debe ser una cadena' })
@@ -45,20 +45,24 @@ export class UpdateEntidadDto {
   @ApiProperty({
     example: 'Av. Principal 123, Lima',
     description: 'Dirección de la entidad',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'La dirección debe ser una cadena' })
-  @Length(5, 255, { message: 'La dirección debe tener entre 5 y 255 caracteres' })
+  @Length(5, 255, {
+    message: 'La dirección debe tener entre 5 y 255 caracteres',
+  })
   direccion?: string;
 
   @ApiProperty({
     example: '+51 987654321',
     description: 'Número de teléfono',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: 'El teléfono debe ser una cadena' })
-  @Matches(/^[0-9+\-\s()]{6,20}$/, { message: 'El número de teléfono no tiene un formato válido' })
+  @Matches(/^[0-9+\-\s()]{6,20}$/, {
+    message: 'El número de teléfono no tiene un formato válido',
+  })
   telefono?: string;
 }

@@ -29,16 +29,53 @@ import { ProductosModule } from '../productos/productos.module';
 import { UserModule } from '../users/user.module';
 import { PeriodosModule } from '../periodos/periodos.module';
 
-
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Inventario, InventarioLote, Almacen, Producto, Movimiento, MovimientoDetalle, ComprobanteDetalle]),
+    TypeOrmModule.forFeature([
+      Inventario,
+      InventarioLote,
+      Almacen,
+      Producto,
+      Movimiento,
+      MovimientoDetalle,
+      ComprobanteDetalle,
+    ]),
     ProductosModule,
     UserModule,
-    PeriodosModule
+    PeriodosModule,
   ],
-  controllers: [InventarioController, InventarioLoteController, LoteController, KardexController, CostoVentaController],
-  providers: [InventarioService, InventarioLoteService, LoteService, LoteCreationService, StockCalculationService, StockCacheService, KardexCalculationService, KardexService, CostoVentaService, InventarioRepository, KardexRepository, CostoVentaRepository],
-  exports: [InventarioService, InventarioLoteService, LoteService, LoteCreationService, StockCalculationService, StockCacheService, KardexCalculationService, KardexService, CostoVentaService, TypeOrmModule],
+  controllers: [
+    InventarioController,
+    InventarioLoteController,
+    LoteController,
+    KardexController,
+    CostoVentaController,
+  ],
+  providers: [
+    InventarioService,
+    InventarioLoteService,
+    LoteService,
+    LoteCreationService,
+    StockCalculationService,
+    StockCacheService,
+    KardexCalculationService,
+    KardexService,
+    CostoVentaService,
+    InventarioRepository,
+    KardexRepository,
+    CostoVentaRepository,
+  ],
+  exports: [
+    InventarioService,
+    InventarioLoteService,
+    LoteService,
+    LoteCreationService,
+    StockCalculationService,
+    StockCacheService,
+    KardexCalculationService,
+    KardexService,
+    CostoVentaService,
+    TypeOrmModule,
+  ],
 })
 export class InventarioModule {}

@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
@@ -13,7 +13,7 @@ import {
   CreatePeriodoContableDto,
   UpdatePeriodoContableDto,
   ResponsePeriodoContableDto,
-  CerrarPeriodoDto
+  CerrarPeriodoDto,
 } from '../dto';
 
 /**
@@ -26,24 +26,27 @@ export class PeriodoContableService {
     @InjectRepository(PeriodoContable)
     private readonly periodoRepository: Repository<PeriodoContable>,
     @InjectRepository(ConfiguracionPeriodo)
-    private readonly configuracionRepository: Repository<ConfiguracionPeriodo>
+    private readonly configuracionRepository: Repository<ConfiguracionPeriodo>,
   ) {}
 
   /**
    * Crear un nuevo período contable para una empresa específica
    */
-  async crear(personaId: number, createDto: CreatePeriodoContableDto): Promise<ResponsePeriodoContableDto> {
+  async crear(
+    personaId: number,
+    createDto: CreatePeriodoContableDto,
+  ): Promise<ResponsePeriodoContableDto> {
     // Verificar que no exista ya un período para ese año y persona
     const periodoExistente = await this.periodoRepository.findOne({
       where: {
         año: createDto.año,
-        persona: { id: personaId }
-      }
+        persona: { id: personaId },
+      },
     });
 
     if (periodoExistente) {
       throw new ConflictException(
-        `Ya existe un período contable para el año ${createDto.año}`
+        `Ya existe un período contable para el año ${createDto.año}`,
       );
     }
 
@@ -65,7 +68,7 @@ export class PeriodoContableService {
     // Validar fechas
     if (fechaInicio >= fechaFin) {
       throw new BadRequestException(
-        'La fecha de inicio debe ser anterior a la fecha de fin'
+        'La fecha de inicio debe ser anterior a la fecha de fin',
       );
     }
 
@@ -80,7 +83,7 @@ export class PeriodoContableService {
       observaciones: createDto.observaciones,
       persona: { id: personaId },
       activo: true,
-      cerrado: false
+      cerrado: false,
     });
 
     const periodoGuardado = await this.periodoRepository.save(nuevoPeriodo);
@@ -90,34 +93,38 @@ export class PeriodoContableService {
   /**
    * Obtener todos los períodos de una persona
    */
-  async obtenerPorPersona(idPersona: number): Promise<ResponsePeriodoContableDto[]> {
+  async obtenerPorPersona(
+    idPersona: number,
+  ): Promise<ResponsePeriodoContableDto[]> {
     const periodos = await this.periodoRepository.find({
       where: { persona: { id: idPersona } },
       relations: ['persona'],
-      order: { año: 'DESC' }
+      order: { año: 'DESC' },
     });
 
-    return periodos.map(periodo => this.mapearAResponse(periodo));
+    return periodos.map((periodo) => this.mapearAResponse(periodo));
   }
 
   /**
    * Obtener período activo de una persona
    */
-  async obtenerPeriodoActivo(idPersona: number): Promise<ResponsePeriodoContableDto> {
+  async obtenerPeriodoActivo(
+    idPersona: number,
+  ): Promise<ResponsePeriodoContableDto> {
     console.log('idPersona', idPersona);
 
     const periodo = await this.periodoRepository.findOne({
       where: {
         persona: { id: idPersona },
-        activo: true
+        activo: true,
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
     console.log('periodo', periodo);
 
     if (!periodo) {
       throw new NotFoundException(
-        'No se encontró un período activo para esta persona'
+        'No se encontró un período activo para esta persona',
       );
     }
 
@@ -130,7 +137,7 @@ export class PeriodoContableService {
   async obtenerPorId(id: number): Promise<PeriodoContable> {
     const periodo = await this.periodoRepository.findOne({
       where: { id },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
@@ -143,17 +150,22 @@ export class PeriodoContableService {
   /**
    * Obtener período por ID verificando que pertenezca a una persona específica
    */
-  async obtenerPorIdYPersona(id: number, personaId: number): Promise<ResponsePeriodoContableDto> {
+  async obtenerPorIdYPersona(
+    id: number,
+    personaId: number,
+  ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.periodoRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
-      throw new NotFoundException('Período contable no encontrado o no pertenece a su empresa');
+      throw new NotFoundException(
+        'Período contable no encontrado o no pertenece a su empresa',
+      );
     }
 
     return this.mapearAResponse(periodo);
@@ -164,25 +176,23 @@ export class PeriodoContableService {
    */
   async actualizar(
     id: number,
-    updateDto: UpdatePeriodoContableDto
+    updateDto: UpdatePeriodoContableDto,
   ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.obtenerPorId(id);
 
     // Verificar que el período no esté cerrado
     if (periodo.cerrado) {
-      throw new BadRequestException(
-        'No se puede modificar un período cerrado'
-      );
+      throw new BadRequestException('No se puede modificar un período cerrado');
     }
 
     // Validar fechas si se proporcionan
     if (updateDto.fechaInicio && updateDto.fechaFin) {
       const fechaInicio = new Date(updateDto.fechaInicio);
       const fechaFin = new Date(updateDto.fechaFin);
-      
+
       if (fechaInicio >= fechaFin) {
         throw new BadRequestException(
-          'La fecha de inicio debe ser anterior a la fecha de fin'
+          'La fecha de inicio debe ser anterior a la fecha de fin',
         );
       }
     }
@@ -194,7 +204,7 @@ export class PeriodoContableService {
 
     // Actualizar período
     Object.assign(periodo, updateDto);
-    
+
     if (updateDto.fechaInicio) {
       periodo.fechaInicio = new Date(updateDto.fechaInicio);
     }
@@ -212,35 +222,35 @@ export class PeriodoContableService {
   async actualizarPorPersona(
     id: number,
     personaId: number,
-    updateDto: UpdatePeriodoContableDto
+    updateDto: UpdatePeriodoContableDto,
   ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.periodoRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
-      throw new NotFoundException('Período contable no encontrado o no pertenece a su empresa');
+      throw new NotFoundException(
+        'Período contable no encontrado o no pertenece a su empresa',
+      );
     }
 
     // Verificar que el período no esté cerrado
     if (periodo.cerrado) {
-      throw new BadRequestException(
-        'No se puede modificar un período cerrado'
-      );
+      throw new BadRequestException('No se puede modificar un período cerrado');
     }
 
     // Validar fechas si se proporcionan
     if (updateDto.fechaInicio && updateDto.fechaFin) {
       const fechaInicio = new Date(updateDto.fechaInicio);
       const fechaFin = new Date(updateDto.fechaFin);
-      
+
       if (fechaInicio >= fechaFin) {
         throw new BadRequestException(
-          'La fecha de inicio debe ser anterior a la fecha de fin'
+          'La fecha de inicio debe ser anterior a la fecha de fin',
         );
       }
     }
@@ -252,7 +262,7 @@ export class PeriodoContableService {
 
     // Actualizar período
     Object.assign(periodo, updateDto);
-    
+
     if (updateDto.fechaInicio) {
       periodo.fechaInicio = new Date(updateDto.fechaInicio);
     }
@@ -267,7 +277,10 @@ export class PeriodoContableService {
   /**
    * Cerrar un período contable
    */
-  async cerrar(id: number, cerrarDto: CerrarPeriodoDto): Promise<ResponsePeriodoContableDto> {
+  async cerrar(
+    id: number,
+    cerrarDto: CerrarPeriodoDto,
+  ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.obtenerPorId(id);
 
     if (periodo.cerrado) {
@@ -278,9 +291,9 @@ export class PeriodoContableService {
     periodo.cerrado = true;
     periodo.fechaCierre = new Date();
     periodo.usuarioCierre = cerrarDto.usuarioCierre;
-    
+
     if (cerrarDto.observacionesCierre) {
-      periodo.observaciones = periodo.observaciones 
+      periodo.observaciones = periodo.observaciones
         ? `${periodo.observaciones}\n\nCierre: ${cerrarDto.observacionesCierre}`
         : `Cierre: ${cerrarDto.observacionesCierre}`;
     }
@@ -292,17 +305,23 @@ export class PeriodoContableService {
   /**
    * Cerrar un período contable verificando que pertenezca a una persona específica
    */
-  async cerrarPorPersona(id: number, personaId: number, cerrarDto: CerrarPeriodoDto): Promise<ResponsePeriodoContableDto> {
+  async cerrarPorPersona(
+    id: number,
+    personaId: number,
+    cerrarDto: CerrarPeriodoDto,
+  ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.periodoRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
-      throw new NotFoundException('Período contable no encontrado o no pertenece a su empresa');
+      throw new NotFoundException(
+        'Período contable no encontrado o no pertenece a su empresa',
+      );
     }
 
     if (periodo.cerrado) {
@@ -313,9 +332,9 @@ export class PeriodoContableService {
     periodo.cerrado = true;
     periodo.fechaCierre = new Date();
     periodo.usuarioCierre = cerrarDto.usuarioCierre;
-    
+
     if (cerrarDto.observacionesCierre) {
-      periodo.observaciones = periodo.observaciones 
+      periodo.observaciones = periodo.observaciones
         ? `${periodo.observaciones}\n\nCierre: ${cerrarDto.observacionesCierre}`
         : `Cierre: ${cerrarDto.observacionesCierre}`;
     }
@@ -346,17 +365,22 @@ export class PeriodoContableService {
   /**
    * Reabrir un período contable verificando que pertenezca a una persona específica
    */
-  async reabrirPorPersona(id: number, personaId: number): Promise<ResponsePeriodoContableDto> {
+  async reabrirPorPersona(
+    id: number,
+    personaId: number,
+  ): Promise<ResponsePeriodoContableDto> {
     const periodo = await this.periodoRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
-      throw new NotFoundException('Período contable no encontrado o no pertenece a su empresa');
+      throw new NotFoundException(
+        'Período contable no encontrado o no pertenece a su empresa',
+      );
     }
 
     if (!periodo.cerrado) {
@@ -379,16 +403,14 @@ export class PeriodoContableService {
     const periodo = await this.obtenerPorId(id);
 
     if (periodo.cerrado) {
-      throw new BadRequestException(
-        'No se puede eliminar un período cerrado'
-      );
+      throw new BadRequestException('No se puede eliminar un período cerrado');
     }
 
     // Verificar que no tenga comprobantes asociados
     const tieneComprobantes = await this.verificarComprobantesAsociados(id);
     if (tieneComprobantes) {
       throw new BadRequestException(
-        'No se puede eliminar un período que tiene comprobantes asociados'
+        'No se puede eliminar un período que tiene comprobantes asociados',
       );
     }
 
@@ -400,21 +422,21 @@ export class PeriodoContableService {
    */
   async eliminarPorPersona(id: number, personaId: number): Promise<void> {
     const periodo = await this.periodoRepository.findOne({
-      where: { 
+      where: {
         id,
-        persona: { id: personaId }
+        persona: { id: personaId },
       },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!periodo) {
-      throw new NotFoundException('Período contable no encontrado o no pertenece a su empresa');
+      throw new NotFoundException(
+        'Período contable no encontrado o no pertenece a su empresa',
+      );
     }
 
     if (periodo.cerrado) {
-      throw new BadRequestException(
-        'No se puede eliminar un período cerrado'
-      );
+      throw new BadRequestException('No se puede eliminar un período cerrado');
     }
 
     // TODO: Verificar que no tenga comprobantes asociados
@@ -433,7 +455,7 @@ export class PeriodoContableService {
    */
   async validarFechaEnPeriodoActivo(
     idPersona: number,
-    fecha: Date | string
+    fecha: Date | string,
   ): Promise<{ valida: boolean; mensaje?: string; periodo?: PeriodoContable }> {
     try {
       // Asegurar que fecha sea un objeto Date válido
@@ -445,40 +467,43 @@ export class PeriodoContableService {
       } else {
         throw new Error('El parámetro fecha debe ser un Date o string válido');
       }
-      
+
       // Validar que la fecha sea válida
       if (isNaN(fechaDate.getTime())) {
         throw new Error('La fecha proporcionada no es válida');
       }
-      
+
       const periodoActivo = await this.obtenerPeriodoActivo(idPersona);
       console.log('periodoActivo', periodoActivo);
-      
+
       const periodo = await this.obtenerPorId(periodoActivo.id);
       console.log('periodo', periodo);
-      
+
       // Verificar si el período está cerrado
       if (periodo.cerrado) {
         return {
           valida: false,
           mensaje: `El período ${periodo.getDescripcion()} está cerrado y no permite registrar nuevos comprobantes`,
-          periodo
+          periodo,
         };
       }
-      console.log('periodo.estaEnPeriodo(fechaDate)', periodo.estaEnPeriodo(fechaDate));
+      console.log(
+        'periodo.estaEnPeriodo(fechaDate)',
+        periodo.estaEnPeriodo(fechaDate),
+      );
       if (periodo.estaEnPeriodo(fechaDate)) {
         return { valida: true, periodo };
       }
-      
+
       return {
         valida: false,
         mensaje: `La fecha ${fechaDate.toISOString().split('T')[0]} no está dentro del período activo ${periodo.getDescripcion()}`,
-        periodo
+        periodo,
       };
     } catch (error) {
       return {
         valida: false,
-        mensaje: 'No hay un período activo configurado'
+        mensaje: 'No hay un período activo configurado',
       };
     }
   }
@@ -488,11 +513,11 @@ export class PeriodoContableService {
    */
   async validarMovimientoRetroactivo(
     idPersona: number,
-    fecha: Date | string
+    fecha: Date | string,
   ): Promise<{ permitido: boolean; mensaje?: string }> {
     const configuracion = await this.obtenerConfiguracion(idPersona);
     const hoy = new Date();
-    
+
     // Asegurar que fecha sea un objeto Date válido
     let fechaDate: Date;
     if (typeof fecha === 'string') {
@@ -502,20 +527,20 @@ export class PeriodoContableService {
     } else {
       throw new Error('El parámetro fecha debe ser un Date o string válido');
     }
-    
+
     // Validar que la fecha sea válida
     if (isNaN(fechaDate.getTime())) {
       throw new Error('La fecha proporcionada no es válida');
     }
-    
+
     const diasDiferencia = Math.floor(
-      (hoy.getTime() - fechaDate.getTime()) / (1000 * 60 * 60 * 24)
+      (hoy.getTime() - fechaDate.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (!configuracion.permiteRetroactivo(diasDiferencia)) {
       return {
         permitido: false,
-        mensaje: `No se permiten movimientos retroactivos de más de ${configuracion.diasLimiteRetroactivo} días`
+        mensaje: `No se permiten movimientos retroactivos de más de ${configuracion.diasLimiteRetroactivo} días`,
       };
     }
 
@@ -527,7 +552,7 @@ export class PeriodoContableService {
    */
   async obtenerConfiguracion(idPersona: number): Promise<ConfiguracionPeriodo> {
     let configuracion = await this.configuracionRepository.findOne({
-      where: { persona: { id: idPersona }, activa: true }
+      where: { persona: { id: idPersona }, activa: true },
     });
 
     // Si no existe configuración, crear una por defecto
@@ -538,7 +563,7 @@ export class PeriodoContableService {
         mesInicio: 1,
         diasLimiteRetroactivo: 30,
         recalculoAutomaticoKardex: true,
-        activa: true
+        activa: true,
       });
       configuracion = await this.configuracionRepository.save(configuracion);
     }
@@ -549,14 +574,16 @@ export class PeriodoContableService {
   /**
    * Verificar si un período tiene comprobantes asociados
    */
-  private async verificarComprobantesAsociados(periodoId: number): Promise<boolean> {
-     const periodo = await this.periodoRepository.findOne({
-       where: { id: periodoId },
-       relations: ['comprobantes']
-     });
-     
-     return !!(periodo?.comprobantes && periodo.comprobantes.length > 0);
-   }
+  private async verificarComprobantesAsociados(
+    periodoId: number,
+  ): Promise<boolean> {
+    const periodo = await this.periodoRepository.findOne({
+      where: { id: periodoId },
+      relations: ['comprobantes'],
+    });
+
+    return !!(periodo?.comprobantes && periodo.comprobantes.length > 0);
+  }
 
   /**
    * Validar si se puede cambiar el método de valoración
@@ -564,17 +591,22 @@ export class PeriodoContableService {
    * @param nuevoMetodo Nuevo método de valoración
    * @throws BadRequestException si hay movimientos en el período activo
    */
-  async validarCambioMetodoValoracion(personaId: number, nuevoMetodo: MetodoValoracion): Promise<void> {
+  async validarCambioMetodoValoracion(
+    personaId: number,
+    nuevoMetodo: MetodoValoracion,
+  ): Promise<void> {
     const periodoActivo = await this.obtenerPeriodoActivo(personaId);
     if (!periodoActivo) {
       throw new BadRequestException('No hay un período activo configurado');
     }
 
-    const tieneMovimientos = await this.verificarComprobantesAsociados(periodoActivo.id);
+    const tieneMovimientos = await this.verificarComprobantesAsociados(
+      periodoActivo.id,
+    );
     if (tieneMovimientos) {
       throw new BadRequestException(
         'No se puede cambiar el método de valoración porque ya existen movimientos en el período activo. ' +
-        'Para cambiar el método, debe cerrar el período actual y crear uno nuevo.'
+          'Para cambiar el método, debe cerrar el período actual y crear uno nuevo.',
       );
     }
   }
@@ -584,16 +616,19 @@ export class PeriodoContableService {
    * @param personaId ID de la persona/empresa
    * @param nuevoMetodo Nuevo método de valoración
    */
-  async actualizarMetodoValoracion(personaId: number, nuevoMetodo: MetodoValoracion): Promise<ConfiguracionPeriodo> {
+  async actualizarMetodoValoracion(
+    personaId: number,
+    nuevoMetodo: MetodoValoracion,
+  ): Promise<ConfiguracionPeriodo> {
     // Validar que se pueda cambiar
     await this.validarCambioMetodoValoracion(personaId, nuevoMetodo);
 
     // Obtener configuración actual
     const configuracion = await this.obtenerConfiguracion(personaId);
-    
+
     // Actualizar método
     configuracion.metodoCalculoCosto = nuevoMetodo;
-    
+
     return await this.configuracionRepository.save(configuracion);
   }
 
@@ -603,14 +638,16 @@ export class PeriodoContableService {
   private async desactivarPeriodoActivo(idPersona: number): Promise<void> {
     await this.periodoRepository.update(
       { persona: { id: idPersona }, activo: true },
-      { activo: false }
+      { activo: false },
     );
   }
 
   /**
    * Mapear entidad a DTO de respuesta
    */
-  private mapearAResponse(periodo: PeriodoContable): ResponsePeriodoContableDto {
+  private mapearAResponse(
+    periodo: PeriodoContable,
+  ): ResponsePeriodoContableDto {
     // Función auxiliar para manejar fechas que pueden ser Date o string
     const formatearFecha = (fecha: Date | string): string => {
       if (fecha instanceof Date) {
@@ -635,17 +672,19 @@ export class PeriodoContableService {
       fechaFin: formatearFecha(periodo.fechaFin),
       activo: periodo.activo,
       cerrado: periodo.cerrado,
-      fechaCierre: periodo.fechaCierre ? formatearFechaCompleta(periodo.fechaCierre) : undefined,
+      fechaCierre: periodo.fechaCierre
+        ? formatearFechaCompleta(periodo.fechaCierre)
+        : undefined,
       usuarioCierre: periodo.usuarioCierre,
       observaciones: periodo.observaciones,
       persona: {
         id: periodo.persona.id,
         razonSocial: periodo.persona.razonSocial,
-        ruc: periodo.persona.ruc
+        ruc: periodo.persona.ruc,
       },
       descripcion: `Período ${periodo.año} (${formatearFecha(periodo.fechaInicio)} - ${formatearFecha(periodo.fechaFin)})`,
       fechaCreacion: formatearFechaCompleta(periodo.fechaCreacion),
-      fechaActualizacion: formatearFechaCompleta(periodo.fechaActualizacion)
+      fechaActualizacion: formatearFechaCompleta(periodo.fechaActualizacion),
     };
   }
 }

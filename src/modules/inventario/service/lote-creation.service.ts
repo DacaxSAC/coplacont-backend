@@ -32,64 +32,78 @@ export class LoteCreationService {
     tipoOperacion: TipoOperacion,
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
     fechaEmision?: Date,
-  ): Promise<{costoUnitario: number[], lotes: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[]}> {
-    
-    let costosUnitariosDeDetalles: number[] = [];
-    let lotesUsados: {idLote: number, costoUnitarioDeLote: number, cantidad: number}[] = [];
+  ): Promise<{
+    costoUnitario: number[];
+    lotes: { idLote: number; costoUnitarioDeLote: number; cantidad: number }[];
+  }> {
+    const costosUnitariosDeDetalles: number[] = [];
+    const lotesUsados: {
+      idLote: number;
+      costoUnitarioDeLote: number;
+      cantidad: number;
+    }[] = [];
 
     try {
       for (let i = 0; i < detalles.length; i++) {
         const detalle = detalles[i];
 
         if (tipoOperacion === TipoOperacion.COMPRA) {
-          const loteCreado = await this.registrarLoteCompra(detalle, fechaEmision);
+          const loteCreado = await this.registrarLoteCompra(
+            detalle,
+            fechaEmision,
+          );
           // Para compras, el costo unitario es el precio de compra
           costosUnitariosDeDetalles.push(Number(detalle.precioUnitario));
-          
+
           // Agregar el lote creado a la lista de lotes
           lotesUsados.push({
             idLote: loteCreado.id,
             costoUnitarioDeLote: Number(detalle.precioUnitario),
-            cantidad: Number(detalle.cantidad)
+            cantidad: Number(detalle.cantidad),
           });
         } else {
           // Para ventas, calcular costo usando el nuevo sistema dinámico
-          const costoUnitario = await this.stockCalculationService.calcularCostoUnitarioVenta(
-            detalle.inventario.id,
-            Number(detalle.cantidad),
-            metodoValoracion,
-            fechaEmision
-          );
-          
-          costosUnitariosDeDetalles.push(costoUnitario);
-          
-          // Obtener información de lotes consumidos para FIFO
-          if (metodoValoracion === MetodoValoracion.FIFO) {
-            const consumoFIFO = await this.stockCalculationService.calcularConsumoFIFO(
+          const costoUnitario =
+            await this.stockCalculationService.calcularCostoUnitarioVenta(
               detalle.inventario.id,
               Number(detalle.cantidad),
-              fechaEmision
+              metodoValoracion,
+              fechaEmision,
             );
-            
-            lotesUsados.push(...consumoFIFO.map(consumo => ({
-              idLote: consumo.idLote,
-              costoUnitarioDeLote: consumo.costoUnitario,
-              cantidad: consumo.cantidad
-            })));
+
+          costosUnitariosDeDetalles.push(costoUnitario);
+
+          // Obtener información de lotes consumidos para FIFO
+          if (metodoValoracion === MetodoValoracion.FIFO) {
+            const consumoFIFO =
+              await this.stockCalculationService.calcularConsumoFIFO(
+                detalle.inventario.id,
+                Number(detalle.cantidad),
+                fechaEmision,
+              );
+
+            lotesUsados.push(
+              ...consumoFIFO.map((consumo) => ({
+                idLote: consumo.idLote,
+                costoUnitarioDeLote: consumo.costoUnitario,
+                cantidad: consumo.cantidad,
+              })),
+            );
           } else {
             // Para PROMEDIO, usar un lote ficticio con el costo promedio
-            const costoPromedio = await this.stockCalculationService.calcularCostoPromedio(
-              detalle.inventario.id,
-              fechaEmision
-            );
-            
+            const costoPromedio =
+              await this.stockCalculationService.calcularCostoPromedio(
+                detalle.inventario.id,
+                fechaEmision,
+              );
+
             lotesUsados.push({
               idLote: 0, // Lote ficticio para promedio
               costoUnitarioDeLote: costoPromedio,
-              cantidad: Number(detalle.cantidad)
+              cantidad: Number(detalle.cantidad),
             });
           }
-          
+
           // Invalidar caché después de la venta
           this.stockCacheService.invalidateInventario(detalle.inventario.id);
         }
@@ -97,7 +111,7 @@ export class LoteCreationService {
 
       return {
         costoUnitario: costosUnitariosDeDetalles,
-        lotes: lotesUsados
+        lotes: lotesUsados,
       };
     } catch (error) {
       console.error('❌ Error procesando lotes:', error);
@@ -176,34 +190,48 @@ export class LoteCreationService {
    */
   async validarLotesCompra(detalles: ComprobanteDetalle[]): Promise<boolean> {
     try {
-      console.log('🔍 Validando lotes creados para', detalles.length, 'detalles');
-      
+      console.log(
+        '🔍 Validando lotes creados para',
+        detalles.length,
+        'detalles',
+      );
+
       for (const detalle of detalles) {
         // Buscar el lote más reciente creado (por ID, no por fecha de ingreso)
         // para evitar problemas con compras retroactivas
         const loteReciente = await this.loteRepository.findOne({
           where: { inventario: { id: detalle.inventario.id } },
           order: { id: 'DESC' },
-          relations: ['inventario']
+          relations: ['inventario'],
         });
 
         if (!loteReciente) {
-          console.error(`❌ No se encontró lote para inventario ${detalle.inventario.id}`);
+          console.error(
+            `❌ No se encontró lote para inventario ${detalle.inventario.id}`,
+          );
           return false;
         }
 
         // Validar que el lote tiene los datos correctos
         if (Number(loteReciente.cantidadInicial) !== Number(detalle.cantidad)) {
-          console.error(`❌ Cantidad incorrecta en lote ${loteReciente.id}: esperado ${detalle.cantidad}, encontrado ${loteReciente.cantidadInicial}`);
+          console.error(
+            `❌ Cantidad incorrecta en lote ${loteReciente.id}: esperado ${detalle.cantidad}, encontrado ${loteReciente.cantidadInicial}`,
+          );
           return false;
         }
 
-        if (Number(loteReciente.costoUnitario) !== Number(detalle.precioUnitario)) {
-          console.error(`❌ Costo unitario incorrecto en lote ${loteReciente.id}: esperado ${detalle.precioUnitario}, encontrado ${loteReciente.costoUnitario}`);
+        if (
+          Number(loteReciente.costoUnitario) !== Number(detalle.precioUnitario)
+        ) {
+          console.error(
+            `❌ Costo unitario incorrecto en lote ${loteReciente.id}: esperado ${detalle.precioUnitario}, encontrado ${loteReciente.costoUnitario}`,
+          );
           return false;
         }
 
-        console.log(`✅ Lote ${loteReciente.id} validado correctamente para inventario ${detalle.inventario.id}`);
+        console.log(
+          `✅ Lote ${loteReciente.id} validado correctamente para inventario ${detalle.inventario.id}`,
+        );
       }
 
       console.log('✅ Todos los lotes validados correctamente');

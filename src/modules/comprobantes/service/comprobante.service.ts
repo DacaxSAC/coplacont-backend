@@ -218,7 +218,7 @@ export class ComprobanteService {
     tipoOperacion: TipoOperacion,
     personaId: number,
   ): Promise<{ correlativo: string }> {
-    let correlativo = await this.findOrCreateCorrelativo(
+    const correlativo = await this.findOrCreateCorrelativo(
       tipoOperacion,
       personaId,
     );

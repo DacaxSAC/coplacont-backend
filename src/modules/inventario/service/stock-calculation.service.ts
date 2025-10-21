@@ -6,7 +6,10 @@ import { Inventario } from '../entities/inventario.entity';
 import { MovimientoDetalle } from '../../movimientos/entities/movimiento-detalle.entity';
 import { TipoMovimiento } from '../../movimientos/enum/tipo-movimiento.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
-import { StockCacheService, InventarioStockCacheResult } from './stock-cache.service';
+import {
+  StockCacheService,
+  InventarioStockCacheResult,
+} from './stock-cache.service';
 
 /**
  * Interfaz para el resultado del cálculo de stock de lote
@@ -64,10 +67,13 @@ export class StockCalculationService {
    */
   async calcularStockLote(
     idLote: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<LoteStockResult | null> {
     // Intentar obtener del caché primero
-    const cachedResult = this.stockCacheService.getLoteStock(idLote, fechaHasta);
+    const cachedResult = this.stockCacheService.getLoteStock(
+      idLote,
+      fechaHasta,
+    );
     if (cachedResult) {
       return cachedResult;
     }
@@ -75,7 +81,13 @@ export class StockCalculationService {
     // Obtener información base del lote
     const lote = await this.loteRepository.findOne({
       where: { id: idLote },
-      select: ['id', 'cantidadInicial', 'costoUnitario', 'fechaIngreso', 'numeroLote']
+      select: [
+        'id',
+        'cantidadInicial',
+        'costoUnitario',
+        'fechaIngreso',
+        'numeroLote',
+      ],
     });
 
     if (!lote) {
@@ -94,20 +106,17 @@ export class StockCalculationService {
     }
 
     const movimientos = await queryBuilder
-      .select([
-        'md.cantidad',
-        'm.tipo'
-      ])
+      .select(['md.cantidad', 'm.tipo'])
       .getRawMany();
 
     // Calcular stock actual basado únicamente en movimientos reales
     // No usar cantidadInicial como stock base, solo movimientos registrados
     let cantidadActual = 0;
-    
+
     for (const mov of movimientos) {
       const cantidad = Number(mov.md_cantidad);
       const tipo = mov.m_tipo;
-      
+
       if (tipo === TipoMovimiento.ENTRADA) {
         cantidadActual += cantidad;
       } else if (tipo === TipoMovimiento.SALIDA) {
@@ -121,7 +130,7 @@ export class StockCalculationService {
       cantidadInicial: Number(lote.cantidadInicial),
       costoUnitario: Number(lote.costoUnitario),
       fechaIngreso: new Date(lote.fechaIngreso), // Asegurar que sea un objeto Date
-      numeroLote: lote.numeroLote
+      numeroLote: lote.numeroLote,
     };
 
     // Guardar en caché
@@ -138,30 +147,33 @@ export class StockCalculationService {
    */
   async calcularStockInventario(
     idInventario: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<InventarioStockResult | null> {
     // Para el método FIFO, necesitamos siempre calcular los lotes individuales
     // No usar caché cuando se necesiten los detalles de lotes
-    const cachedResult = this.stockCacheService.getInventarioStock(idInventario, fechaHasta);
+    const cachedResult = this.stockCacheService.getInventarioStock(
+      idInventario,
+      fechaHasta,
+    );
     if (cachedResult && !fechaHasta) {
       // Solo usar caché para consultas sin fecha específica y cuando no se necesiten lotes
       const inventario = await this.inventarioRepository.findOne({
         where: { id: idInventario },
-        relations: ['lotes']
+        relations: ['lotes'],
       });
-      
+
       if (!inventario) return null;
-      
+
       return {
         idInventario,
         stockActual: cachedResult.stockActual,
         costoPromedioActual: cachedResult.costoPromedioActual,
-        lotes: [] // Los lotes se calculan dinámicamente cuando se necesiten
+        lotes: [], // Los lotes se calculan dinámicamente cuando se necesiten
       };
     }
     // Verificar que el inventario existe
     const inventario = await this.inventarioRepository.findOne({
-      where: { id: idInventario }
+      where: { id: idInventario },
     });
 
     if (!inventario) {
@@ -171,10 +183,16 @@ export class StockCalculationService {
     // Obtener todos los lotes del inventario
     const lotes = await this.loteRepository.find({
       where: { inventario: { id: idInventario } },
-      select: ['id', 'cantidadInicial', 'costoUnitario', 'fechaIngreso', 'numeroLote'],
-      order: { fechaIngreso: 'ASC' }
+      select: [
+        'id',
+        'cantidadInicial',
+        'costoUnitario',
+        'fechaIngreso',
+        'numeroLote',
+      ],
+      order: { fechaIngreso: 'ASC' },
     });
-    
+
     // Calcular stock de cada lote
     const lotesConStock: LoteStockResult[] = [];
     let stockTotal = 0;
@@ -195,14 +213,14 @@ export class StockCalculationService {
       idInventario,
       stockActual: stockTotal,
       costoPromedioActual,
-      lotes: lotesConStock
+      lotes: lotesConStock,
     };
 
     // Guardar en caché (solo los datos básicos)
     this.stockCacheService.setInventarioStock(idInventario, fechaHasta, {
       stockActual: stockTotal,
       costoPromedioActual: costoPromedioActual,
-      valorTotal: stockTotal * costoPromedioActual
+      valorTotal: stockTotal * costoPromedioActual,
     });
 
     return result;
@@ -216,42 +234,50 @@ export class StockCalculationService {
    */
   async obtenerLotesDisponiblesFIFO(
     idInventario: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<LoteDisponible[]> {
     console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Parámetros:', {
       idInventario,
-      fechaHasta: fechaHasta?.toISOString()
+      fechaHasta: fechaHasta?.toISOString(),
     });
 
-    const stockInventario = await this.calcularStockInventario(idInventario, fechaHasta);
-    
+    const stockInventario = await this.calcularStockInventario(
+      idInventario,
+      fechaHasta,
+    );
+
     console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Stock inventario:', {
       stockActual: stockInventario?.stockActual,
       lotesCount: stockInventario?.lotes?.length || 0,
-      lotes: stockInventario?.lotes?.map(l => ({
+      lotes: stockInventario?.lotes?.map((l) => ({
         idLote: l.idLote,
         cantidadActual: l.cantidadActual,
-        costoUnitario: l.costoUnitario
-      }))
+        costoUnitario: l.costoUnitario,
+      })),
     });
-    
+
     if (!stockInventario) {
-      console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - No se encontró stock inventario');
+      console.log(
+        '🔍 DEBUG obtenerLotesDisponiblesFIFO - No se encontró stock inventario',
+      );
       return [];
     }
 
     const lotesDisponibles = stockInventario.lotes
-      .filter(lote => lote.cantidadActual > 0)
-      .map(lote => ({
+      .filter((lote) => lote.cantidadActual > 0)
+      .map((lote) => ({
         idLote: lote.idLote,
         cantidadDisponible: lote.cantidadActual,
         costoUnitario: lote.costoUnitario,
-        fechaIngreso: lote.fechaIngreso
+        fechaIngreso: lote.fechaIngreso,
       }))
       .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime());
 
-    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Lotes disponibles finales:', lotesDisponibles.length);
-    
+    console.log(
+      '🔍 DEBUG obtenerLotesDisponiblesFIFO - Lotes disponibles finales:',
+      lotesDisponibles.length,
+    );
+
     return lotesDisponibles;
   }
 
@@ -263,9 +289,12 @@ export class StockCalculationService {
    */
   async calcularCostoPromedio(
     idInventario: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<number> {
-    const stockInventario = await this.calcularStockInventario(idInventario, fechaHasta);
+    const stockInventario = await this.calcularStockInventario(
+      idInventario,
+      fechaHasta,
+    );
     return stockInventario?.costoPromedioActual || 0;
   }
 
@@ -279,10 +308,15 @@ export class StockCalculationService {
   async verificarStockSuficiente(
     idInventario: number,
     cantidadRequerida: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<boolean> {
-    const stockInventario = await this.calcularStockInventario(idInventario, fechaHasta);
-    return stockInventario ? stockInventario.stockActual >= cantidadRequerida : false;
+    const stockInventario = await this.calcularStockInventario(
+      idInventario,
+      fechaHasta,
+    );
+    return stockInventario
+      ? stockInventario.stockActual >= cantidadRequerida
+      : false;
   }
 
   /**
@@ -295,22 +329,32 @@ export class StockCalculationService {
   async calcularConsumoFIFO(
     idInventario: number,
     cantidadAConsumir: number,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<{ idLote: number; cantidad: number; costoUnitario: number }[]> {
-    const lotesDisponibles = await this.obtenerLotesDisponiblesFIFO(idInventario, fechaHasta);
-    
-    const consumo: { idLote: number; cantidad: number; costoUnitario: number }[] = [];
+    const lotesDisponibles = await this.obtenerLotesDisponiblesFIFO(
+      idInventario,
+      fechaHasta,
+    );
+
+    const consumo: {
+      idLote: number;
+      cantidad: number;
+      costoUnitario: number;
+    }[] = [];
     let cantidadRestante = cantidadAConsumir;
 
     for (const lote of lotesDisponibles) {
       if (cantidadRestante <= 0) break;
 
-      const cantidadDelLote = Math.min(cantidadRestante, lote.cantidadDisponible);
-      
+      const cantidadDelLote = Math.min(
+        cantidadRestante,
+        lote.cantidadDisponible,
+      );
+
       consumo.push({
         idLote: lote.idLote,
         cantidad: cantidadDelLote,
-        costoUnitario: lote.costoUnitario
+        costoUnitario: lote.costoUnitario,
       });
 
       cantidadRestante -= cantidadDelLote;
@@ -335,22 +379,26 @@ export class StockCalculationService {
     idInventario: number,
     cantidadVenta: number,
     metodoValoracion: MetodoValoracion,
-    fechaHasta?: Date
+    fechaHasta?: Date,
   ): Promise<number> {
     if (metodoValoracion === MetodoValoracion.PROMEDIO) {
       return await this.calcularCostoPromedio(idInventario, fechaHasta);
     } else {
       // FIFO: calcular costo promedio ponderado de los lotes que se van a consumir
-      const consumo = await this.calcularConsumoFIFO(idInventario, cantidadVenta, fechaHasta);
-      
+      const consumo = await this.calcularConsumoFIFO(
+        idInventario,
+        cantidadVenta,
+        fechaHasta,
+      );
+
       let costoTotal = 0;
       let cantidadTotal = 0;
-      
+
       for (const item of consumo) {
         costoTotal += item.cantidad * item.costoUnitario;
         cantidadTotal += item.cantidad;
       }
-      
+
       return cantidadTotal > 0 ? costoTotal / cantidadTotal : 0;
     }
   }

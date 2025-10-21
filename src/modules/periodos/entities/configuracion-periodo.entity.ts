@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { Persona } from '../../users/entities/persona.entity';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
@@ -55,7 +55,7 @@ export class ConfiguracionPeriodo {
   @Column({
     type: 'enum',
     enum: MetodoValoracion,
-    default: MetodoValoracion.PROMEDIO
+    default: MetodoValoracion.PROMEDIO,
   })
   metodoCalculoCosto: MetodoValoracion;
 
@@ -114,7 +114,7 @@ export class ConfiguracionPeriodo {
    */
   @CreateDateColumn({
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'CURRENT_TIMESTAMP',
   })
   fechaCreacion: Date;
 
@@ -124,7 +124,7 @@ export class ConfiguracionPeriodo {
   @UpdateDateColumn({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
+    onUpdate: 'CURRENT_TIMESTAMP',
   })
   fechaActualizacion: Date;
 
@@ -159,10 +159,10 @@ export class ConfiguracionPeriodo {
    */
   debeCerrarAutomaticamente(fechaFinPeriodo: Date): boolean {
     if (!this.cierreAutomatico) return false;
-    
+
     const fechaLimite = new Date(fechaFinPeriodo);
     fechaLimite.setDate(fechaLimite.getDate() + this.diasParaCierreAutomatico);
-    
+
     return new Date() >= fechaLimite;
   }
 
@@ -171,10 +171,12 @@ export class ConfiguracionPeriodo {
    */
   debeNotificarCierre(fechaFinPeriodo: Date): boolean {
     if (!this.notificarProximoCierre) return false;
-    
+
     const fechaNotificacion = new Date(fechaFinPeriodo);
-    fechaNotificacion.setDate(fechaNotificacion.getDate() - this.diasNotificacionCierre);
-    
+    fechaNotificacion.setDate(
+      fechaNotificacion.getDate() - this.diasNotificacionCierre,
+    );
+
     const hoy = new Date();
     return hoy >= fechaNotificacion && hoy <= fechaFinPeriodo;
   }

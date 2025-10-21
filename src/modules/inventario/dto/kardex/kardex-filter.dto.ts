@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsNumber, IsDateString, IsEnum, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  IsEnum,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoOperacion } from '../../../comprobantes/enum/tipo-operacion.enum';
 

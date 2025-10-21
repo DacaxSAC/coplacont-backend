@@ -16,7 +16,8 @@ import { ApiResponseDto } from '../../entidades/dto/api-response.dto';
 @Injectable()
 export class TipoCambioService {
   private readonly logger = new Logger(TipoCambioService.name);
-  private readonly sunatApiUrl = 'https://api.decolecta.com/v1/tipo-cambio/sunat';
+  private readonly sunatApiUrl =
+    'https://api.decolecta.com/v1/tipo-cambio/sunat';
 
   constructor(
     @InjectRepository(TipoCambio)
@@ -28,7 +29,9 @@ export class TipoCambioService {
    * Obtiene el tipo de cambio para una fecha específica
    * Primero consulta la base de datos, si no existe consulta el API externo
    */
-  async obtenerTipoCambio(fecha?: string): Promise<ApiResponseDto<TipoCambioResponseDto>> {
+  async obtenerTipoCambio(
+    fecha?: string,
+  ): Promise<ApiResponseDto<TipoCambioResponseDto>> {
     try {
       const fechaConsulta = fecha ? new Date(fecha) : new Date();
       const fechaString = fechaConsulta.toISOString().split('T')[0];
@@ -40,7 +43,7 @@ export class TipoCambioService {
 
       if (fechaConsulta > hoy) {
         return ApiResponseDto.error(
-          'No se puede consultar el tipo de cambio para fechas futuras'
+          'No se puede consultar el tipo de cambio para fechas futuras',
         );
       }
 
@@ -50,20 +53,22 @@ export class TipoCambioService {
       });
 
       if (tipoCambioExistente) {
-        console.log(`Tipo de cambio encontrado en BD para fecha: ${fechaString}`);
+        console.log(
+          `Tipo de cambio encontrado en BD para fecha: ${fechaString}`,
+        );
         return ApiResponseDto.success(
           'Tipo de cambio obtenido desde base de datos',
-          this.mapearRespuesta(tipoCambioExistente)
+          this.mapearRespuesta(tipoCambioExistente),
         );
       }
 
       // Si no existe en BD, consultar API externo
       console.log(`Consultando API externo para fecha: ${fechaString}`);
       const resultadoApi = await this.consultarApiSunat(fechaString);
-      
+
       if (!resultadoApi.success || !resultadoApi.data) {
         return ApiResponseDto.error(
-          resultadoApi.message || 'Error al obtener datos de SUNAT'
+          resultadoApi.message || 'Error al obtener datos de SUNAT',
         );
       }
 
@@ -75,14 +80,15 @@ export class TipoCambioService {
         fuente: 'SUNAT',
       });
 
-      const tipoCambioGuardado = await this.tipoCambioRepository.save(
-        nuevoTipoCambio,
-      );
+      const tipoCambioGuardado =
+        await this.tipoCambioRepository.save(nuevoTipoCambio);
 
-      this.logger.log(`Tipo de cambio guardado en BD para fecha: ${fechaString}`);
+      this.logger.log(
+        `Tipo de cambio guardado en BD para fecha: ${fechaString}`,
+      );
       return ApiResponseDto.success(
         'Tipo de cambio obtenido desde SUNAT y guardado en base de datos',
-        this.mapearRespuesta(tipoCambioGuardado)
+        this.mapearRespuesta(tipoCambioGuardado),
       );
     } catch (error) {
       this.logger.error('Error al obtener tipo de cambio:', error);
@@ -93,7 +99,9 @@ export class TipoCambioService {
   /**
    * Consulta el API externo de SUNAT
    */
-  private async consultarApiSunat(fecha: string): Promise<ApiResponseDto<SunatApiResponse>> {   
+  private async consultarApiSunat(
+    fecha: string,
+  ): Promise<ApiResponseDto<SunatApiResponse>> {
     const token = this.configService.get<string>('SUNAT_API_TOKEN');
 
     if (!token) {
@@ -114,14 +122,14 @@ export class TipoCambioService {
 
       return ApiResponseDto.success(
         'Datos obtenidos exitosamente desde SUNAT',
-        response.data
+        response.data,
       );
     } catch (error) {
       if (error.response) {
         if (error.response.status === 400) {
           const errorData = error.response.data;
           return ApiResponseDto.error(
-            `No se encontraron datos para la fecha ${fecha}: ${errorData.message || 'Fecha no válida'}`
+            `No se encontraron datos para la fecha ${fecha}: ${errorData.message || 'Fecha no válida'}`,
           );
         }
 
@@ -130,12 +138,12 @@ export class TipoCambioService {
         }
 
         return ApiResponseDto.error(
-          `Error al consultar API de SUNAT: ${error.message}`
+          `Error al consultar API de SUNAT: ${error.message}`,
         );
       }
 
       return ApiResponseDto.error(
-        'Error de conectividad al consultar API de SUNAT'
+        'Error de conectividad al consultar API de SUNAT',
       );
     }
   }
@@ -144,16 +152,21 @@ export class TipoCambioService {
    * Obtiene el tipo de cambio del día actual y lo guarda en BD
    * Usado por el job programado
    */
-  async actualizarTipoCambioDiario(): Promise<ApiResponseDto<TipoCambioResponseDto>> {
+  async actualizarTipoCambioDiario(): Promise<
+    ApiResponseDto<TipoCambioResponseDto>
+  > {
     const hoy = new Date().toISOString().split('T')[0];
     const resultado = await this.obtenerTipoCambio(hoy);
-    
+
     if (resultado.success) {
       this.logger.log('Tipo de cambio diario actualizado correctamente');
     } else {
-      this.logger.error('Error al actualizar tipo de cambio diario:', resultado.message);
+      this.logger.error(
+        'Error al actualizar tipo de cambio diario:',
+        resultado.message,
+      );
     }
-    
+
     return resultado;
   }
 
@@ -190,12 +203,12 @@ export class TipoCambioService {
 
       return ApiResponseDto.success(
         `Se encontraron ${tiposCambio.length} registros de tipo de cambio`,
-        tiposCambio.map((tc) => this.mapearRespuesta(tc))
+        tiposCambio.map((tc) => this.mapearRespuesta(tc)),
       );
     } catch (error) {
       this.logger.error('Error al obtener todos los tipos de cambio:', error);
       return ApiResponseDto.error(
-        'Error al obtener los tipos de cambio desde la base de datos'
+        'Error al obtener los tipos de cambio desde la base de datos',
       );
     }
   }

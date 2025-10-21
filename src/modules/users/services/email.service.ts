@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailConfig, EmailOptions, EmailResponse } from '../../../config/email.config';
+import {
+  EmailConfig,
+  EmailOptions,
+  EmailResponse,
+} from '../../../config/email.config';
 import { Transporter } from 'nodemailer';
 
 @Injectable()
@@ -28,16 +32,16 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      
+
       this.logger.log(`Email enviado exitosamente a: ${emailOptions.to}`);
-      
+
       return {
         success: true,
         messageId: result.messageId,
       };
     } catch (error) {
       this.logger.error(`Error al enviar email a ${emailOptions.to}:`, error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido',
@@ -51,7 +55,10 @@ export class EmailService {
    * @param nombre Nombre del usuario
    * @returns Respuesta del envío
    */
-  async sendWelcomeEmail(email: string, nombre: string): Promise<EmailResponse> {
+  async sendWelcomeEmail(
+    email: string,
+    nombre: string,
+  ): Promise<EmailResponse> {
     const emailOptions: EmailOptions = {
       to: email,
       subject: 'Bienvenido al Sistema Contable',
@@ -83,7 +90,11 @@ export class EmailService {
    * @param password Contraseña temporal generada
    * @returns Respuesta del envío
    */
-  async sendWelcomeEmailWithCredentials(email: string, nombre: string, password: string): Promise<EmailResponse> {
+  async sendWelcomeEmailWithCredentials(
+    email: string,
+    nombre: string,
+    password: string,
+  ): Promise<EmailResponse> {
     const emailOptions: EmailOptions = {
       to: email,
       subject: 'Bienvenido al Sistema Contable - Credenciales de Acceso',
@@ -120,9 +131,12 @@ export class EmailService {
    * @param resetToken Token de recuperación
    * @returns Respuesta del envío
    */
-  async sendPasswordResetEmail(email: string, resetToken: string): Promise<EmailResponse> {
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+  ): Promise<EmailResponse> {
     const resetUrl = `${this.configService.get<string>('FRONTEND_URL')}/auth/new-password?token=${resetToken}`;
-    
+
     const emailOptions: EmailOptions = {
       to: email,
       subject: 'Recuperación de Contraseña - Sistema Contable',

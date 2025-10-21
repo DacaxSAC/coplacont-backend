@@ -10,10 +10,7 @@ import { TipoCambioCronService } from './service/tipo-cambio-cron.service';
  * Módulo para gestionar tipos de cambio de SUNAT
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([TipoCambio]),
-    ConfigModule,
-  ],
+  imports: [TypeOrmModule.forFeature([TipoCambio]), ConfigModule],
   controllers: [TipoCambioController],
   providers: [TipoCambioService, TipoCambioCronService],
   exports: [TipoCambioService], // Exportar el servicio para uso en otros módulos

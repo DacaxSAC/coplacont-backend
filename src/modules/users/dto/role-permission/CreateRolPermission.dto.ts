@@ -1,8 +1,8 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateRolPermissionDto {
-    @ApiProperty()
-    idRol: number;
-    @ApiProperty()
-    idPermission: number;
+  @ApiProperty()
+  idRol: number;
+  @ApiProperty()
+  idPermission: number;
 }

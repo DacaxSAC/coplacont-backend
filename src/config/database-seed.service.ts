@@ -39,22 +39,22 @@ export class DatabaseSeedService implements OnModuleInit {
     try {
       // Verificar si ya existen roles
       const existingRoles = await this.roleRepository.count();
-      
+
       if (existingRoles === 0) {
         this.logger.log('Creando roles por defecto...');
-        
+
         // Crear rol ADMIN
         const adminRole = this.roleRepository.create({
-          nombre: RolEnum.ADMIN
+          nombre: RolEnum.ADMIN,
         });
         await this.roleRepository.save(adminRole);
-        
+
         // Crear rol EMPRESA
         const empresaRole = this.roleRepository.create({
-          nombre: RolEnum.EMPRESA
+          nombre: RolEnum.EMPRESA,
         });
         await this.roleRepository.save(empresaRole);
-        
+
         this.logger.log('Roles creados exitosamente: ADMIN, EMPRESA');
       } else {
         this.logger.log('Los roles ya existen en la base de datos');
@@ -71,22 +71,24 @@ export class DatabaseSeedService implements OnModuleInit {
     try {
       // Verificar si ya existe un usuario admin
       const existingAdmin = await this.userRepository.findOne({
-        where: { email: 'admin@coplacont.com' }
+        where: { email: 'admin@coplacont.com' },
       });
-      
+
       if (!existingAdmin) {
         this.logger.log('Creando usuario administrador por defecto...');
-        
+
         // Obtener el rol ADMIN
         const adminRole = await this.roleRepository.findOne({
-          where: { nombre: RolEnum.ADMIN }
+          where: { nombre: RolEnum.ADMIN },
         });
-        
+
         if (!adminRole) {
-          this.logger.error('No se encontró el rol ADMIN. Asegúrese de que los roles se hayan creado primero.');
+          this.logger.error(
+            'No se encontró el rol ADMIN. Asegúrese de que los roles se hayan creado primero.',
+          );
           return;
         }
-        
+
         // Crear usuario admin
         const hashedPassword = await hash('admin123', 10);
         const adminUser = this.userRepository.create({
@@ -94,28 +96,35 @@ export class DatabaseSeedService implements OnModuleInit {
           email: 'admin@coplacont.com',
           contrasena: hashedPassword,
           habilitado: true,
-          esPrincipal: false
+          esPrincipal: false,
         });
-        
+
         const savedUser = await this.userRepository.save(adminUser);
-        
+
         // Asignar rol ADMIN al usuario
         const userRole = this.userRoleRepository.create({
           user: savedUser,
-          role: adminRole
+          role: adminRole,
         });
-        
+
         await this.userRoleRepository.save(userRole);
-        
+
         this.logger.log('Usuario administrador creado exitosamente:');
         this.logger.log('Email: admin@coplacont.com');
         this.logger.log('Contraseña: admin123');
-        this.logger.warn('¡IMPORTANTE! Cambie la contraseña por defecto después del primer inicio de sesión.');
+        this.logger.warn(
+          '¡IMPORTANTE! Cambie la contraseña por defecto después del primer inicio de sesión.',
+        );
       } else {
-        this.logger.log('El usuario administrador ya existe en la base de datos');
+        this.logger.log(
+          'El usuario administrador ya existe en la base de datos',
+        );
       }
     } catch (error) {
-      this.logger.error('Error al crear usuario administrador por defecto:', error.message);
+      this.logger.error(
+        'Error al crear usuario administrador por defecto:',
+        error.message,
+      );
     }
   }
 }

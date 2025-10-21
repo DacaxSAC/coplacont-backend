@@ -7,158 +7,159 @@ import { Producto } from '../../productos/entities/producto.entity';
 
 @Injectable()
 export class InventarioRepository {
+  constructor(
+    @InjectRepository(Inventario)
+    private readonly repository: Repository<Inventario>,
+    @InjectRepository(Almacen)
+    private readonly almacenRepository: Repository<Almacen>,
+    @InjectRepository(Producto)
+    private readonly productoRepository: Repository<Producto>,
+  ) {}
 
-    constructor(
-        @InjectRepository(Inventario)
-        private readonly repository: Repository<Inventario>,
-        @InjectRepository(Almacen)
-        private readonly almacenRepository: Repository<Almacen>,
-        @InjectRepository(Producto)
-        private readonly productoRepository: Repository<Producto>
-    ) {}
+  async create(inventario: Partial<Inventario>): Promise<Inventario> {
+    const newInventario = this.repository.create(inventario);
+    return await this.repository.save(newInventario);
+  }
 
-    
-    async create(inventario: Partial<Inventario>): Promise<Inventario> {
-        const newInventario = this.repository.create(inventario);
-        return await this.repository.save(newInventario);
+  async findById(id: number): Promise<Inventario | null> {
+    return await this.repository.findOne({
+      where: { id },
+      relations: ['almacen', 'producto', 'producto.categoria', 'lotes'],
+    });
+  }
+
+  async findAll(personaId?: number): Promise<Inventario[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('inventario')
+      .leftJoinAndSelect('inventario.almacen', 'almacen')
+      .leftJoinAndSelect('inventario.producto', 'producto')
+      .leftJoinAndSelect('producto.categoria', 'categoria');
+
+    if (personaId) {
+      queryBuilder
+        .andWhere('almacen.id_persona = :personaId', { personaId })
+        .andWhere('producto.id_persona = :personaId', { personaId });
     }
 
+    return await queryBuilder
+      .orderBy('inventario.fechaCreacion', 'DESC')
+      .getMany();
+  }
 
-    async findById(id: number): Promise<Inventario | null> {
-        return await this.repository.findOne({
-            where: { id },
-            relations: ['almacen', 'producto', 'producto.categoria', 'lotes']
-        });
+  async findByAlmacen(
+    idAlmacen: number,
+    personaId?: number,
+  ): Promise<Inventario[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('inventario')
+      .leftJoinAndSelect('inventario.almacen', 'almacen')
+      .leftJoinAndSelect('inventario.producto', 'producto')
+      .leftJoinAndSelect('producto.categoria', 'categoria')
+      .where('almacen.id = :idAlmacen', { idAlmacen });
+
+    if (personaId) {
+      queryBuilder
+        .andWhere('almacen.id_persona = :personaId', { personaId })
+        .andWhere('producto.id_persona = :personaId', { personaId });
     }
 
-    async findAll(personaId?: number): Promise<Inventario[]> {
-        const queryBuilder = this.repository
-            .createQueryBuilder('inventario')
-            .leftJoinAndSelect('inventario.almacen', 'almacen')
-            .leftJoinAndSelect('inventario.producto', 'producto')
-            .leftJoinAndSelect('producto.categoria', 'categoria');
+    return await queryBuilder.orderBy('producto.descripcion', 'ASC').getMany();
+  }
 
-        if (personaId) {
-            queryBuilder
-                .andWhere('almacen.id_persona = :personaId', { personaId })
-                .andWhere('producto.id_persona = :personaId', { personaId });
-        }
+  async findByProducto(
+    idProducto: number,
+    personaId?: number,
+  ): Promise<Inventario[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('inventario')
+      .leftJoinAndSelect('inventario.almacen', 'almacen')
+      .leftJoinAndSelect('inventario.producto', 'producto')
+      .leftJoinAndSelect('producto.categoria', 'categoria')
+      .where('producto.id = :idProducto', { idProducto });
 
-        return await queryBuilder
-            .orderBy('inventario.fechaCreacion', 'DESC')
-            .getMany();
+    if (personaId) {
+      queryBuilder
+        .andWhere('almacen.id_persona = :personaId', { personaId })
+        .andWhere('producto.id_persona = :personaId', { personaId });
     }
 
-    async findByAlmacen(idAlmacen: number, personaId?: number): Promise<Inventario[]> {
-        const queryBuilder = this.repository
-            .createQueryBuilder('inventario')
-            .leftJoinAndSelect('inventario.almacen', 'almacen')
-            .leftJoinAndSelect('inventario.producto', 'producto')
-            .leftJoinAndSelect('producto.categoria', 'categoria')
-            .where('almacen.id = :idAlmacen', { idAlmacen });
+    return await queryBuilder.orderBy('almacen.nombre', 'ASC').getMany();
+  }
 
-        if (personaId) {
-            queryBuilder
-                .andWhere('almacen.id_persona = :personaId', { personaId })
-                .andWhere('producto.id_persona = :personaId', { personaId });
-        }
+  async findByAlmacenAndProducto(
+    idAlmacen: number,
+    idProducto: number,
+  ): Promise<Inventario | null> {
+    return await this.repository.findOne({
+      where: {
+        almacen: { id: idAlmacen },
+        producto: { id: idProducto },
+      },
+      relations: ['almacen', 'producto', 'producto.categoria', 'lotes'],
+    });
+  }
 
-        return await queryBuilder
-            .orderBy('producto.descripcion', 'ASC')
-            .getMany();
+  async findLowStock(idAlmacen?: number): Promise<Inventario[]> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('inventario')
+      .leftJoinAndSelect('inventario.almacen', 'almacen')
+      .leftJoinAndSelect('inventario.producto', 'producto')
+      .leftJoinAndSelect('producto.categoria', 'categoria')
+      .where('inventario.stockActual <= producto.stockMinimo')
+      .andWhere('producto.estado = :estado', { estado: true })
+      .andWhere('almacen.estado = :estado', { estado: true });
+
+    if (idAlmacen) {
+      queryBuilder.andWhere('almacen.id = :idAlmacen', { idAlmacen });
     }
 
-    async findByProducto(idProducto: number, personaId?: number): Promise<Inventario[]> {
-        const queryBuilder = this.repository
-            .createQueryBuilder('inventario')
-            .leftJoinAndSelect('inventario.almacen', 'almacen')
-            .leftJoinAndSelect('inventario.producto', 'producto')
-            .leftJoinAndSelect('producto.categoria', 'categoria')
-            .where('producto.id = :idProducto', { idProducto });
+    return await queryBuilder
+      .orderBy('inventario.stockActual', 'ASC')
+      .getMany();
+  }
 
-        if (personaId) {
-            queryBuilder
-                .andWhere('almacen.id_persona = :personaId', { personaId })
-                .andWhere('producto.id_persona = :personaId', { personaId });
-        }
+  async update(inventario: Inventario): Promise<Inventario> {
+    return await this.repository.save(inventario);
+  }
 
-        return await queryBuilder
-            .orderBy('almacen.nombre', 'ASC')
-            .getMany();
-    }
+  async remove(inventario: Inventario): Promise<void> {
+    await this.repository.remove(inventario);
+  }
 
-    async findByAlmacenAndProducto(idAlmacen: number, idProducto: number): Promise<Inventario | null> {
-        return await this.repository.findOne({
-            where: { 
-                almacen: { id: idAlmacen }, 
-                producto: { id: idProducto } 
-            },
-            relations: ['almacen', 'producto', 'producto.categoria', 'lotes']
-        });
-    }
+  async findAlmacenById(id: number): Promise<Almacen | null> {
+    return await this.almacenRepository.findOne({
+      where: { id, estado: true },
+    });
+  }
 
-    async findLowStock(idAlmacen?: number): Promise<Inventario[]> {
-        const queryBuilder = this.repository
-            .createQueryBuilder('inventario')
-            .leftJoinAndSelect('inventario.almacen', 'almacen')
-            .leftJoinAndSelect('inventario.producto', 'producto')
-            .leftJoinAndSelect('producto.categoria', 'categoria')
-            .where('inventario.stockActual <= producto.stockMinimo')
-            .andWhere('producto.estado = :estado', { estado: true })
-            .andWhere('almacen.estado = :estado', { estado: true });
+  async findProductoById(id: number): Promise<Producto | null> {
+    return await this.productoRepository.findOne({
+      where: { id, estado: true },
+    });
+  }
 
-        if (idAlmacen) {
-            queryBuilder.andWhere('almacen.id = :idAlmacen', { idAlmacen });
-        }
+  async existsByAlmacenAndProducto(
+    idAlmacen: number,
+    idProducto: number,
+  ): Promise<boolean> {
+    const count = await this.repository.count({
+      where: { almacen: { id: idAlmacen }, producto: { id: idProducto } },
+    });
+    return count > 0;
+  }
 
-        return await queryBuilder
-            .orderBy('inventario.stockActual', 'ASC')
-            .getMany();
-    }
+  async existsByAlmacenAndProductoExcludingId(
+    idAlmacen: number,
+    idProducto: number,
+    excludeId: number,
+  ): Promise<boolean> {
+    const queryBuilder = this.repository
+      .createQueryBuilder('inventario')
+      .where('inventario.almacen.id = :idAlmacen', { idAlmacen })
+      .andWhere('inventario.producto.id = :idProducto', { idProducto })
+      .andWhere('inventario.id != :excludeId', { excludeId });
 
-
-    async update(inventario: Inventario): Promise<Inventario> {
-        return await this.repository.save(inventario);
-    }
-
-
-    async remove(inventario: Inventario): Promise<void> {
-        await this.repository.remove(inventario);
-    }
-
-
-    async findAlmacenById(id: number): Promise<Almacen | null> {
-        return await this.almacenRepository.findOne({
-            where: { id, estado: true }
-        });
-    }
-
-    async findProductoById(id: number): Promise<Producto | null> {
-        return await this.productoRepository.findOne({
-            where: { id, estado: true }
-        });
-    }
-
-    async existsByAlmacenAndProducto(idAlmacen: number, idProducto: number): Promise<boolean> {
-        const count = await this.repository.count({
-            where: { almacen: { id: idAlmacen }, producto: { id: idProducto } }
-        });
-        return count > 0;
-    }
-
-
-    async existsByAlmacenAndProductoExcludingId(
-        idAlmacen: number, 
-        idProducto: number, 
-        excludeId: number
-    ): Promise<boolean> {
-        const queryBuilder = this.repository
-            .createQueryBuilder('inventario')
-            .where('inventario.almacen.id = :idAlmacen', { idAlmacen })
-            .andWhere('inventario.producto.id = :idProducto', { idProducto })
-            .andWhere('inventario.id != :excludeId', { excludeId });
-
-        const count = await queryBuilder.getCount();
-        return count > 0;
-    }
+    const count = await queryBuilder.getCount();
+    return count > 0;
+  }
 }

@@ -4,7 +4,7 @@ import { IsEmail, IsOptional, IsString, IsBoolean } from 'class-validator';
 export class UpdateUserDto {
   @ApiProperty({
     description: 'Nombre del usuario',
-    example: 'Juan Pérez'
+    example: 'Juan Pérez',
   })
   @IsString()
   @IsOptional()
@@ -12,7 +12,7 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Email del usuario',
-    example: 'usuario@empresa.com'
+    example: 'usuario@empresa.com',
   })
   @IsEmail()
   @IsOptional()
@@ -20,7 +20,7 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Indica si el usuario está habilitado',
-    example: true
+    example: true,
   })
   @IsBoolean()
   @IsOptional()
@@ -28,7 +28,7 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Indica si es usuario principal de la empresa',
-    example: false
+    example: false,
   })
   @IsBoolean()
   @IsOptional()
@@ -36,7 +36,7 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'Datos de la empresa asociada',
-    required: false
+    required: false,
   })
   @IsOptional()
   persona?: {

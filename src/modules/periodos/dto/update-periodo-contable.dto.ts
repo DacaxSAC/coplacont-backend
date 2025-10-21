@@ -11,7 +11,7 @@ export class UpdatePeriodoContableDto {
   @ApiProperty({
     description: 'Fecha de inicio del período',
     example: '2024-01-01',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de inicio debe ser una fecha válida' })
@@ -23,7 +23,7 @@ export class UpdatePeriodoContableDto {
   @ApiProperty({
     description: 'Fecha de fin del período',
     example: '2024-12-31',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de fin debe ser una fecha válida' })
@@ -35,7 +35,7 @@ export class UpdatePeriodoContableDto {
   @ApiProperty({
     description: 'Indica si el período está activo',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'El estado activo debe ser verdadero o falso' })
@@ -48,7 +48,7 @@ export class UpdatePeriodoContableDto {
     description: 'Observaciones del período',
     example: 'Período contable 2024 - Actualizado',
     required: false,
-    maxLength: 500
+    maxLength: 500,
   })
   @IsOptional()
   @IsString({ message: 'Las observaciones deben ser texto' })

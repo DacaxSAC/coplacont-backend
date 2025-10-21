@@ -25,16 +25,25 @@ interface CacheEntry<T> {
  */
 @Injectable()
 export class StockCacheService {
-  private readonly lotesStockCache = new Map<string, CacheEntry<LoteStockResult>>();
-  private readonly inventarioStockCache = new Map<string, CacheEntry<InventarioStockCacheResult>>();
-  private readonly lotesDisponiblesCache = new Map<string, CacheEntry<LoteStockResult[]>>();
-  
+  private readonly lotesStockCache = new Map<
+    string,
+    CacheEntry<LoteStockResult>
+  >();
+  private readonly inventarioStockCache = new Map<
+    string,
+    CacheEntry<InventarioStockCacheResult>
+  >();
+  private readonly lotesDisponiblesCache = new Map<
+    string,
+    CacheEntry<LoteStockResult[]>
+  >();
+
   // TTL por defecto: 5 minutos
   private readonly DEFAULT_TTL = 5 * 60 * 1000;
-  
+
   // TTL para consultas frecuentes: 2 minutos
   private readonly FREQUENT_TTL = 2 * 60 * 1000;
-  
+
   // TTL para consultas complejas: 10 minutos
   private readonly COMPLEX_TTL = 10 * 60 * 1000;
 
@@ -57,10 +66,10 @@ export class StockCacheService {
    * @param ttl - TTL personalizado (opcional)
    */
   setLoteStock(
-    idLote: number, 
-    fechaHasta: Date | undefined, 
-    stock: LoteStockResult, 
-    ttl: number = this.FREQUENT_TTL
+    idLote: number,
+    fechaHasta: Date | undefined,
+    stock: LoteStockResult,
+    ttl: number = this.FREQUENT_TTL,
   ): void {
     const key = this.generateLoteStockKey(idLote, fechaHasta);
     this.setInCache(this.lotesStockCache, key, stock, ttl);
@@ -72,7 +81,10 @@ export class StockCacheService {
    * @param fechaHasta - Fecha hasta la cual calcular
    * @returns Stock del inventario o null si no está en caché o expiró
    */
-  getInventarioStock(idInventario: number, fechaHasta?: Date): InventarioStockCacheResult | null {
+  getInventarioStock(
+    idInventario: number,
+    fechaHasta?: Date,
+  ): InventarioStockCacheResult | null {
     const key = this.generateInventarioStockKey(idInventario, fechaHasta);
     return this.getFromCache(this.inventarioStockCache, key);
   }
@@ -85,10 +97,10 @@ export class StockCacheService {
    * @param ttl - TTL personalizado (opcional)
    */
   setInventarioStock(
-    idInventario: number, 
-    fechaHasta: Date | undefined, 
-    stock: InventarioStockCacheResult, 
-    ttl: number = this.DEFAULT_TTL
+    idInventario: number,
+    fechaHasta: Date | undefined,
+    stock: InventarioStockCacheResult,
+    ttl: number = this.DEFAULT_TTL,
   ): void {
     const key = this.generateInventarioStockKey(idInventario, fechaHasta);
     this.setInCache(this.inventarioStockCache, key, stock, ttl);
@@ -100,7 +112,10 @@ export class StockCacheService {
    * @param fechaHasta - Fecha hasta la cual calcular
    * @returns Lotes disponibles o null si no está en caché o expiró
    */
-  getLotesDisponibles(idInventario: number, fechaHasta?: Date): LoteStockResult[] | null {
+  getLotesDisponibles(
+    idInventario: number,
+    fechaHasta?: Date,
+  ): LoteStockResult[] | null {
     const key = this.generateLotesDisponiblesKey(idInventario, fechaHasta);
     return this.getFromCache(this.lotesDisponiblesCache, key);
   }
@@ -113,10 +128,10 @@ export class StockCacheService {
    * @param ttl - TTL personalizado (opcional)
    */
   setLotesDisponibles(
-    idInventario: number, 
-    fechaHasta: Date | undefined, 
-    lotes: LoteStockResult[], 
-    ttl: number = this.DEFAULT_TTL
+    idInventario: number,
+    fechaHasta: Date | undefined,
+    lotes: LoteStockResult[],
+    ttl: number = this.DEFAULT_TTL,
   ): void {
     const key = this.generateLotesDisponiblesKey(idInventario, fechaHasta);
     this.setInCache(this.lotesDisponiblesCache, key, lotes, ttl);
@@ -129,10 +144,11 @@ export class StockCacheService {
    */
   invalidateLote(idLote: number): void {
     // Invalidar caché de stock del lote específico
-    const loteKeys = Array.from(this.lotesStockCache.keys())
-      .filter(key => key.startsWith(`lote_${idLote}_`));
-    
-    loteKeys.forEach(key => this.lotesStockCache.delete(key));
+    const loteKeys = Array.from(this.lotesStockCache.keys()).filter((key) =>
+      key.startsWith(`lote_${idLote}_`),
+    );
+
+    loteKeys.forEach((key) => this.lotesStockCache.delete(key));
   }
 
   /**
@@ -142,16 +158,18 @@ export class StockCacheService {
    */
   invalidateInventario(idInventario: number): void {
     // Invalidar caché de stock del inventario
-    const inventarioKeys = Array.from(this.inventarioStockCache.keys())
-      .filter(key => key.startsWith(`inventario_${idInventario}_`));
-    
-    inventarioKeys.forEach(key => this.inventarioStockCache.delete(key));
+    const inventarioKeys = Array.from(this.inventarioStockCache.keys()).filter(
+      (key) => key.startsWith(`inventario_${idInventario}_`),
+    );
+
+    inventarioKeys.forEach((key) => this.inventarioStockCache.delete(key));
 
     // Invalidar caché de lotes disponibles del inventario
-    const lotesKeys = Array.from(this.lotesDisponiblesCache.keys())
-      .filter(key => key.startsWith(`lotes_${idInventario}_`));
-    
-    lotesKeys.forEach(key => this.lotesDisponiblesCache.delete(key));
+    const lotesKeys = Array.from(this.lotesDisponiblesCache.keys()).filter(
+      (key) => key.startsWith(`lotes_${idInventario}_`),
+    );
+
+    lotesKeys.forEach((key) => this.lotesDisponiblesCache.delete(key));
   }
 
   /**
@@ -160,7 +178,7 @@ export class StockCacheService {
    * @param idsInventario - IDs de los inventarios afectados
    */
   invalidateMultipleInventarios(idsInventario: number[]): void {
-    idsInventario.forEach(id => this.invalidateInventario(id));
+    idsInventario.forEach((id) => this.invalidateInventario(id));
   }
 
   /**
@@ -169,7 +187,7 @@ export class StockCacheService {
    */
   cleanExpiredEntries(): void {
     const now = Date.now();
-    
+
     this.cleanExpiredFromCache(this.lotesStockCache, now);
     this.cleanExpiredFromCache(this.inventarioStockCache, now);
     this.cleanExpiredFromCache(this.lotesDisponiblesCache, now);
@@ -195,79 +213,108 @@ export class StockCacheService {
     lotesDisponibles: { total: number; expired: number };
   } {
     const now = Date.now();
-    
+
     return {
       lotesStock: this.getCacheStatsForMap(this.lotesStockCache, now),
       inventarioStock: this.getCacheStatsForMap(this.inventarioStockCache, now),
-      lotesDisponibles: this.getCacheStatsForMap(this.lotesDisponiblesCache, now)
+      lotesDisponibles: this.getCacheStatsForMap(
+        this.lotesDisponiblesCache,
+        now,
+      ),
     };
   }
 
   // Métodos privados
 
   private generateLoteStockKey(idLote: number, fechaHasta?: Date): string {
-    const fechaStr = fechaHasta ? fechaHasta.toISOString().split('T')[0] : 'current';
+    const fechaStr = fechaHasta
+      ? fechaHasta.toISOString().split('T')[0]
+      : 'current';
     return `lote_${idLote}_${fechaStr}`;
   }
 
-  private generateInventarioStockKey(idInventario: number, fechaHasta?: Date): string {
-    const fechaStr = fechaHasta ? fechaHasta.toISOString().split('T')[0] : 'current';
+  private generateInventarioStockKey(
+    idInventario: number,
+    fechaHasta?: Date,
+  ): string {
+    const fechaStr = fechaHasta
+      ? fechaHasta.toISOString().split('T')[0]
+      : 'current';
     return `inventario_${idInventario}_${fechaStr}`;
   }
 
-  private generateLotesDisponiblesKey(idInventario: number, fechaHasta?: Date): string {
-    const fechaStr = fechaHasta ? fechaHasta.toISOString().split('T')[0] : 'current';
+  private generateLotesDisponiblesKey(
+    idInventario: number,
+    fechaHasta?: Date,
+  ): string {
+    const fechaStr = fechaHasta
+      ? fechaHasta.toISOString().split('T')[0]
+      : 'current';
     return `lotes_${idInventario}_${fechaStr}`;
   }
 
-  private getFromCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
+  private getFromCache<T>(
+    cache: Map<string, CacheEntry<T>>,
+    key: string,
+  ): T | null {
     const entry = cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
-    
+
     // Verificar si la entrada ha expirado
     if (Date.now() - entry.timestamp > entry.ttl) {
       cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
 
-  private setInCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T, ttl: number): void {
+  private setInCache<T>(
+    cache: Map<string, CacheEntry<T>>,
+    key: string,
+    data: T,
+    ttl: number,
+  ): void {
     cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
 
-  private cleanExpiredFromCache<T>(cache: Map<string, CacheEntry<T>>, now: number): void {
+  private cleanExpiredFromCache<T>(
+    cache: Map<string, CacheEntry<T>>,
+    now: number,
+  ): void {
     const expiredKeys: string[] = [];
-    
+
     for (const [key, entry] of cache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         expiredKeys.push(key);
       }
     }
-    
-    expiredKeys.forEach(key => cache.delete(key));
+
+    expiredKeys.forEach((key) => cache.delete(key));
   }
 
-  private getCacheStatsForMap<T>(cache: Map<string, CacheEntry<T>>, now: number): { total: number; expired: number } {
+  private getCacheStatsForMap<T>(
+    cache: Map<string, CacheEntry<T>>,
+    now: number,
+  ): { total: number; expired: number } {
     let expired = 0;
-    
+
     for (const entry of cache.values()) {
       if (now - entry.timestamp > entry.ttl) {
         expired++;
       }
     }
-    
+
     return {
       total: cache.size,
-      expired
+      expired,
     };
   }
 }

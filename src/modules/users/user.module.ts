@@ -26,43 +26,44 @@ import { EmailService } from './services/email.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
-    imports: [
-      TypeOrmModule.forFeature([User, Role, UserRole, Permission, RolePermission, Persona]),
-      JwtModule.registerAsync({
-        imports: [ConfigModule],
-        inject: [ConfigService],
-        useFactory: async (configService: ConfigService) => ({
-          secret: configService.get<string>('JWT_SECRET'),
-          signOptions: { expiresIn: '1h' },
-        }),
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      Role,
+      UserRole,
+      Permission,
+      RolePermission,
+      Persona,
+    ]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
       }),
-    ],
-    controllers: [
-      UserController,
-      RolController,
-      UserRoleController,
-      PermissionController,
-      RolePermissionController,
-      AuthController,
-      EmailController,
-    ],
-    providers: [
-      UserService,
-      RoleService,
-      UserRolService,
-      PermissionService,
-      RolePermissionService,
-      AuthService,
-      PersonaService,
-      EmailService,
-      JwtAuthGuard
-    ],
-    exports: [
-      UserService,
-      PersonaService,
-      AuthService,
-      JwtAuthGuard,
-      JwtModule
-    ],
-  })
-  export class UserModule {}
+    }),
+  ],
+  controllers: [
+    UserController,
+    RolController,
+    UserRoleController,
+    PermissionController,
+    RolePermissionController,
+    AuthController,
+    EmailController,
+  ],
+  providers: [
+    UserService,
+    RoleService,
+    UserRolService,
+    PermissionService,
+    RolePermissionService,
+    AuthService,
+    PersonaService,
+    EmailService,
+    JwtAuthGuard,
+  ],
+  exports: [UserService, PersonaService, AuthService, JwtAuthGuard, JwtModule],
+})
+export class UserModule {}

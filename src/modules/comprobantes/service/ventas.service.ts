@@ -9,125 +9,144 @@ import { ResponseComprobanteWithDetallesDto } from '../dto/comprobante/response-
 
 @Injectable()
 export class VentasService {
+  constructor(
+    @InjectRepository(Comprobante)
+    private readonly comprobanteRepository: Repository<Comprobante>,
+  ) {}
 
-    constructor(
-        @InjectRepository(Comprobante)
-        private readonly comprobanteRepository: Repository<Comprobante>
-    ) {}
+  /**
+   * Obtiene todos los comprobantes de tipo VENTA filtrados por empresa
+   * @param personaId - ID de la empresa
+   * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de venta
+   */
+  async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
+    const comprobantes = await this.comprobanteRepository.find({
+      where: {
+        tipoOperacion: TipoOperacion.VENTA,
+        persona: { id: personaId },
+      },
+      relations: ['totales', 'persona', 'detalles', 'entidad'],
+      order: { fechaRegistro: 'DESC' },
+    });
 
-    /**
-     * Obtiene todos los comprobantes de tipo VENTA filtrados por empresa
-     * @param personaId - ID de la empresa
-     * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de venta
-     */
-    async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
-        const comprobantes = await this.comprobanteRepository.find({
-            where: { 
-                tipoOperacion: TipoOperacion.VENTA,
-                persona: { id: personaId }
-            },
-            relations: ['totales', 'persona', 'detalles', 'entidad'],
-            order: { fechaRegistro: 'DESC' }
-        });
+    console.log(comprobantes);
 
-        console.log(comprobantes);
-        
-        return plainToInstance(ResponseComprobanteDto, comprobantes, {
-            excludeExtraneousValues: true,
-        });
+    return plainToInstance(ResponseComprobanteDto, comprobantes, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  /**
+   * Busca un comprobante de venta por su ID filtrado por empresa
+   * @param id - ID del comprobante
+   * @param personaId - ID de la empresa
+   * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
+   */
+  async findById(
+    id: number,
+    personaId: number,
+  ): Promise<ResponseComprobanteWithDetallesDto | null> {
+    const comprobante = await this.comprobanteRepository.findOne({
+      where: {
+        idComprobante: id,
+        tipoOperacion: TipoOperacion.VENTA,
+        persona: { id: personaId },
+      },
+      relations: [
+        'totales',
+        'persona',
+        'detalles',
+        'detalles.producto',
+        'entidad',
+      ],
+    });
+
+    if (!comprobante) {
+      return null;
     }
 
-    /**
-     * Busca un comprobante de venta por su ID filtrado por empresa
-     * @param id - ID del comprobante
-     * @param personaId - ID de la empresa
-     * @returns Promise<ResponseComprobanteWithDetallesDto | null> Comprobante encontrado o null
-     */
-    async findById(id: number, personaId: number): Promise<ResponseComprobanteWithDetallesDto | null> {
-        const comprobante = await this.comprobanteRepository.findOne({
-            where: { 
-                idComprobante: id,
-                tipoOperacion: TipoOperacion.VENTA,
-                persona: { id: personaId }
-            },
-            relations: ['totales', 'persona', 'detalles', 'detalles.producto', 'entidad']
-        });
-        
-        if (!comprobante) {
-            return null;
-        }
-        
-        return plainToInstance(ResponseComprobanteWithDetallesDto, comprobante, {
-            excludeExtraneousValues: true,
-        });
-    }
+    return plainToInstance(ResponseComprobanteWithDetallesDto, comprobante, {
+      excludeExtraneousValues: true,
+    });
+  }
 
-    /**
-     * Busca comprobantes de venta por rango de fechas filtrados por empresa
-     * @param fechaInicio - Fecha de inicio del rango
-     * @param fechaFin - Fecha de fin del rango
-     * @param personaId - ID de la empresa
-     * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes en el rango
-     */
-    async findByDateRange(fechaInicio: Date, fechaFin: Date, personaId: number): Promise<ResponseComprobanteDto[]> {
-        const comprobantes = await this.comprobanteRepository
-            .createQueryBuilder('comprobante')
-            .leftJoinAndSelect('comprobante.totales', 'totales')
-            .leftJoinAndSelect('comprobante.persona', 'persona')
-            .leftJoinAndSelect('comprobante.detalles', 'detalles')
-            .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
-            .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
-            .andWhere('persona.id = :personaId', { personaId })
-            .getMany();
-        
-        return plainToInstance(ResponseComprobanteDto, comprobantes, {
-            excludeExtraneousValues: true,
-        });
-    }
+  /**
+   * Busca comprobantes de venta por rango de fechas filtrados por empresa
+   * @param fechaInicio - Fecha de inicio del rango
+   * @param fechaFin - Fecha de fin del rango
+   * @param personaId - ID de la empresa
+   * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes en el rango
+   */
+  async findByDateRange(
+    fechaInicio: Date,
+    fechaFin: Date,
+    personaId: number,
+  ): Promise<ResponseComprobanteDto[]> {
+    const comprobantes = await this.comprobanteRepository
+      .createQueryBuilder('comprobante')
+      .leftJoinAndSelect('comprobante.totales', 'totales')
+      .leftJoinAndSelect('comprobante.persona', 'persona')
+      .leftJoinAndSelect('comprobante.detalles', 'detalles')
+      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
+      .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
+      .andWhere('persona.id = :personaId', { personaId })
+      .getMany();
 
-    /**
-     * Busca comprobantes de venta por cliente filtrados por empresa
-     * @param clienteId - ID del cliente
-     * @param personaId - ID de la empresa
-     * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes del cliente
-     */
-    async findByCliente(clienteId: number, personaId: number): Promise<ResponseComprobanteDto[]> {
-        const comprobantes = await this.comprobanteRepository
-            .createQueryBuilder('comprobante')
-            .leftJoinAndSelect('comprobante.totales', 'totales')
-            .leftJoinAndSelect('comprobante.persona', 'persona')
-            .leftJoinAndSelect('comprobante.entidad', 'entidad')
-            .leftJoinAndSelect('comprobante.detalles', 'detalles')
-            .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('entidad.id = :clienteId', { clienteId })
-            .andWhere('persona.id = :personaId', { personaId })
-            .getMany();
-        
-        return plainToInstance(ResponseComprobanteDto, comprobantes, {
-            excludeExtraneousValues: true,
-        });
-    }
+    return plainToInstance(ResponseComprobanteDto, comprobantes, {
+      excludeExtraneousValues: true,
+    });
+  }
 
-    /**
-     * Obtiene el total de ventas en un rango de fechas filtrado por empresa
-     * @param fechaInicio - Fecha de inicio del rango
-     * @param fechaFin - Fecha de fin del rango
-     * @param personaId - ID de la empresa
-     * @returns Promise<number> Total de ventas en el período
-     */
-    async getTotalVentasByDateRange(fechaInicio: Date, fechaFin: Date, personaId: number): Promise<number> {
-        const result = await this.comprobanteRepository
-            .createQueryBuilder('comprobante')
-            .leftJoin('comprobante.totales', 'totales')
-            .leftJoin('comprobante.persona', 'persona')
-            .select('SUM(totales.totalGeneral)', 'total')
-            .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
-            .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
-            .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
-            .andWhere('persona.id = :personaId', { personaId })
-            .getRawOne();
-        
-        return parseFloat(result.total) || 0;
-    }
+  /**
+   * Busca comprobantes de venta por cliente filtrados por empresa
+   * @param clienteId - ID del cliente
+   * @param personaId - ID de la empresa
+   * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes del cliente
+   */
+  async findByCliente(
+    clienteId: number,
+    personaId: number,
+  ): Promise<ResponseComprobanteDto[]> {
+    const comprobantes = await this.comprobanteRepository
+      .createQueryBuilder('comprobante')
+      .leftJoinAndSelect('comprobante.totales', 'totales')
+      .leftJoinAndSelect('comprobante.persona', 'persona')
+      .leftJoinAndSelect('comprobante.entidad', 'entidad')
+      .leftJoinAndSelect('comprobante.detalles', 'detalles')
+      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .andWhere('entidad.id = :clienteId', { clienteId })
+      .andWhere('persona.id = :personaId', { personaId })
+      .getMany();
+
+    return plainToInstance(ResponseComprobanteDto, comprobantes, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  /**
+   * Obtiene el total de ventas en un rango de fechas filtrado por empresa
+   * @param fechaInicio - Fecha de inicio del rango
+   * @param fechaFin - Fecha de fin del rango
+   * @param personaId - ID de la empresa
+   * @returns Promise<number> Total de ventas en el período
+   */
+  async getTotalVentasByDateRange(
+    fechaInicio: Date,
+    fechaFin: Date,
+    personaId: number,
+  ): Promise<number> {
+    const result = await this.comprobanteRepository
+      .createQueryBuilder('comprobante')
+      .leftJoin('comprobante.totales', 'totales')
+      .leftJoin('comprobante.persona', 'persona')
+      .select('SUM(totales.totalGeneral)', 'total')
+      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
+      .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
+      .andWhere('persona.id = :personaId', { personaId })
+      .getRawOne();
+
+    return parseFloat(result.total) || 0;
+  }
 }

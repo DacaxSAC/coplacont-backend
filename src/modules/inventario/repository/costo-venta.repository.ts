@@ -34,13 +34,15 @@ export interface CostoVentaPorInventarioFiltros {
 export class CostoVentaRepository {
   constructor(
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
    * Obtiene los datos mensuales de compras para un año específico
    */
-  async getComprasMensuales(filtros: CostoVentaFiltros): Promise<{ mes: number; total: number }[]> {
+  async getComprasMensuales(
+    filtros: CostoVentaFiltros,
+  ): Promise<{ mes: number; total: number }[]> {
     let sql = `
       SELECT 
         EXTRACT(MONTH FROM c."fechaEmision") as mes,
@@ -82,16 +84,18 @@ export class CostoVentaRepository {
     `;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       mes: parseInt(row.mes),
-      total: parseFloat(row.total) || 0
+      total: parseFloat(row.total) || 0,
     }));
   }
 
   /**
    * Obtiene los datos mensuales de salidas para un año específico
    */
-  async getSalidasMensuales(filtros: CostoVentaFiltros): Promise<{ mes: number; total: number }[]> {
+  async getSalidasMensuales(
+    filtros: CostoVentaFiltros,
+  ): Promise<{ mes: number; total: number }[]> {
     let sql = `
       SELECT 
         EXTRACT(MONTH FROM c."fechaEmision") as mes,
@@ -134,9 +138,9 @@ export class CostoVentaRepository {
     `;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       mes: parseInt(row.mes),
-      total: parseFloat(row.total) || 0
+      total: parseFloat(row.total) || 0,
     }));
   }
 
@@ -145,7 +149,7 @@ export class CostoVentaRepository {
    */
   async getInventarioFinalMensual(
     filtros: CostoVentaFiltros,
-    mes: number
+    mes: number,
   ): Promise<number> {
     // Fecha de corte: último día del mes
     const fechaCorte = new Date(filtros.año, mes, 0, 23, 59, 59, 999);
@@ -200,7 +204,9 @@ export class CostoVentaRepository {
   /**
    * Obtiene información del producto por ID
    */
-  async getProductoInfo(idProducto: number): Promise<{ nombre: string } | null> {
+  async getProductoInfo(
+    idProducto: number,
+  ): Promise<{ nombre: string } | null> {
     const sql = `SELECT nombre FROM producto WHERE id = $1`;
     const result = await this.dataSource.query(sql, [idProducto]);
     return result[0] || null;
@@ -209,7 +215,9 @@ export class CostoVentaRepository {
   /**
    * Obtiene los datos completos del reporte de costo de venta para un año
    */
-  async getCostoVentaAnual(filtros: CostoVentaFiltros): Promise<CostoVentaMensualData[]> {
+  async getCostoVentaAnual(
+    filtros: CostoVentaFiltros,
+  ): Promise<CostoVentaMensualData[]> {
     const meses = Array.from({ length: 12 }, (_, i) => i + 1);
     const resultado: CostoVentaMensualData[] = [];
 
@@ -218,20 +226,23 @@ export class CostoVentaRepository {
     const salidasMensuales = await this.getSalidasMensuales(filtros);
 
     // Crear mapa para acceso rápido
-    const comprasMap = new Map(comprasMensuales.map(c => [c.mes, c.total]));
-    const salidasMap = new Map(salidasMensuales.map(s => [s.mes, s.total]));
+    const comprasMap = new Map(comprasMensuales.map((c) => [c.mes, c.total]));
+    const salidasMap = new Map(salidasMensuales.map((s) => [s.mes, s.total]));
 
     // Calcular datos para cada mes
     for (const mes of meses) {
       const comprasTotales = comprasMap.get(mes) || 0;
       const salidasTotales = salidasMap.get(mes) || 0;
-      const inventarioFinal = await this.getInventarioFinalMensual(filtros, mes);
+      const inventarioFinal = await this.getInventarioFinalMensual(
+        filtros,
+        mes,
+      );
 
       resultado.push({
         mes,
         comprasTotales,
         salidasTotales,
-        inventarioFinal
+        inventarioFinal,
       });
     }
 
@@ -241,7 +252,9 @@ export class CostoVentaRepository {
   /**
    * Obtiene los datos de entradas por inventario para un año específico
    */
-  async getEntradasPorInventario(filtros: CostoVentaPorInventarioFiltros): Promise<{ idInventario: number; total: number }[]> {
+  async getEntradasPorInventario(
+    filtros: CostoVentaPorInventarioFiltros,
+  ): Promise<{ idInventario: number; total: number }[]> {
     let sql = `
       SELECT 
         i.id as "idInventario",
@@ -279,16 +292,18 @@ export class CostoVentaRepository {
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0
+      total: parseFloat(row.total) || 0,
     }));
   }
 
   /**
    * Obtiene los datos de salidas por inventario para un año específico
    */
-  async getSalidasPorInventario(filtros: CostoVentaPorInventarioFiltros): Promise<{ idInventario: number; total: number }[]> {
+  async getSalidasPorInventario(
+    filtros: CostoVentaPorInventarioFiltros,
+  ): Promise<{ idInventario: number; total: number }[]> {
     let sql = `
       SELECT 
         i.id as "idInventario",
@@ -326,16 +341,18 @@ export class CostoVentaRepository {
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0
+      total: parseFloat(row.total) || 0,
     }));
   }
 
   /**
    * Obtiene el inventario final por inventario para un año específico
    */
-  async getInventarioFinalPorInventario(filtros: CostoVentaPorInventarioFiltros): Promise<{ idInventario: number; total: number }[]> {
+  async getInventarioFinalPorInventario(
+    filtros: CostoVentaPorInventarioFiltros,
+  ): Promise<{ idInventario: number; total: number }[]> {
     let sql = `
       SELECT 
         i.id as "idInventario",
@@ -376,16 +393,20 @@ export class CostoVentaRepository {
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0
+      total: parseFloat(row.total) || 0,
     }));
   }
 
   /**
    * Obtiene información completa de inventarios (producto y almacén)
    */
-  async getInventariosInfo(filtros: CostoVentaPorInventarioFiltros): Promise<{ idInventario: number; nombreProducto: string; nombreAlmacen: string }[]> {
+  async getInventariosInfo(
+    filtros: CostoVentaPorInventarioFiltros,
+  ): Promise<
+    { idInventario: number; nombreProducto: string; nombreAlmacen: string }[]
+  > {
     let sql = `
       SELECT 
         i.id as "idInventario",
@@ -415,20 +436,22 @@ export class CostoVentaRepository {
     sql += ` ORDER BY a.nombre, p.nombre`;
 
     const result = await this.dataSource.query(sql, params);
-    return result.map(row => ({
+    return result.map((row) => ({
       idInventario: parseInt(row.idInventario),
       nombreProducto: row.nombreProducto,
-      nombreAlmacen: row.nombreAlmacen
+      nombreAlmacen: row.nombreAlmacen,
     }));
   }
 
   /**
    * Obtiene los datos completos del reporte de costo de venta por inventario para un año
    */
-  async getCostoVentaPorInventario(filtros: CostoVentaPorInventarioFiltros): Promise<CostoVentaPorInventarioData[]> {
+  async getCostoVentaPorInventario(
+    filtros: CostoVentaPorInventarioFiltros,
+  ): Promise<CostoVentaPorInventarioData[]> {
     // Obtener información de inventarios
     const inventariosInfo = await this.getInventariosInfo(filtros);
-    
+
     if (inventariosInfo.length === 0) {
       return [];
     }
@@ -439,19 +462,23 @@ export class CostoVentaRepository {
     const inventarioFinal = await this.getInventarioFinalPorInventario(filtros);
 
     // Crear mapas para acceso rápido
-    const entradasMap = new Map(entradas.map(e => [e.idInventario, e.total]));
-    const salidasMap = new Map(salidas.map(s => [s.idInventario, s.total]));
-    const inventarioFinalMap = new Map(inventarioFinal.map(i => [i.idInventario, i.total]));
+    const entradasMap = new Map(entradas.map((e) => [e.idInventario, e.total]));
+    const salidasMap = new Map(salidas.map((s) => [s.idInventario, s.total]));
+    const inventarioFinalMap = new Map(
+      inventarioFinal.map((i) => [i.idInventario, i.total]),
+    );
 
     // Combinar todos los datos
-    const resultado: CostoVentaPorInventarioData[] = inventariosInfo.map(info => ({
-      idInventario: info.idInventario,
-      nombreProducto: info.nombreProducto,
-      nombreAlmacen: info.nombreAlmacen,
-      entradas: entradasMap.get(info.idInventario) || 0,
-      salidas: salidasMap.get(info.idInventario) || 0,
-      inventarioFinal: inventarioFinalMap.get(info.idInventario) || 0
-    }));
+    const resultado: CostoVentaPorInventarioData[] = inventariosInfo.map(
+      (info) => ({
+        idInventario: info.idInventario,
+        nombreProducto: info.nombreProducto,
+        nombreAlmacen: info.nombreAlmacen,
+        entradas: entradasMap.get(info.idInventario) || 0,
+        salidas: salidasMap.get(info.idInventario) || 0,
+        inventarioFinal: inventarioFinalMap.get(info.idInventario) || 0,
+      }),
+    );
 
     return resultado;
   }

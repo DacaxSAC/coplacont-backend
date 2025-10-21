@@ -84,6 +84,9 @@ export class PersonaWithUsersResponseDto {
 
   @Expose()
   @Type(() => UserInPersonaResponseDto)
-  @ApiProperty({ description: 'Lista de usuarios', type: [UserInPersonaResponseDto] })
+  @ApiProperty({
+    description: 'Lista de usuarios',
+    type: [UserInPersonaResponseDto],
+  })
   usuarios: UserInPersonaResponseDto[];
 }

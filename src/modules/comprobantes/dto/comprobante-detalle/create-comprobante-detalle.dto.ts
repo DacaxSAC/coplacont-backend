@@ -1,5 +1,12 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+  Min,
+} from 'class-validator';
 
 export class CreateComprobanteDetalleDto {
   @ApiProperty({
@@ -31,7 +38,7 @@ export class CreateComprobanteDetalleDto {
 
   @ApiProperty({
     description: 'Precio unitario',
-    example: 25.50,
+    example: 25.5,
   })
   @IsNumber()
   @IsNotEmpty()
@@ -49,7 +56,7 @@ export class CreateComprobanteDetalleDto {
 
   @ApiProperty({
     description: 'IGV aplicado',
-    example: 48.20,
+    example: 48.2,
   })
   @IsNumber()
   @IsNotEmpty()
@@ -84,7 +91,8 @@ export class CreateComprobanteDetalleDto {
   descripcion?: string;
 
   @ApiPropertyOptional({
-    description: 'ID del lote específico para ventas (opcional, si no se especifica usa FIFO)',
+    description:
+      'ID del lote específico para ventas (opcional, si no se especifica usa FIFO)',
     example: 123,
   })
   @IsOptional()

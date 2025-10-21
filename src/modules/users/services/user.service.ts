@@ -7,7 +7,7 @@ import { CreateUserDto } from '../dto/user/create-user.dto';
 import { UpdateUserDto } from '../dto/user/update-user.dto';
 import { plainToInstance } from 'class-transformer';
 import { ResponseUserDto } from '../dto/user/response-user.dto';
-import { hash } from 'bcrypt'
+import { hash } from 'bcrypt';
 import { PersonaService } from './person.service';
 import { randomBytes } from 'crypto';
 import { UserRolService } from './user-role.service';
@@ -15,37 +15,39 @@ import { EmailService } from './email.service';
 
 @Injectable()
 export class UserService {
-
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => PersonaService))
     private readonly personaService: PersonaService,
     private readonly userRoleRepository: UserRolService,
-    private readonly emailService: EmailService
-  ) { }
-
+    private readonly emailService: EmailService,
+  ) {}
 
   async findById(id: number): Promise<ResponseUserDto> {
-    const user = await this.userRepository.findOne({ 
+    const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['persona', 'userRoles', 'userRoles.role']
+      relations: ['persona', 'userRoles', 'userRoles.role'],
     });
-    const userDto = plainToInstance(ResponseUserDto, user, { excludeExtraneousValues: true });
+    const userDto = plainToInstance(ResponseUserDto, user, {
+      excludeExtraneousValues: true,
+    });
     if (user?.userRoles) {
-      userDto.roles = user.userRoles.map(ur => ur.role.nombre);
+      userDto.roles = user.userRoles.map((ur) => ur.role.nombre);
     }
     return userDto;
   }
 
   async findAll(): Promise<ResponseUserDto[]> {
     const users = await this.userRepository.find({
-      relations: ['persona', 'userRoles', 'userRoles.role']
+      relations: ['persona', 'userRoles', 'userRoles.role'],
     });
-    const usersDto = plainToInstance(ResponseUserDto, users, { excludeExtraneousValues: true, });
+    const usersDto = plainToInstance(ResponseUserDto, users, {
+      excludeExtraneousValues: true,
+    });
     return usersDto.map((userDto, index) => {
       if (users[index]?.userRoles) {
-        userDto.roles = users[index].userRoles.map(ur => ur.role.nombre);
+        userDto.roles = users[index].userRoles.map((ur) => ur.role.nombre);
       }
       return userDto;
     });
@@ -59,24 +61,28 @@ export class UserService {
   async create(createUserDto: CreateUserDto): Promise<ResponseUserDto> {
     let persona: Persona | null = null;
     let nombreCompleto = 'Usuario';
-    
+
     // Si se proporciona createPersonaDto, crear nueva empresa
     if (createUserDto.createPersonaDto) {
-      persona = await this.personaService.create(createUserDto.createPersonaDto);
+      persona = await this.personaService.create(
+        createUserDto.createPersonaDto,
+      );
       nombreCompleto = createUserDto.createPersonaDto.nombreEmpresa;
     }
     // Si se proporciona idPersona, buscar empresa existente
     else if (createUserDto.idPersona) {
       persona = await this.personaService.findById(createUserDto.idPersona);
       if (!persona) {
-        throw new Error(`Empresa con ID ${createUserDto.idPersona} no encontrada`);
+        throw new Error(
+          `Empresa con ID ${createUserDto.idPersona} no encontrada`,
+        );
       }
       nombreCompleto = persona.nombreEmpresa;
     }
-    
+
     const passwordPlano = this.generarPasswordAutogenerada();
     const passwordHasheada = await hash(passwordPlano, 10);
-    
+
     const user = this.userRepository.create({
       nombre: createUserDto.nombre,
       email: createUserDto.email,
@@ -84,24 +90,24 @@ export class UserService {
       persona: persona || undefined,
       esPrincipal: createUserDto.esPrincipal || false,
     });
-    
+
     const userSaved = await this.userRepository.save(user);
-    
+
     await this.userRoleRepository.create({
-      idUser: userSaved.id, 
+      idUser: userSaved.id,
       idRole: createUserDto.idRol,
     });
-    
-     try {
-       await this.emailService.sendWelcomeEmailWithCredentials(
-         createUserDto.email,
-         nombreCompleto,
-         passwordPlano
-       );
-     } catch (error) {
-       console.error('Error enviando email de bienvenida:', error);
-     }
-    
+
+    try {
+      await this.emailService.sendWelcomeEmailWithCredentials(
+        createUserDto.email,
+        nombreCompleto,
+        passwordPlano,
+      );
+    } catch (error) {
+      console.error('Error enviando email de bienvenida:', error);
+    }
+
     return plainToInstance(ResponseUserDto, userSaved, {
       excludeExtraneousValues: true,
     });
@@ -111,12 +117,11 @@ export class UserService {
     return randomBytes(length).toString('base64').slice(0, length);
   }
 
-
   async update(id: number, updateUserDto: UpdateUserDto): Promise<void> {
     // Buscar el usuario con su persona asociada
-    const user = await this.userRepository.findOne({ 
+    const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['persona']
+      relations: ['persona'],
     });
 
     if (!user) {
@@ -142,9 +147,9 @@ export class UserService {
   }
 
   async findByEmail(email: string) {
-    return await this.userRepository.findOne({ 
+    return await this.userRepository.findOne({
       where: { email },
-      relations: ['persona', 'userRoles', 'userRoles.role']
+      relations: ['persona', 'userRoles', 'userRoles.role'],
     });
   }
 
@@ -157,7 +162,7 @@ export class UserService {
     return await this.userRepository.findOne({
       where: {
         resetPasswordToken: token,
-      }
+      },
     });
   }
 
@@ -167,10 +172,14 @@ export class UserService {
    * @param token Token de recuperación
    * @param expiresAt Fecha de expiración del token
    */
-  async updateResetPasswordToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+  async updateResetPasswordToken(
+    userId: number,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
     await this.userRepository.update(userId, {
       resetPasswordToken: token,
-      resetPasswordExpires: expiresAt
+      resetPasswordExpires: expiresAt,
     });
   }
 
@@ -185,7 +194,7 @@ export class UserService {
   async clearResetPasswordToken(userId: number): Promise<void> {
     await this.userRepository.query(
       'UPDATE "user" SET "resetPasswordToken" = NULL, "resetPasswordExpires" = NULL WHERE "id" = $1',
-      [userId]
+      [userId],
     );
   }
 
@@ -196,7 +205,7 @@ export class UserService {
    */
   async updatePassword(userId: number, hashedPassword: string): Promise<void> {
     await this.userRepository.update(userId, {
-      contrasena: hashedPassword
+      contrasena: hashedPassword,
     });
   }
 
@@ -206,9 +215,9 @@ export class UserService {
    * @returns Usuario con datos de persona
    */
   async findByIdWithPersona(id: number): Promise<User | null> {
-    return await this.userRepository.findOne({ 
+    return await this.userRepository.findOne({
       where: { id },
-      relations: ['persona']
+      relations: ['persona'],
     });
   }
 
@@ -218,16 +227,19 @@ export class UserService {
    * @param idPersona ID de la empresa a la que se asociará el usuario
    * @returns Usuario creado
    */
-  async createUserForPersona(createUserDto: CreateUserDto, idPersona: number): Promise<ResponseUserDto> {
+  async createUserForPersona(
+    createUserDto: CreateUserDto,
+    idPersona: number,
+  ): Promise<ResponseUserDto> {
     // Verificar que la empresa existe y está habilitada
     const persona = await this.personaService.findById(idPersona);
     if (!persona) {
       throw new Error(`Empresa con ID ${idPersona} no encontrada`);
     }
-    
+
     const passwordPlano = this.generarPasswordAutogenerada();
     const passwordHasheada = await hash(passwordPlano, 10);
-    
+
     const user = this.userRepository.create({
       nombre: createUserDto.nombre,
       email: createUserDto.email,
@@ -235,27 +247,26 @@ export class UserService {
       persona: persona,
       esPrincipal: createUserDto.esPrincipal || false,
     });
-    
+
     const userSaved = await this.userRepository.save(user);
-    
+
     await this.userRoleRepository.create({
-      idUser: userSaved.id, 
+      idUser: userSaved.id,
       idRole: createUserDto.idRol,
     });
-    
+
     try {
       await this.emailService.sendWelcomeEmailWithCredentials(
         createUserDto.email,
         persona.nombreEmpresa,
-        passwordPlano
+        passwordPlano,
       );
     } catch (error) {
       console.error('Error enviando email de bienvenida:', error);
     }
-    
+
     return plainToInstance(ResponseUserDto, userSaved, {
       excludeExtraneousValues: true,
     });
   }
-
 }
