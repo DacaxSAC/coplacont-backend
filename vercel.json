@@ -1,14 +1,5 @@
 {
   "version": 2,
-  "env": {
-    "NODE_ENV": "production",
-    "FRONTEND_URL": "https://coplacont.netlify.app",
-    "SUNAT_API_TOKEN": "sk_9631.UpGbzmOoXlkGtXEmibeuzDXiNjSCYiFD",
-    "USER_EMAIL": "ing.castillorabanal@gmail.com",
-    "PASSWORD_EMAIL": "ksemycbqcmlkkmkw",
-    "JWT_SECRET": "32132112",
-    "DATABASE_URL": "postgresql://bd_coplacont_desarrollo_user:xM9OWAcjjj8rtkiMIyS6ThmWOaFE5Hph@localhost:5432/bd_coplacont_desarrollo"
-  },
   "builds": [
     {
       "src": "src/main.ts",
