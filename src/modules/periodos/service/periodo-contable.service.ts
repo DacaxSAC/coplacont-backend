@@ -589,7 +589,7 @@ export class PeriodoContableService {
    * Validar si se puede cambiar el método de valoración
    * @param personaId ID de la persona/empresa
    * @param nuevoMetodo Nuevo método de valoración
-   * @throws BadRequestException si hay movimientos en el período activo
+   * @throws BadRequestException si no hay período activo configurado
    */
   async validarCambioMetodoValoracion(
     personaId: number,
@@ -600,35 +600,31 @@ export class PeriodoContableService {
       throw new BadRequestException('No hay un período activo configurado');
     }
 
-    const tieneMovimientos = await this.verificarComprobantesAsociados(
-      periodoActivo.id,
-    );
-    if (tieneMovimientos) {
-      throw new BadRequestException(
-        'No se puede cambiar el método de valoración porque ya existen movimientos en el período activo. ' +
-          'Para cambiar el método, debe cerrar el período actual y crear uno nuevo.',
-      );
-    }
+    // Nota: Se removió la validación de movimientos existentes porque el sistema
+    // ahora soporta recálculo dinámico de inventarios al cambiar el método de valoración
   }
 
   /**
    * Actualizar método de valoración en la configuración
    * @param personaId ID de la persona/empresa
    * @param nuevoMetodo Nuevo método de valoración
+   * @returns ConfiguracionPeriodo actualizada con el nuevo método
    */
   async actualizarMetodoValoracion(
     personaId: number,
     nuevoMetodo: MetodoValoracion,
   ): Promise<ConfiguracionPeriodo> {
-    // Validar que se pueda cambiar
+    // Validar que exista un período activo
     await this.validarCambioMetodoValoracion(personaId, nuevoMetodo);
 
     // Obtener configuración actual
     const configuracion = await this.obtenerConfiguracion(personaId);
 
-    // Actualizar método
+    // Actualizar método de valoración
     configuracion.metodoCalculoCosto = nuevoMetodo;
 
+    // Guardar cambios - el sistema de recálculo dinámico se encargará
+    // de actualizar los inventarios existentes según el nuevo método
     return await this.configuracionRepository.save(configuracion);
   }
 

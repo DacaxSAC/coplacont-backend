@@ -21,35 +21,32 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
-
-    if (!token) {
-      throw new UnauthorizedException('Token de acceso requerido');
-    }
 
     try {
-      const payload: Payload = await this.jwtService.verifyAsync(token);
+      const token = this.extractTokenFromHeader(request);
+      if (!token) {
+        throw new UnauthorizedException('Token no encontrado');
+      }
 
-      // Obtener el usuario completo con su persona
+      const payload = this.jwtService.verify(token);
       const user = await this.userService.findByIdWithPersona(payload.sub);
+
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
 
-      // Agregar información del usuario al request
       request['user'] = {
         id: user.id,
         email: user.email,
-        nombre: user.nombre,
-        persona: user.persona,
-        personaId: user.persona?.id || null,
         roles: payload.roles,
         permissions: payload.permissions,
+        persona: user.persona,
+        personaId: user.persona?.id,
       };
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Token inválido o expirado');
+      throw new UnauthorizedException('Token inválido');
     }
   }
 

@@ -55,7 +55,7 @@ export class ConfiguracionPeriodo {
   @Column({
     type: 'enum',
     enum: MetodoValoracion,
-    default: MetodoValoracion.PROMEDIO,
+    default: MetodoValoracion.promedio,
   })
   metodoCalculoCosto: MetodoValoracion;
 

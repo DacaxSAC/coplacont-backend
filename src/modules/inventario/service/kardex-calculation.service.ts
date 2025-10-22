@@ -266,7 +266,7 @@ export class KardexCalculationService {
     let saldoActual = { ...saldoInicial };
 
     // Inicializar estado temporal de lotes para FIFO
-    if (metodoValoracion === MetodoValoracion.FIFO) {
+    if (metodoValoracion === MetodoValoracion.fifo) {
       await this.inicializarLotesTemporales(
         idInventario,
         movimientos[0]?.fecha || new Date(),
@@ -302,7 +302,7 @@ export class KardexCalculationService {
         );
 
         // Actualizar lotes temporales para FIFO en entradas
-        if (metodoValoracion === MetodoValoracion.FIFO && mov.idLote) {
+        if (metodoValoracion === MetodoValoracion.fifo && mov.idLote) {
           this.actualizarLoteTemporalEntrada(
             mov.idLote,
             mov.cantidad,
@@ -429,7 +429,7 @@ export class KardexCalculationService {
     const cantidad = Number(mov.md_cantidad);
 
     // Para método PROMEDIO, mantener el comportamiento original
-    if (metodoValoracion === MetodoValoracion.PROMEDIO) {
+    if (metodoValoracion === MetodoValoracion.promedio) {
       const costoUnitario = saldoAnterior.costoUnitario;
       const costoTotal = cantidad * costoUnitario;
 

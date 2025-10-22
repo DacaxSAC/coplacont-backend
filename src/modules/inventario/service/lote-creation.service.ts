@@ -30,7 +30,7 @@ export class LoteCreationService {
   async procesarLotesComprobante(
     detalles: ComprobanteDetalle[],
     tipoOperacion: TipoOperacion,
-    metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
+    metodoValoracion: MetodoValoracion = MetodoValoracion.promedio,
     fechaEmision?: Date,
   ): Promise<{
     costoUnitario: number[];
@@ -74,7 +74,7 @@ export class LoteCreationService {
           costosUnitariosDeDetalles.push(costoUnitario);
 
           // Obtener información de lotes consumidos para FIFO
-          if (metodoValoracion === MetodoValoracion.FIFO) {
+          if (metodoValoracion === MetodoValoracion.fifo) {
             const consumoFIFO =
               await this.stockCalculationService.calcularConsumoFIFO(
                 detalle.inventario.id,
