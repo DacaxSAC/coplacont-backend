@@ -129,7 +129,7 @@ export class PersonaService {
       };
 
       // Crear el usuario dentro de la misma transacción
-      const passwordPlano = this.generateRandomPassword();
+      const passwordPlano = createPersonaWithUserDto.ruc;
       const passwordHasheada = await this.hashPassword(passwordPlano);
 
       const user = queryRunner.manager.create(User, {

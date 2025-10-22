@@ -21,6 +21,7 @@ import { AuthService } from './services/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PersonaService } from './services/person.service';
+import { PersonaController } from './controllers/persona.controller';
 import { Persona } from './entities/persona.entity';
 import { EmailService } from './services/email.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -52,6 +53,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     RolePermissionController,
     AuthController,
     EmailController,
+    PersonaController,
   ],
   providers: [
     UserService,
