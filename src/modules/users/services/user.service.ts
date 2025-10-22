@@ -237,7 +237,8 @@ export class UserService {
       throw new Error(`Empresa con ID ${idPersona} no encontrada`);
     }
 
-    const passwordPlano = this.generarPasswordAutogenerada();
+    // Usar el RUC de la empresa como contraseña inicial
+    const passwordPlano = persona.ruc;
     const passwordHasheada = await hash(passwordPlano, 10);
 
     const user = this.userRepository.create({
@@ -268,5 +269,31 @@ export class UserService {
     return plainToInstance(ResponseUserDto, userSaved, {
       excludeExtraneousValues: true,
     });
+  }
+
+  /**
+   * Activa un usuario individual
+   * @param id ID del usuario a activar
+   */
+  async enableUser(id: number): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new Error(`Usuario con ID ${id} no encontrado`);
+    }
+
+    await this.userRepository.update(id, { habilitado: true });
+  }
+
+  /**
+   * Desactiva un usuario individual
+   * @param id ID del usuario a desactivar
+   */
+  async disableUser(id: number): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new Error(`Usuario con ID ${id} no encontrado`);
+    }
+
+    await this.userRepository.update(id, { habilitado: false });
   }
 }

@@ -28,12 +28,22 @@ export class AuthService {
    * Valida las credenciales del usuario
    * @param email Email del usuario
    * @param contrasena Contraseña del usuario
-   * @returns Usuario si las credenciales son válidas, null si son inválidas
+   * @returns Usuario si las credenciales son válidas, null en caso contrario
    */
   async validateUser(email: string, contrasena: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
 
     if (user && user.contrasena && contrasena) {
+      // Verificar si el usuario está habilitado
+      if (!user.habilitado) {
+        return null;
+      }
+
+      // Verificar si la empresa (persona) está habilitada
+      if (user.persona && !user.persona.habilitado) {
+        return null;
+      }
+
       const isPasswordValid = await bcrypt.compare(contrasena, user.contrasena);
 
       if (isPasswordValid) {

@@ -47,10 +47,6 @@ export class PersonaService {
     return persona;
   }
 
-  /**
-   * Desactiva una empresa y todos sus usuarios asociados
-   * @param id ID de la empresa
-   */
   async disablePersonaAndUsers(id: number): Promise<void> {
     // Verificar que la empresa existe
     const persona = await this.personaRepository.findOne({
@@ -73,10 +69,30 @@ export class PersonaService {
   }
 
   /**
-   * Busca una empresa por ID incluyendo sus usuarios
-   * @param id ID de la empresa
-   * @returns Empresa con usuarios asociados
+   * Habilita una empresa y todos sus usuarios asociados
+   * @param id ID de la empresa a habilitar
    */
+  async enablePersonaAndUsers(id: number): Promise<void> {
+    // Verificar que la empresa existe
+    const persona = await this.personaRepository.findOne({
+      where: { id },
+      relations: ['usuarios'],
+    });
+
+    if (!persona) {
+      throw new Error(`Empresa con ID ${id} no encontrada`);
+    }
+
+    // Habilitar la empresa
+    await this.personaRepository.update(id, { habilitado: true });
+
+    // Habilitar todos los usuarios asociados a la empresa
+    if (persona.usuarios && persona.usuarios.length > 0) {
+      const userIds = persona.usuarios.map((user) => user.id);
+      await this.userRepository.update(userIds, { habilitado: true });
+    }
+  }
+
   async findByIdWithUsers(id: number): Promise<Persona | null> {
     return await this.personaRepository.findOne({
       where: { id },
@@ -84,21 +100,12 @@ export class PersonaService {
     });
   }
 
-  /**
-   * Busca todas las empresas incluyendo sus usuarios y roles
-   * @returns Array de empresas con usuarios asociados
-   */
   async findAllWithUsers(): Promise<Persona[]> {
     return await this.personaRepository.find({
       relations: ['usuarios', 'usuarios.userRoles', 'usuarios.userRoles.role'],
     });
   }
 
-  /**
-   * Crea una nueva empresa junto con su usuario principal
-   * @param createPersonaWithUserDto Datos de la empresa y usuario
-   * @returns Empresa creada con usuario principal
-   */
   async createPersonaWithUser(
     createPersonaWithUserDto: CreatePersonaWithUserDto,
   ): Promise<{ persona: Persona; usuario: any }> {
@@ -191,14 +198,6 @@ export class PersonaService {
     } finally {
       await queryRunner.release();
     }
-  }
-
-  /**
-   * Genera una contraseña aleatoria
-   * @returns Contraseña aleatoria
-   */
-  private generateRandomPassword(): string {
-    return randomBytes(8).toString('hex');
   }
 
   /**

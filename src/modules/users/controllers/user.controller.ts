@@ -445,4 +445,28 @@ export class UserController {
   ): Promise<{ persona: any; usuario: any }> {
     return this.personaService.createPersonaWithUser(createPersonaWithUserDto);
   }
+
+  @Patch(':id/enable')
+  @ApiOperation({
+    summary: 'Activar usuario individual',
+    description:
+      'Activa un usuario específico sin afectar a otros usuarios de la misma empresa. El usuario podrá acceder al sistema nuevamente.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario a activar',
+    example: 5,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario activado exitosamente',
+    example: {
+      message: 'Usuario activado exitosamente',
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ status: 400, description: 'Error al activar el usuario' })
+  async enableUser(@Param('id') id: number): Promise<void> {
+    await this.userService.enableUser(id);
+  }
 }
