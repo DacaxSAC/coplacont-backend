@@ -381,7 +381,7 @@ export class StockCalculationService {
     metodoValoracion: MetodoValoracion,
     fechaHasta?: Date,
   ): Promise<number> {
-    if (metodoValoracion === MetodoValoracion.promedio) {
+    if (metodoValoracion === MetodoValoracion.PROMEDIO) {
       return await this.calcularCostoPromedio(idInventario, fechaHasta);
     } else {
       // FIFO: calcular costo promedio ponderado de los lotes que se van a consumir

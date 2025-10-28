@@ -71,10 +71,10 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() createDto: CreatePeriodoContableDto,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.crear(user.persona.id, createDto);
+    return this.periodoContableService.crear(user.personaId, createDto);
   }
 
   /**
@@ -121,54 +121,10 @@ export class PeriodoContableController {
   async obtenerPeriodoActivo(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.obtenerPeriodoActivo(user.persona.id);
-  }
-
-  /**
-   * Obtener configuración de período actual
-   */
-  @Get('configuracion')
-  @ApiOperation({
-    summary: 'Obtener configuración de período actual',
-    description:
-      'Obtiene la configuración del período actual de la empresa, incluyendo el método de valoración configurado.',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Configuración de período obtenida exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        metodoValoracion: {
-          type: 'string',
-          enum: Object.values(MetodoValoracion),
-        },
-        duracionMeses: { type: 'number' },
-        mesInicio: { type: 'number' },
-        diasLimiteRetroactivo: { type: 'number' },
-        recalculoAutomaticoKardex: { type: 'boolean' },
-      },
-    },
-  })
-  async obtenerConfiguracion(@CurrentUser() user: AuthenticatedUser) {
-    if (!user.persona?.id) {
-      throw new Error('Usuario no tiene empresa asociada');
-    }
-
-    const configuracion = await this.periodoContableService.obtenerConfiguracion(
-      user.persona.id,
-    );
-
-    return {
-      metodoValoracion: configuracion.metodoCalculoCosto,
-      duracionMeses: configuracion.duracionMeses,
-      mesInicio: configuracion.mesInicio,
-      diasLimiteRetroactivo: configuracion.diasLimiteRetroactivo,
-      recalculoAutomaticoKardex: configuracion.recalculoAutomaticoKardex,
-    };
+    return this.periodoContableService.obtenerPeriodoActivo(user.personaId);
   }
 
   /**
@@ -198,10 +154,10 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.obtenerPorIdYPersona(id, user.persona.id);
+    return this.periodoContableService.obtenerPorIdYPersona(id, user.personaId);
   }
 
   /**
@@ -236,12 +192,12 @@ export class PeriodoContableController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdatePeriodoContableDto,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
     return this.periodoContableService.actualizarPorPersona(
       id,
-      user.persona.id,
+      user.personaId,
       updateDto,
     );
   }
@@ -278,12 +234,12 @@ export class PeriodoContableController {
     @Param('id', ParseIntPipe) id: number,
     @Body() cerrarDto: CerrarPeriodoDto,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
     return this.periodoContableService.cerrarPorPersona(
       id,
-      user.persona.id,
+      user.personaId,
       cerrarDto,
     );
   }
@@ -318,10 +274,10 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ResponsePeriodoContableDto> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.reabrirPorPersona(id, user.persona.id);
+    return this.periodoContableService.reabrirPorPersona(id, user.personaId);
   }
 
   /**
@@ -354,10 +310,10 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    return this.periodoContableService.eliminarPorPersona(id, user.persona.id);
+    return this.periodoContableService.eliminarPorPersona(id, user.personaId);
   }
 
   /**
@@ -390,12 +346,13 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Query('fecha') fecha: string,
   ) {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
+    const fechaValidar = new Date(fecha);
     return this.periodoContableService.validarFechaEnPeriodoActivo(
-      user.persona.id,
-      fecha,
+      user.personaId,
+      fechaValidar,
     );
   }
 
@@ -428,12 +385,13 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Query('fecha') fecha: string,
   ) {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
+    const fechaMovimiento = new Date(fecha);
     return this.periodoContableService.validarMovimientoRetroactivo(
-      user.persona.id,
-      fecha,
+      user.personaId,
+      fechaMovimiento,
     );
   }
 
@@ -473,13 +431,19 @@ export class PeriodoContableController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() updateDto: UpdateMetodoValoracionDto,
   ) {
-    if (!user.persona?.id) {
+    if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
 
-    return this.periodoContableService.actualizarMetodoValoracion(
-      user.persona.id,
-      updateDto.metodoValoracion,
-    );
+    const configuracionActualizada =
+      await this.periodoContableService.actualizarMetodoValoracion(
+        user.personaId,
+        updateDto.metodoValoracion,
+      );
+
+    return {
+      mensaje: 'Método de valoración actualizado exitosamente',
+      metodoValoracion: configuracionActualizada.metodoCalculoCosto,
+    };
   }
 }

@@ -9,7 +9,7 @@ export class UpdateMetodoValoracionDto {
   @ApiProperty({
     description: 'Método de valoración de inventario',
     enum: MetodoValoracion,
-    example: MetodoValoracion.fifo,
+    example: MetodoValoracion.FIFO,
   })
   @IsNotEmpty()
   @IsEnum(MetodoValoracion)

@@ -92,7 +92,7 @@ export class CreateComprobanteDto {
   @ApiPropertyOptional({
     description: 'Método de valoración de inventario',
     enum: MetodoValoracion,
-    example: MetodoValoracion.fifo,
+    example: MetodoValoracion.FIFO,
   })
   @IsOptional()
   @IsEnum(MetodoValoracion)

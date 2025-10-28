@@ -1,4 +1,4 @@
 export enum MetodoValoracion {
-  fifo = 'fifo',
-  promedio = 'promedio',
+  FIFO = 'fifo',
+  PROMEDIO = 'promedio',
 }
