@@ -7,7 +7,7 @@ import { EntidadService } from 'src/modules/entidades/services';
 import { ComprobanteDetalleService } from './comprobante-detalle.service';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 import { plainToInstance } from 'class-transformer';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
+import { TablaDetalle } from '../entities/tabla-detalle.entity';
 import { Correlativo } from '../entities/correlativo';
 import { MovimientosService } from 'src/modules/movimientos';
 import { MovimientoFactory } from 'src/modules/movimientos/factory/MovimientoFactory';
@@ -22,6 +22,8 @@ export class ComprobanteService {
     private readonly comprobanteRepository: Repository<Comprobante>,
     @InjectRepository(Correlativo)
     private readonly correlativoRepository: Repository<Correlativo>,
+    @InjectRepository(TablaDetalle)
+    private readonly tablaDetalleRepository: Repository<TablaDetalle>,
     private readonly comprobanteDetalleService: ComprobanteDetalleService,
     private readonly personaService: PersonaService,
     private readonly entidadService: EntidadService,
@@ -34,13 +36,13 @@ export class ComprobanteService {
 
   /**
    * Busca o crea un correlativo para una persona y tipo de operación específicos
-   * @param tipoOperacion - Tipo de operación (COMPRA, VENTA, etc.)
+   * @param idTipoOperacion - ID del tipo de operación en TablaDetalle
    * @param personaId - ID de la persona/empresa
    * @param manager - EntityManager de la transacción (opcional)
    * @returns Correlativo encontrado o creado
    */
   private async findOrCreateCorrelativo(
-    tipoOperacion: TipoOperacion,
+    idTipoOperacion: number,
     personaId: number,
     manager?: any,
   ) {
@@ -55,14 +57,14 @@ export class ComprobanteService {
 
     let correlativo = await queryBuilder
       .where('c.tipo = :tipo AND c.personaId = :personaId', {
-        tipo: tipoOperacion,
+        tipo: idTipoOperacion.toString(),
         personaId: personaId,
       })
       .getOne();
 
     if (!correlativo) {
       correlativo = repository.create({
-        tipo: tipoOperacion,
+        tipo: idTipoOperacion.toString(),
         personaId: personaId,
         ultimoNumero: 0,
       });
@@ -118,9 +120,24 @@ export class ComprobanteService {
         throw new Error(`Persona con ID ${personaId} no encontrada`);
       }
 
+      // Obtener las entidades TablaDetalle para las relaciones
+      const tipoOperacion = await this.tablaDetalleRepository.findOne({
+        where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
+      });
+      if (!tipoOperacion) {
+        throw new Error(`Tipo de operación con ID ${createComprobanteDto.idTipoOperacion} no encontrado`);
+      }
+
+      const tipoComprobante = await this.tablaDetalleRepository.findOne({
+        where: { idTablaDetalle: createComprobanteDto.idTipoComprobante }
+      });
+      if (!tipoComprobante) {
+        throw new Error(`Tipo de comprobante con ID ${createComprobanteDto.idTipoComprobante} no encontrado`);
+      }
+
       // Asignación de CORRELATIVO
       const correlativo = await this.findOrCreateCorrelativo(
-        createComprobanteDto.tipoOperacion,
+        createComprobanteDto.idTipoOperacion,
         personaId,
         queryRunner.manager,
       );
@@ -128,15 +145,21 @@ export class ComprobanteService {
       await queryRunner.manager.save(correlativo);
 
       // Crea instancia de COMPROBANTE
-      const comprobante = queryRunner.manager.create(
-        Comprobante,
-        createComprobanteDto,
-      );
+      const comprobante = queryRunner.manager.create(Comprobante, {
+        fechaEmision: createComprobanteDto.fechaEmision,
+        moneda: createComprobanteDto.moneda,
+        tipoCambio: createComprobanteDto.tipoCambio,
+        serie: createComprobanteDto.serie,
+        numero: createComprobanteDto.numero,
+        fechaVencimiento: createComprobanteDto.fechaVencimiento,
+      });
 
-      //Asignamos ENTIDAD, PERSONA y CORRELATIVO
+      //Asignamos ENTIDAD, PERSONA, RELACIONES y CORRELATIVO
       comprobante.periodoContable = periodoActicoDePersona;
       comprobante.entidad = entidad;
       comprobante.persona = persona;
+      comprobante.tipoOperacion = tipoOperacion;
+      comprobante.tipoComprobante = tipoComprobante;
       comprobante.correlativo = `CORR-${correlativo.ultimoNumero}`;
 
       // Guarda el COMPROBANTE
@@ -163,10 +186,15 @@ export class ComprobanteService {
          * HASTA ESTE PUNTO TODO ESTA FUNCIONAL
          */
 
+        // Obtener el tipo de operación para usar su descripción
+        const tipoOperacionDetalle = await this.tablaDetalleRepository.findOne({
+          where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
+        });
+
         const { costoUnitario, lotes } =
           await this.loteCreationService.procesarLotesComprobante(
             detallesSaved,
-            createComprobanteDto.tipoOperacion,
+            tipoOperacionDetalle?.descripcion || 'DESCONOCIDO',
             metodoValoracionFinal,
             fechaEmisionFinal,
           );
@@ -176,7 +204,12 @@ export class ComprobanteService {
         precioYcantidadPorLote = lotes;
 
         // Validar que los lotes se crearon correctamente para compras
-        if (createComprobanteDto.tipoOperacion === TipoOperacion.COMPRA) {
+        // Obtener el tipo de operación para validar si es compra (código "02")
+        const tipoOperacion = await this.tablaDetalleRepository.findOne({
+          where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
+        });
+        
+        if (tipoOperacion && tipoOperacion.codigo === '02') { // Código "02" para COMPRA
           const lotesValidos =
             await this.loteCreationService.validarLotesCompra(detallesSaved);
           if (!lotesValidos) {
@@ -187,17 +220,44 @@ export class ComprobanteService {
         }
       }
 
+      // Cargar las relaciones necesarias para el MovimientoFactory DESPUÉS de guardar los detalles
+      const comprobanteConRelaciones = await queryRunner.manager.findOne(Comprobante, {
+        where: { idComprobante: comprobanteSaved.idComprobante },
+        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto']
+      });
+      
+      if (!comprobanteConRelaciones) {
+        throw new Error('Error al cargar el comprobante con sus relaciones');
+      }
+
       // Crear movimiento
-      const movimientoDto =
-        await this.movimientoFactory.createMovimientoFromComprobante(
-          comprobanteSaved,
-          costosUnitarios,
-          precioYcantidadPorLote,
+      console.log('🔍 DEBUG - Iniciando creación de movimiento');
+      console.log('🔍 DEBUG - comprobanteConRelaciones.tipoOperacion:', comprobanteConRelaciones.tipoOperacion);
+      console.log('🔍 DEBUG - comprobanteConRelaciones.detalles.length:', comprobanteConRelaciones.detalles?.length || 0);
+      console.log('🔍 DEBUG - costosUnitarios:', costosUnitarios);
+      console.log('🔍 DEBUG - precioYcantidadPorLote:', precioYcantidadPorLote);
+      console.log('🔍 DEBUG - Verificando si tipoOperacion es COMPRA:', comprobanteConRelaciones.tipoOperacion?.descripcion === 'COMPRA');
+      
+      try {
+        const movimientoDto =
+          await this.movimientoFactory.createMovimientoFromComprobante(
+            comprobanteConRelaciones,
+            costosUnitarios,
+            precioYcantidadPorLote,
+          );
+        
+        console.log('🔍 DEBUG - movimientoDto creado:', JSON.stringify(movimientoDto, null, 2));
+        
+        const movimientoCreado = await this.movimientoService.createWithManager(
+          movimientoDto,
+          queryRunner.manager,
         );
-      const movimientoCreado = await this.movimientoService.createWithManager(
-        movimientoDto,
-        queryRunner.manager,
-      );
+        
+        console.log('🔍 DEBUG - movimientoCreado:', movimientoCreado);
+      } catch (movimientoError) {
+        console.error('🚨 ERROR en creación de movimiento:', movimientoError);
+        throw movimientoError;
+      }
 
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -210,16 +270,16 @@ export class ComprobanteService {
 
   /**
    * Obtiene el siguiente correlativo para una persona y tipo de operación
-   * @param tipoOperacion - Tipo de operación
+   * @param idTipoOperacion - ID del tipo de operación en TablaDetalle
    * @param personaId - ID de la persona/empresa
    * @returns Siguiente correlativo disponible
    */
   async getNextCorrelativo(
-    tipoOperacion: TipoOperacion,
+    idTipoOperacion: number,
     personaId: number,
   ): Promise<{ correlativo: string }> {
     const correlativo = await this.findOrCreateCorrelativo(
-      tipoOperacion,
+      idTipoOperacion,
       personaId,
     );
     return { correlativo: `corr-${correlativo.ultimoNumero + 1}` };
@@ -233,7 +293,7 @@ export class ComprobanteService {
   async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
     const comprobantes = await this.comprobanteRepository.find({
       where: { persona: { id: personaId } },
-      relations: ['totales', 'persona'],
+      relations: ['totales', 'persona', 'tipoOperacion', 'tipoComprobante'],
     });
     return plainToInstance(ResponseComprobanteDto, comprobantes, {
       excludeExtraneousValues: true,

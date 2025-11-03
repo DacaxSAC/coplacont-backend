@@ -4,7 +4,6 @@ import {
   CreateMovimientoDto,
   CreateDetalleSalidaDto,
 } from '../dto';
-import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { EstadoMovimiento, TipoMovimiento } from '../enum';
 import { Injectable } from '@nestjs/common';
 import { ComprobanteDetalle } from 'src/modules/comprobantes/entities/comprobante-detalle';
@@ -27,17 +26,22 @@ export class MovimientoFactory {
       cantidad: number;
     }[],
   ): Promise<CreateMovimientoDto> {
+    console.log('🔍 DEBUG MovimientoFactory - comprobante.tipoOperacion:', comprobante.tipoOperacion);
+    console.log('🔍 DEBUG MovimientoFactory - comprobante.detalles:', comprobante.detalles?.length || 0);
+    
     const detalles =
       await this.createMovimientosDetallesFromDetallesComprobante(
         comprobante.detalles,
-        comprobante.tipoOperacion,
+        comprobante.tipoOperacion.descripcion,
         costosUnitarios,
         precioYcantidadPorLote,
       );
 
+    console.log('🔍 DEBUG MovimientoFactory - detalles creados:', detalles.length);
+
     return {
       numeroDocumento: comprobante.serie + '-' + comprobante.numero,
-      tipo: this.generateTipoFromTipoOperacion(comprobante.tipoOperacion),
+      tipo: this.generateTipoFromTipoOperacion(comprobante.tipoOperacion.descripcion),
       fecha: comprobante.fechaEmision,
       observaciones: `Movimiento generado desde comprobante ${comprobante.serie}-${comprobante.numero}`,
       estado: EstadoMovimiento.PROCESADO,
@@ -53,7 +57,7 @@ export class MovimientoFactory {
    */
   async createMovimientosDetallesFromDetallesComprobante(
     detalles: ComprobanteDetalle[],
-    tipoOperacion: TipoOperacion,
+    tipoOperacion: string,
     costosUnitarios: number[],
     precioYcantidadPorLote: {
       idLote: number;
@@ -61,17 +65,39 @@ export class MovimientoFactory {
       cantidad: number;
     }[],
   ): Promise<CreateMovimientoDetalleDto[]> {
+    console.log('🔍 DEBUG createMovimientosDetallesFromDetallesComprobante - Parámetros:');
+    console.log('  - detalles.length:', detalles?.length || 0);
+    console.log('  - tipoOperacion:', tipoOperacion);
+    console.log('  - costosUnitarios:', costosUnitarios);
+    console.log('  - precioYcantidadPorLote:', precioYcantidadPorLote);
+    
     const movimientoDetalles: CreateMovimientoDetalleDto[] = [];
     let indice = 0; // Contador para acceder a los elementos consecutivos del array costosUnitarios
     let indiceLote = 0; // Contador para acceder a los lotes por detalle
 
     for (const detalle of detalles) {
+      console.log(`🔍 DEBUG - Procesando detalle ${indice + 1}:`, {
+        detalle: detalle,
+        inventario: detalle.inventario,
+        idInventario: detalle.inventario?.id,
+        cantidad: detalle.cantidad,
+        precioUnitario: detalle.precioUnitario
+      });
+      
+      // Validar que el detalle tenga inventario
+      if (!detalle.inventario || !detalle.inventario.id) {
+        console.error(`🚨 ERROR - Detalle ${indice + 1} no tiene inventario válido:`, detalle);
+        indice++;
+        continue;
+      }
+      
       let costoUnitario: number;
       let detallesSalida: CreateDetalleSalidaDto[] | undefined;
 
-      if (tipoOperacion === TipoOperacion.COMPRA) {
+      if (tipoOperacion === 'COMPRA') {
         // Para compras (entradas), usar el precio unitario original del comprobante
         costoUnitario = detalle.precioUnitario;
+        console.log(`🔍 DEBUG - Es COMPRA, costoUnitario: ${costoUnitario}`);
       } else {
         const costoUnitarioCalculado = costosUnitarios[indice];
         // Si no hay costo calculado, usar el precio unitario del comprobante como fallback
@@ -79,6 +105,8 @@ export class MovimientoFactory {
           costoUnitarioCalculado > 0
             ? costoUnitarioCalculado
             : detalle.precioUnitario;
+
+        console.log(`🔍 DEBUG - Es VENTA, costoUnitario calculado: ${costoUnitario}`);
 
         // Obtener los lotes correspondientes a este detalle
         const lotesParaEsteDetalle: CreateDetalleSalidaDto[] = [];
@@ -121,7 +149,7 @@ export class MovimientoFactory {
 
       // Para compras, asignar el idLote del lote creado
       if (
-        tipoOperacion === TipoOperacion.COMPRA &&
+        tipoOperacion === 'COMPRA' &&
         indiceLote < precioYcantidadPorLote.length
       ) {
         const loteCompra = precioYcantidadPorLote[indiceLote];
@@ -136,19 +164,26 @@ export class MovimientoFactory {
         movimientoDetalle.detallesSalida = detallesSalida;
       }
 
+      console.log(`🔍 DEBUG - MovimientoDetalle creado:`, movimientoDetalle);
       movimientoDetalles.push(movimientoDetalle);
 
       indice++;
     }
 
+    console.log(`🔍 DEBUG - Total movimientoDetalles creados: ${movimientoDetalles.length}`);
     return movimientoDetalles;
   }
 
-  generateTipoFromTipoOperacion(tipoOperacion: TipoOperacion): TipoMovimiento {
-    if (tipoOperacion === TipoOperacion.COMPRA) {
+  private generateTipoFromTipoOperacion(tipoOperacion: string): TipoMovimiento {
+    // Normalizar la descripción del tipo de operación
+    const tipoOperacionNormalizado = tipoOperacion.toUpperCase();
+    
+    if (tipoOperacionNormalizado === 'COMPRA') {
       return TipoMovimiento.ENTRADA;
-    } else {
+    } else if (tipoOperacionNormalizado === 'VENTA') {
       return TipoMovimiento.SALIDA;
+    } else {
+      throw new Error(`Tipo de operación no soportado: ${tipoOperacion}`);
     }
   }
 }

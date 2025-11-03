@@ -1,11 +1,10 @@
 import { Expose, Type } from 'class-transformer';
-import { TipoComprobante } from '../../enum/tipo-comprobante.enum';
 import { Moneda } from '../../enum/tipo-moneda.enum';
-import { TipoOperacion } from '../../enum/tipo-operacion.enum';
 import { ResponseComprobanteTotalesDto } from '../comprobante-totales/response-comprobante-totales.dto';
 import { EntidadResponseDto } from '../../../entidades/dto/entidad-response.dto';
 import { ResponseComprobanteDetalleDto } from '../comprobante-detalle/response-comprobante-detalle.dto';
 import { PersonaResponseDto } from 'src/modules/users/dto/persona/persona-response-dto';
+import { TablaDetalleResponseDto } from '../tabla/tabla-detalle-response.dto';
 
 export class ResponseComprobanteDto {
   @Expose()
@@ -13,9 +12,11 @@ export class ResponseComprobanteDto {
   @Expose()
   correlativo: string;
   @Expose()
-  tipoOperacion: TipoOperacion;
+  @Type(() => TablaDetalleResponseDto)
+  tipoOperacion: TablaDetalleResponseDto;
   @Expose()
-  tipoComprobante: TipoComprobante;
+  @Type(() => TablaDetalleResponseDto)
+  tipoComprobante: TablaDetalleResponseDto;
   @Expose()
   fechaEmision: Date;
   @Expose()

@@ -16,7 +16,10 @@ import { StockCalculationService } from './stock-calculation.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ComprobanteDetalle } from '../../comprobantes/entities/comprobante-detalle';
-import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
+import { TablaDetalle } from '../../comprobantes/entities/tabla-detalle.entity';
+import { MovimientoDetalle } from '../../movimientos/entities/movimiento-detalle.entity';
+import { Movimiento } from '../../movimientos/entities/movimiento.entity';
+import { TipoMovimiento } from '../../movimientos/enum/tipo-movimiento.enum';
 
 @Injectable()
 export class InventarioService {
@@ -25,6 +28,12 @@ export class InventarioService {
     private readonly stockCalculationService: StockCalculationService,
     @InjectRepository(ComprobanteDetalle)
     private readonly comprobanteDetalleRepository: Repository<ComprobanteDetalle>,
+    @InjectRepository(TablaDetalle)
+    private readonly tablaDetalleRepository: Repository<TablaDetalle>,
+    @InjectRepository(MovimientoDetalle)
+    private readonly movimientoDetalleRepository: Repository<MovimientoDetalle>,
+    @InjectRepository(Movimiento)
+    private readonly movimientoRepository: Repository<Movimiento>,
   ) {}
 
   async create(
@@ -262,36 +271,54 @@ export class InventarioService {
     inventarioId: number,
     personaId: number,
   ): Promise<number> {
-    // Obtener todas las compras (entradas) para este inventario
-    const compras = await this.comprobanteDetalleRepository
+    // Obtener todas las entradas (ENTRADA) para este inventario
+    const entradas = await this.movimientoDetalleRepository
       .createQueryBuilder('detalle')
-      .leftJoin('detalle.comprobante', 'comprobante')
+      .leftJoin('detalle.movimiento', 'movimiento')
+      .leftJoin('movimiento.comprobante', 'comprobante')
       .leftJoin('comprobante.persona', 'persona')
-      .select('SUM(detalle.cantidad)', 'totalCompras')
-      .where('detalle.inventario.id = :inventarioId', { inventarioId })
-      .andWhere('comprobante.tipoOperacion = :tipoCompra', {
-        tipoCompra: TipoOperacion.COMPRA,
+      .select('SUM(detalle.cantidad)', 'totalEntradas')
+      .where('detalle.idInventario = :inventarioId', { inventarioId })
+      .andWhere('movimiento.tipo = :tipoEntrada', {
+        tipoEntrada: TipoMovimiento.ENTRADA,
       })
       .andWhere('persona.id = :personaId', { personaId })
       .getRawOne();
 
-    // Obtener todas las ventas (salidas) para este inventario
-    const ventas = await this.comprobanteDetalleRepository
+    // Obtener todas las salidas (SALIDA) para este inventario
+    const salidas = await this.movimientoDetalleRepository
       .createQueryBuilder('detalle')
-      .leftJoin('detalle.comprobante', 'comprobante')
+      .leftJoin('detalle.movimiento', 'movimiento')
+      .leftJoin('movimiento.comprobante', 'comprobante')
       .leftJoin('comprobante.persona', 'persona')
-      .select('SUM(detalle.cantidad)', 'totalVentas')
-      .where('detalle.inventario.id = :inventarioId', { inventarioId })
-      .andWhere('comprobante.tipoOperacion = :tipoVenta', {
-        tipoVenta: TipoOperacion.VENTA,
+      .select('SUM(detalle.cantidad)', 'totalSalidas')
+      .where('detalle.idInventario = :inventarioId', { inventarioId })
+      .andWhere('movimiento.tipo = :tipoSalida', {
+        tipoSalida: TipoMovimiento.SALIDA,
       })
       .andWhere('persona.id = :personaId', { personaId })
       .getRawOne();
 
-    const totalCompras = parseFloat(compras?.totalCompras) || 0;
-    const totalVentas = parseFloat(ventas?.totalVentas) || 0;
+    // Obtener todos los ajustes para este inventario
+    const ajustes = await this.movimientoDetalleRepository
+      .createQueryBuilder('detalle')
+      .leftJoin('detalle.movimiento', 'movimiento')
+      .leftJoin('movimiento.comprobante', 'comprobante')
+      .leftJoin('comprobante.persona', 'persona')
+      .select('SUM(detalle.cantidad)', 'totalAjustes')
+      .where('detalle.idInventario = :inventarioId', { inventarioId })
+      .andWhere('movimiento.tipo = :tipoAjuste', {
+        tipoAjuste: TipoMovimiento.AJUSTE,
+      })
+      .andWhere('persona.id = :personaId', { personaId })
+      .getRawOne();
 
-    return totalCompras - totalVentas;
+    const totalEntradas = parseFloat(entradas?.totalEntradas) || 0;
+    const totalSalidas = parseFloat(salidas?.totalSalidas) || 0;
+    const totalAjustes = parseFloat(ajustes?.totalAjustes) || 0;
+
+    // Stock = Entradas - Salidas + Ajustes
+    return totalEntradas - totalSalidas + totalAjustes;
   }
 
   private async validateAlmacenExists(idAlmacen: number): Promise<void> {

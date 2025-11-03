@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Comprobante } from '../entities/comprobante';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
+import { TablaDetalle } from '../entities/tabla-detalle.entity';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 
 @Injectable()
@@ -11,6 +11,8 @@ export class ComprasService {
   constructor(
     @InjectRepository(Comprobante)
     private readonly comprobanteRepository: Repository<Comprobante>,
+    @InjectRepository(TablaDetalle)
+    private readonly tablaDetalleRepository: Repository<TablaDetalle>,
   ) {}
 
   /**
@@ -19,9 +21,10 @@ export class ComprasService {
    * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de compra
    */
   async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
+    // Usar directamente el idTablaDetalle para COMPRA (13) de la Tabla 12
     const comprobantes = await this.comprobanteRepository.find({
       where: {
-        tipoOperacion: TipoOperacion.COMPRA,
+        tipoOperacion: { idTablaDetalle: 13 }, // ID 13 para COMPRA en Tabla 12
         persona: { id: personaId },
       },
       relations: [
@@ -30,6 +33,8 @@ export class ComprasService {
         'detalles',
         'detalles.inventario',
         'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
       ],
       order: { fechaRegistro: 'DESC' },
     });
@@ -49,10 +54,19 @@ export class ComprasService {
     id: number,
     personaId: number,
   ): Promise<ResponseComprobanteDto | null> {
+    // Buscar el TablaDetalle para COMPRA (código "02")
+    const tipoCompra = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '02' } // Código "02" para COMPRA
+    });
+
+    if (!tipoCompra) {
+      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+    }
+
     const comprobante = await this.comprobanteRepository.findOne({
       where: {
         idComprobante: id,
-        tipoOperacion: TipoOperacion.COMPRA,
+        tipoOperacion: { idTablaDetalle: tipoCompra.idTablaDetalle },
         persona: { id: personaId },
       },
       relations: [
@@ -61,6 +75,8 @@ export class ComprasService {
         'detalles',
         'detalles.inventario',
         'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
       ],
     });
 
@@ -85,14 +101,25 @@ export class ComprasService {
     fechaFin: Date,
     personaId: number,
   ): Promise<ResponseComprobanteDto[]> {
+    // Buscar el TablaDetalle para COMPRA (código "02")
+    const tipoCompra = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '02' } // Código "02" para COMPRA
+    });
+
+    if (!tipoCompra) {
+      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+    }
+
     const comprobantes = await this.comprobanteRepository
       .createQueryBuilder('comprobante')
       .leftJoinAndSelect('comprobante.totales', 'totales')
       .leftJoinAndSelect('comprobante.persona', 'persona')
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
       .leftJoinAndSelect('detalles.inventario', 'inventario')
-      .where('comprobante.tipoOperacion = :tipo', {
-        tipo: TipoOperacion.COMPRA,
+      .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
+      .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', {
+        tipoId: tipoCompra.idTablaDetalle,
       })
       .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
       .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
@@ -115,6 +142,15 @@ export class ComprasService {
     proveedorId: number,
     personaId: number,
   ): Promise<ResponseComprobanteDto[]> {
+    // Buscar el TablaDetalle para COMPRA (código "02")
+    const tipoCompra = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '02' } // Código "02" para COMPRA
+    });
+
+    if (!tipoCompra) {
+      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+    }
+
     const comprobantes = await this.comprobanteRepository
       .createQueryBuilder('comprobante')
       .leftJoinAndSelect('comprobante.totales', 'totales')
@@ -122,8 +158,10 @@ export class ComprasService {
       .leftJoinAndSelect('comprobante.entidad', 'entidad')
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
       .leftJoinAndSelect('detalles.inventario', 'inventario')
-      .where('comprobante.tipoOperacion = :tipo', {
-        tipo: TipoOperacion.COMPRA,
+      .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
+      .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', {
+        tipoId: tipoCompra.idTablaDetalle,
       })
       .andWhere('persona.id = :personaId', { personaId })
       .andWhere('entidad.id = :proveedorId', { proveedorId })

@@ -12,9 +12,8 @@ import { ComprobanteTotales } from './comprobante-totales';
 import { Entidad } from '../../entidades/entities/entidad.entity';
 import { Persona } from '../../users/entities/persona.entity';
 import { PeriodoContable } from '../../periodos/entities/periodo-contable.entity';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
+import { TablaDetalle } from './tabla-detalle.entity';
 import { Moneda } from '../enum/tipo-moneda.enum';
-import { TipoComprobante } from '../enum/tipo-comprobante.enum';
 
 @Entity({ name: 'comprobante' })
 export class Comprobante {
@@ -34,19 +33,15 @@ export class Comprobante {
   @JoinColumn({ name: 'id_persona' })
   persona: Persona;
 
-  @Column({
-    type: 'enum',
-    enum: TipoOperacion,
-    nullable: false,
-  })
-  tipoOperacion: TipoOperacion;
+  // Relación con tipo de operación (Tabla 12)
+  @ManyToOne(() => TablaDetalle, { nullable: false })
+  @JoinColumn({ name: 'id_tipo_operacion' })
+  tipoOperacion: TablaDetalle;
 
-  @Column({
-    type: 'enum',
-    enum: TipoComprobante,
-    nullable: false,
-  })
-  tipoComprobante: TipoComprobante;
+  // Relación con tipo de comprobante (Tabla 10)
+  @ManyToOne(() => TablaDetalle, { nullable: false })
+  @JoinColumn({ name: 'id_tipo_comprobante' })
+  tipoComprobante: TablaDetalle;
 
   //Manual
   @Column({ type: 'date' })

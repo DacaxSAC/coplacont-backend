@@ -10,8 +10,6 @@ import {
   Length,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TipoOperacion } from '../../enum/tipo-operacion.enum';
-import { TipoComprobante } from '../../enum/tipo-comprobante.enum';
 import { Moneda } from '../../enum/tipo-moneda.enum';
 import { MetodoValoracion } from '../../enum/metodo-valoracion.enum';
 import { CreateComprobanteDetalleDto } from '../comprobante-detalle/create-comprobante-detalle.dto';
@@ -24,15 +22,21 @@ export class CreateComprobanteDto {
   @IsNotEmpty()
   idPersona: number;
 
-  @ApiProperty({ enum: TipoOperacion })
-  @IsEnum(TipoOperacion)
+  @ApiProperty({
+    description: 'ID del tipo de operación (referencia a tabla_detalle)',
+    example: 1,
+  })
   @IsNotEmpty()
-  tipoOperacion: TipoOperacion;
+  @IsNumber()
+  idTipoOperacion: number;
 
-  @ApiProperty({ enum: TipoComprobante })
-  @IsEnum(TipoComprobante)
+  @ApiProperty({
+    description: 'ID del tipo de comprobante (referencia a tabla_detalle)',
+    example: 2,
+  })
   @IsNotEmpty()
-  tipoComprobante: TipoComprobante;
+  @IsNumber()
+  idTipoComprobante: number;
 
   @ApiProperty({
     description: 'Fecha de emisión del comprobante',

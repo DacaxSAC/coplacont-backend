@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 
 export interface DetalleSalidaData {
@@ -13,7 +12,7 @@ export interface DetalleSalidaData {
 
 export interface KardexMovementData {
   fecha: Date;
-  tipoOperacion: TipoOperacion;
+  tipoOperacion: string; // Ahora es string en lugar de enum
   tipoMovimiento: TipoMovimiento;
   tipoComprobante: string;
   numeroComprobante: string;
@@ -46,9 +45,9 @@ export class KardexRepository {
     let sql = `
       SELECT 
         c."fechaEmision" as fecha,
-        c."tipoOperacion" as "tipoOperacion",
+        td.descripcion as "tipoOperacion",
         COALESCE(m.tipo, 'ENTRADA') as "tipoMovimiento",
-        c."tipoComprobante" as "tipoComprobante",
+        tdc.descripcion as "tipoComprobante",
         CONCAT(c.serie, '-', c.numero) as "numeroComprobante",
         COALESCE(md.cantidad, cd.cantidad) as cantidad,
         cd."precioUnitario" as "costoUnitario",
@@ -62,6 +61,8 @@ export class KardexRepository {
       INNER JOIN inventario i ON cd.id_inventario = i.id
       INNER JOIN producto p ON i.id_producto = p.id
       INNER JOIN almacen a ON i.id_almacen = a.id
+      INNER JOIN tabla_detalle td ON c."idTipoOperacion" = td."idTablaDetalle"
+      INNER JOIN tabla_detalle tdc ON c."idTipoComprobante" = tdc."idTablaDetalle"
       LEFT JOIN movimientos m ON m.id_comprobante = c."idComprobante"
       LEFT JOIN movimiento_detalles md ON m.id = md.id_movimiento AND md.id_inventario = i.id
       WHERE i.id = $1

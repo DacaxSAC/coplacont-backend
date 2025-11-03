@@ -4,6 +4,8 @@ import { Comprobante } from './entities/comprobante';
 import { ComprobanteDetalle } from './entities/comprobante-detalle';
 import { ComprobanteTotales } from './entities/comprobante-totales';
 import { Correlativo } from './entities/correlativo';
+import { Tabla } from './entities/tabla.entity';
+import { TablaDetalle } from './entities/tabla-detalle.entity';
 import { PeriodoContable } from '../periodos/entities/periodo-contable.entity';
 import { ComprobanteController } from './controller/comprobante.controller';
 import { ComprasController } from './controller/compras.controller';
@@ -27,6 +29,8 @@ import { PeriodosModule } from '../periodos/periodos.module';
       ComprobanteDetalle,
       ComprobanteTotales,
       Correlativo,
+      Tabla,
+      TablaDetalle,
       PeriodoContable,
     ]),
     EntidadModule,

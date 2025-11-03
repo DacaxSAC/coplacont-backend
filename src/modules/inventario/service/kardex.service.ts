@@ -8,7 +8,6 @@ import {
   KardexResponseDto,
   KardexReportMovementDto,
 } from '../dto';
-import { TipoOperacion } from 'src/modules/comprobantes/enum/tipo-operacion.enum';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';

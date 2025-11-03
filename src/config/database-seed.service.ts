@@ -5,6 +5,8 @@ import { Role } from '../modules/users/entities/role.entity';
 import { User } from '../modules/users/entities/user.entity';
 import { UserRole } from '../modules/users/entities/user-role.entity';
 import { RolEnum } from '../modules/users/enums/RoleEnum';
+import { Tabla } from '../modules/comprobantes/entities/tabla.entity';
+import { TablaDetalle } from '../modules/comprobantes/entities/tabla-detalle.entity';
 import { hash } from 'bcrypt';
 
 /**
@@ -22,6 +24,10 @@ export class DatabaseSeedService implements OnModuleInit {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(Tabla)
+    private readonly tablaRepository: Repository<Tabla>,
+    @InjectRepository(TablaDetalle)
+    private readonly tablaDetalleRepository: Repository<TablaDetalle>,
   ) {}
 
   /**
@@ -30,6 +36,7 @@ export class DatabaseSeedService implements OnModuleInit {
   async onModuleInit() {
     await this.seedRoles();
     await this.seedAdminUser();
+    await this.seedTablas();
   }
 
   /**
@@ -125,6 +132,148 @@ export class DatabaseSeedService implements OnModuleInit {
         'Error al crear usuario administrador por defecto:',
         error.message,
       );
+    }
+  }
+
+  /**
+   * Crea las tablas maestras y sus detalles si no existen
+   */
+  private async seedTablas() {
+    try {
+      await this.seedTabla10();
+      await this.seedTabla12();
+    } catch (error) {
+      this.logger.error('Error al crear tablas maestras:', error.message);
+    }
+  }
+
+  /**
+   * Crea la Tabla 10 (Tipos de Comprobante) y sus detalles
+   */
+  private async seedTabla10() {
+    try {
+      // Verificar si ya existe la tabla 10
+      let tabla10 = await this.tablaRepository.findOne({
+        where: { numeroTabla: '10' },
+        relations: ['detalles'],
+      });
+
+      if (!tabla10) {
+        this.logger.log('Creando Tabla 10 (Tipos de Comprobante)...');
+        
+        // Crear la tabla 10
+        tabla10 = this.tablaRepository.create({
+          numeroTabla: '10',
+          nombre: 'Tipos de Comprobante de Pago o Documento',
+          descripcion: 'Catálogo de tipos de comprobantes de pago según SUNAT',
+          activo: true,
+        });
+        tabla10 = await this.tablaRepository.save(tabla10);
+      }
+
+      // Verificar si ya existen detalles
+      if (!tabla10.detalles || tabla10.detalles.length === 0) {
+        this.logger.log('Creando detalles para Tabla 10...');
+
+        const detallesTabla10 = [
+          { codigo: '00', descripcion: 'Otros (especificar)' },
+          { codigo: '01', descripcion: 'Factura' },
+          { codigo: '02', descripcion: 'Recibo por Honorarios' },
+          { codigo: '03', descripcion: 'Boleta de Venta' },
+          { codigo: '04', descripcion: 'Liquidación de compra' },
+          { codigo: '05', descripcion: 'Boleto de compañía de aviación comercial por el servicio de transporte aéreo de pasajeros' },
+          { codigo: '06', descripcion: 'Carta de porte aéreo por el servicio de transporte de carga aérea' },
+          { codigo: '07', descripcion: 'Nota de crédito' },
+          { codigo: '08', descripcion: 'Nota de débito' },
+          { codigo: '09', descripcion: 'Guía de remisión - Remitente' },
+          { codigo: '10', descripcion: 'Recibo por Arrendamiento' },
+        ];
+
+        for (const detalle of detallesTabla10) {
+          const tablaDetalle = this.tablaDetalleRepository.create({
+            tabla: tabla10,
+            codigo: detalle.codigo,
+            descripcion: detalle.descripcion,
+            activo: true,
+          });
+          await this.tablaDetalleRepository.save(tablaDetalle);
+        }
+
+        this.logger.log('Tabla 10 y sus detalles creados exitosamente');
+      } else {
+        this.logger.log('La Tabla 10 y sus detalles ya existen en la base de datos');
+      }
+    } catch (error) {
+      this.logger.error('Error al crear Tabla 10:', error.message);
+    }
+  }
+
+  /**
+   * Crea la Tabla 12 (Tipos de Operación) y sus detalles
+   */
+  private async seedTabla12() {
+    try {
+      // Verificar si ya existe la tabla 12
+      let tabla12 = await this.tablaRepository.findOne({
+        where: { numeroTabla: '12' },
+        relations: ['detalles'],
+      });
+
+      if (!tabla12) {
+        this.logger.log('Creando Tabla 12 (Tipos de Operación)...');
+        
+        // Crear la tabla 12
+        tabla12 = this.tablaRepository.create({
+          numeroTabla: '12',
+          nombre: 'Tipos de Operación',
+          descripcion: 'Catálogo de tipos de operaciones según SUNAT',
+          activo: true,
+        });
+        tabla12 = await this.tablaRepository.save(tabla12);
+      }
+
+      // Verificar si ya existen detalles
+      if (!tabla12.detalles || tabla12.detalles.length === 0) {
+        this.logger.log('Creando detalles para Tabla 12...');
+
+        const detallesTabla12 = [
+          { codigo: '01', descripcion: 'VENTA' },
+          { codigo: '02', descripcion: 'COMPRA' },
+          { codigo: '03', descripcion: 'CONSIGNACIÓN RECIBIDA' },
+          { codigo: '04', descripcion: 'CONSIGNACIÓN ENTREGADA' },
+          { codigo: '05', descripcion: 'DEVOLUCIÓN RECIBIDA' },
+          { codigo: '06', descripcion: 'DEVOLUCIÓN ENTREGADA' },
+          { codigo: '07', descripcion: 'PROMOCIÓN' },
+          { codigo: '08', descripcion: 'PREMIO' },
+          { codigo: '09', descripcion: 'DONACIÓN' },
+          { codigo: '10', descripcion: 'SALIDA A PRODUCCIÓN' },
+          { codigo: '11', descripcion: 'TRANSFERENCIA ENTRE ALMACENES' },
+          { codigo: '12', descripcion: 'RETIRO' },
+          { codigo: '13', descripcion: 'MERMAS' },
+          { codigo: '14', descripcion: 'DESMEDROS' },
+          { codigo: '15', descripcion: 'DESTRUCCIÓN' },
+          { codigo: '16', descripcion: 'SALDO INICIAL' },
+          { codigo: '99', descripcion: 'OTROS (ESPECIFICAR)' },
+          { codigo: '100', descripcion: 'DOCUMENTO INTERNO (INGRESO)' },
+          { codigo: '101', descripcion: 'DOCUMENTO INTERNO (SALIDA)' },
+        ];
+
+        for (const detalle of detallesTabla12) {
+          const tablaDetalle = this.tablaDetalleRepository.create({
+            tabla: tabla12,
+            codigo: detalle.codigo,
+            descripcion: detalle.descripcion,
+            activo: true,
+          });
+          await this.tablaDetalleRepository.save(tablaDetalle);
+        }
+
+        this.logger.log('Tabla 12 y sus detalles creados exitosamente');
+      } else {
+        this.logger.log('La Tabla 12 y sus detalles ya existen en la base de datos');
+      }
+    } catch (error) {
+      this.logger.error('Error al crear Tabla 12:', error.message);
     }
   }
 }

@@ -1,5 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
+  import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Persona } from '../../users/entities/persona.entity';
 
 /**
@@ -13,10 +12,10 @@ export class Correlativo {
    * Parte de la clave primaria compuesta
    */
   @PrimaryColumn({
-    type: 'enum',
-    enum: TipoOperacion,
+    type: 'varchar',
+    length: 10,
   })
-  tipo: TipoOperacion;
+  tipo: string;
 
   /**
    * ID de la persona/empresa propietaria del correlativo

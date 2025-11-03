@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { InventarioLote } from '../entities/inventario-lote.entity';
 import { Inventario } from '../entities/inventario.entity';
 import { ComprobanteDetalle } from '../../comprobantes/entities/comprobante-detalle';
-import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
 import { StockCalculationService } from './stock-calculation.service';
 import { StockCacheService } from './stock-cache.service';
@@ -29,7 +28,7 @@ export class LoteCreationService {
    */
   async procesarLotesComprobante(
     detalles: ComprobanteDetalle[],
-    tipoOperacion: TipoOperacion,
+    tipoOperacion: string,
     metodoValoracion: MetodoValoracion = MetodoValoracion.PROMEDIO,
     fechaEmision?: Date,
   ): Promise<{
@@ -47,7 +46,7 @@ export class LoteCreationService {
       for (let i = 0; i < detalles.length; i++) {
         const detalle = detalles[i];
 
-        if (tipoOperacion === TipoOperacion.COMPRA) {
+        if (tipoOperacion === 'COMPRA') {
           const loteCreado = await this.registrarLoteCompra(
             detalle,
             fechaEmision,

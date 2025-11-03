@@ -11,7 +11,6 @@ import {
 import { ComprobanteService } from '../service/comprobante.service';
 import { CreateComprobanteDto } from '../dto/comprobante/create-comprobante.dto';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
 import { CreateComprobanteDetalleDto } from '../dto/comprobante-detalle/create-comprobante-detalle.dto';
 import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
 import { CurrentUser } from '../../users/decorators/current-user.decorator';
@@ -46,10 +45,10 @@ export class ComprobanteController {
     summary: 'Obtener el siguiente correlativo para un tipo de operación',
   })
   @ApiQuery({
-    name: 'tipoOperacion',
-    description: 'Tipo de operación (venta o compra)',
-    enum: TipoOperacion,
-    example: TipoOperacion.VENTA,
+    name: 'idTipoOperacion',
+    description: 'ID del tipo de operación en TablaDetalle',
+    type: Number,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -61,14 +60,20 @@ export class ComprobanteController {
   })
   @ApiResponse({ status: 400, description: 'Tipo de operación inválido' })
   getNextCorrelativo(
-    @Query('tipoOperacion') tipoOperacion: TipoOperacion,
+    @Query('idTipoOperacion') idTipoOperacion: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ correlativo: string }> {
     if (!user.personaId) {
       throw new Error('Usuario no tiene una empresa asociada');
     }
+    
+    const parsedIdTipoOperacion = parseInt(idTipoOperacion, 10);
+    if (isNaN(parsedIdTipoOperacion)) {
+      throw new Error('idTipoOperacion debe ser un número válido');
+    }
+    
     return this.comprobanteService.getNextCorrelativo(
-      tipoOperacion,
+      parsedIdTipoOperacion,
       user.personaId,
     );
   }

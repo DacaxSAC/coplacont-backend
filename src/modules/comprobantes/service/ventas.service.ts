@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Comprobante } from '../entities/comprobante';
-import { TipoOperacion } from '../enum/tipo-operacion.enum';
+import { TablaDetalle } from '../entities/tabla-detalle.entity';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 import { ResponseComprobanteWithDetallesDto } from '../dto/comprobante/response-comprobante-with-detalles.dto';
 
@@ -12,6 +12,8 @@ export class VentasService {
   constructor(
     @InjectRepository(Comprobante)
     private readonly comprobanteRepository: Repository<Comprobante>,
+    @InjectRepository(TablaDetalle)
+    private readonly tablaDetalleRepository: Repository<TablaDetalle>,
   ) {}
 
   /**
@@ -20,12 +22,13 @@ export class VentasService {
    * @returns Promise<ResponseComprobanteDto[]> Lista de comprobantes de venta
    */
   async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
+    // Usar directamente el idTablaDetalle para VENTA (12) de la Tabla 12
     const comprobantes = await this.comprobanteRepository.find({
       where: {
-        tipoOperacion: TipoOperacion.VENTA,
+        tipoOperacion: { idTablaDetalle: 12 }, // ID 12 para VENTA en Tabla 12
         persona: { id: personaId },
       },
-      relations: ['totales', 'persona', 'detalles', 'entidad'],
+      relations: ['totales', 'persona', 'detalles', 'entidad', 'tipoOperacion', 'tipoComprobante'],
       order: { fechaRegistro: 'DESC' },
     });
 
@@ -46,10 +49,19 @@ export class VentasService {
     id: number,
     personaId: number,
   ): Promise<ResponseComprobanteWithDetallesDto | null> {
+    // Buscar el TablaDetalle para VENTA (código "01")
+    const tipoVenta = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '01' } // Código "01" para VENTA
+    });
+
+    if (!tipoVenta) {
+      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+    }
+
     const comprobante = await this.comprobanteRepository.findOne({
       where: {
         idComprobante: id,
-        tipoOperacion: TipoOperacion.VENTA,
+        tipoOperacion: { idTablaDetalle: tipoVenta.idTablaDetalle },
         persona: { id: personaId },
       },
       relations: [
@@ -58,6 +70,8 @@ export class VentasService {
         'detalles',
         'detalles.producto',
         'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
       ],
     });
 
@@ -82,15 +96,28 @@ export class VentasService {
     fechaFin: Date,
     personaId: number,
   ): Promise<ResponseComprobanteDto[]> {
+    // Buscar el TablaDetalle para VENTA (código "01")
+    const tipoVenta = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '01' } // Código "01" para VENTA
+    });
+
+    if (!tipoVenta) {
+      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+    }
+
     const comprobantes = await this.comprobanteRepository
       .createQueryBuilder('comprobante')
       .leftJoinAndSelect('comprobante.totales', 'totales')
       .leftJoinAndSelect('comprobante.persona', 'persona')
+      .leftJoinAndSelect('comprobante.entidad', 'entidad')
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
-      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
+      .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
       .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
       .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
       .andWhere('persona.id = :personaId', { personaId })
+      .orderBy('comprobante.fechaRegistro', 'DESC')
       .getMany();
 
     return plainToInstance(ResponseComprobanteDto, comprobantes, {
@@ -108,13 +135,24 @@ export class VentasService {
     clienteId: number,
     personaId: number,
   ): Promise<ResponseComprobanteDto[]> {
+    // Buscar el TablaDetalle para VENTA (código "01")
+    const tipoVenta = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '01' } // Código "01" para VENTA
+    });
+
+    if (!tipoVenta) {
+      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+    }
+
     const comprobantes = await this.comprobanteRepository
       .createQueryBuilder('comprobante')
       .leftJoinAndSelect('comprobante.totales', 'totales')
       .leftJoinAndSelect('comprobante.persona', 'persona')
       .leftJoinAndSelect('comprobante.entidad', 'entidad')
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
-      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
+      .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
       .andWhere('entidad.id = :clienteId', { clienteId })
       .andWhere('persona.id = :personaId', { personaId })
       .getMany();
@@ -136,12 +174,22 @@ export class VentasService {
     fechaFin: Date,
     personaId: number,
   ): Promise<number> {
+    // Buscar el TablaDetalle para VENTA (código "01")
+    const tipoVenta = await this.tablaDetalleRepository.findOne({
+      where: { codigo: '01' } // Código "01" para VENTA
+    });
+
+    if (!tipoVenta) {
+      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+    }
+
     const result = await this.comprobanteRepository
       .createQueryBuilder('comprobante')
       .leftJoin('comprobante.totales', 'totales')
       .leftJoin('comprobante.persona', 'persona')
+      .leftJoin('comprobante.tipoOperacion', 'tipoOperacion')
       .select('SUM(totales.totalGeneral)', 'total')
-      .where('comprobante.tipoOperacion = :tipo', { tipo: TipoOperacion.VENTA })
+      .where('tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
       .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
       .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
       .andWhere('persona.id = :personaId', { personaId })

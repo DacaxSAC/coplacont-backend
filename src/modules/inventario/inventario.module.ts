@@ -7,6 +7,7 @@ import { Producto } from '../productos/entities/producto.entity';
 import { Movimiento } from '../movimientos/entities/movimiento.entity';
 import { MovimientoDetalle } from '../movimientos/entities/movimiento-detalle.entity';
 import { ComprobanteDetalle } from '../comprobantes/entities/comprobante-detalle';
+import { TablaDetalle } from '../comprobantes/entities/tabla-detalle.entity';
 
 import { InventarioService } from './service/inventario.service';
 import { InventarioLoteService } from './service/inventario-lote.service';
@@ -39,6 +40,7 @@ import { PeriodosModule } from '../periodos/periodos.module';
       Movimiento,
       MovimientoDetalle,
       ComprobanteDetalle,
+      TablaDetalle,
     ]),
     ProductosModule,
     UserModule,

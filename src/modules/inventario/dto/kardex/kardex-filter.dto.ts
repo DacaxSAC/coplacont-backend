@@ -3,11 +3,9 @@ import {
   IsOptional,
   IsNumber,
   IsDateString,
-  IsEnum,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TipoOperacion } from '../../../comprobantes/enum/tipo-operacion.enum';
 
 export class KardexFilterDto {
   @ApiPropertyOptional({
@@ -57,12 +55,14 @@ export class KardexFilterDto {
   fechaFin?: string;
 
   @ApiPropertyOptional({
-    description: 'Tipo de operación para filtrar',
-    enum: TipoOperacion,
+    description: 'ID del tipo de operación para filtrar (1=VENTA, 2=COMPRA)',
+    example: 1,
   })
   @IsOptional()
-  @IsEnum(TipoOperacion)
-  tipoOperacion?: TipoOperacion;
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  idTipoOperacion?: number;
 
   @ApiPropertyOptional({
     description: 'Número de página',

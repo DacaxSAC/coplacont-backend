@@ -10,6 +10,7 @@ import { databaseConfig } from './config/database.config';
 import { ConfigModule } from '@nestjs/config';
 import { ComprobanteController } from './modules/comprobantes/controller/comprobante.controller';
 import { ComprobanteModule } from './modules/comprobantes/comprobante.module';
+import { TablaModule } from './modules/comprobantes/tabla.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { TipoCambioModule } from './modules/tipo-cambio/tipo-cambio.module';
 import { MovimientosModule } from './modules/movimientos/movimientos.module';
@@ -35,6 +36,7 @@ import { UserRole } from './modules/users/entities/user-role.entity';
     UserModule,
     EntidadModule,
     ComprobanteModule,
+    TablaModule,
     ProductosModule,
     CategoriaModule,
     AlmacenModule,

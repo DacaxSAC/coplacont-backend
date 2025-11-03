@@ -7,7 +7,6 @@ import { MovimientoDetalle } from '../../movimientos/entities/movimiento-detalle
 import { Movimiento } from '../../movimientos/entities/movimiento.entity';
 import { TipoMovimiento } from '../../movimientos/enum/tipo-movimiento.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
-import { TipoOperacion } from '../../comprobantes/enum/tipo-operacion.enum';
 import { StockCalculationService } from './stock-calculation.service';
 
 /**
@@ -15,7 +14,7 @@ import { StockCalculationService } from './stock-calculation.service';
  */
 export interface KardexMovement {
   fecha: Date;
-  tipoOperacion: TipoOperacion;
+  tipoOperacion: string; // Ahora es string en lugar de enum
   tipoMovimiento: TipoMovimiento;
   tipoComprobante?: string;
   numeroComprobante?: string;
@@ -166,10 +165,18 @@ export class KardexCalculationService {
     fechaDesde: Date,
     fechaHasta: Date,
   ): Promise<any[]> {
+    console.log('🔍 DEBUG obtenerMovimientosInventario - Parámetros:', {
+      idInventario,
+      fechaDesde,
+      fechaHasta,
+    });
+
     const movimientos = await this.movimientoDetalleRepository
       .createQueryBuilder('md')
       .innerJoin('md.movimiento', 'm')
       .leftJoin('m.comprobante', 'c')
+      .leftJoin('c.tipoOperacion', 'to')
+      .leftJoin('c.tipoComprobante', 'tc')
       .where('md.idInventario = :idInventario', { idInventario })
       .andWhere('m.fecha >= :fechaDesde', { fechaDesde })
       .andWhere('m.fecha <= :fechaHasta', { fechaHasta })
@@ -183,8 +190,8 @@ export class KardexCalculationService {
         'm.tipo as tipoMovimiento',
         'm.fecha',
         'm.numeroDocumento',
-        'c.tipoOperacion',
-        'c.tipoComprobante',
+        'to.descripcion as tipoOperacion',
+        'tc.descripcion as tipoComprobante',
         'c.correlativo',
       ])
       .orderBy('m.fecha', 'ASC')
@@ -195,6 +202,27 @@ export class KardexCalculationService {
       '🔍 DEBUG obtenerMovimientosInventario - Total movimientos encontrados:',
       movimientos.length,
     );
+    
+    if (movimientos.length === 0) {
+      // Si no hay movimientos, verificar si existen MovimientoDetalle para este inventario
+      const totalMovimientoDetalle = await this.movimientoDetalleRepository
+        .createQueryBuilder('md')
+        .where('md.idInventario = :idInventario', { idInventario })
+        .getCount();
+      
+      console.log('🔍 DEBUG - Total MovimientoDetalle para inventario:', totalMovimientoDetalle);
+      
+      // Verificar si existen movimientos sin filtros de fecha
+      const movimientosSinFiltro = await this.movimientoDetalleRepository
+        .createQueryBuilder('md')
+        .innerJoin('md.movimiento', 'm')
+        .where('md.idInventario = :idInventario', { idInventario })
+        .select(['md.id', 'm.fecha', 'm.estado', 'm.tipo'])
+        .getRawMany();
+      
+      console.log('🔍 DEBUG - Movimientos sin filtro de fecha:', movimientosSinFiltro);
+    }
+    
     console.log(
       '🔍 DEBUG obtenerMovimientosInventario - Primeros 5 movimientos:',
       movimientos.slice(0, 5).map((m) => ({
@@ -203,6 +231,8 @@ export class KardexCalculationService {
         fecha: m.m_fecha,
         tipo: m.tipomovimiento,
         cantidad: m.md_cantidad,
+        tipoOperacion: m.tipooperacion,
+        estado: m.m_estado,
       })),
     );
 
@@ -288,7 +318,7 @@ export class KardexCalculationService {
 
       const esEntrada = this.esMovimientoEntrada(
         mov.tipomovimiento,
-        mov.c_tipoOperacion,
+        mov.tipooperacion,
       );
 
       let movimientoKardex: KardexMovement;
@@ -734,9 +764,9 @@ export class KardexCalculationService {
    */
   private esMovimientoEntrada(
     tipoMovimiento: TipoMovimiento,
-    tipoOperacion?: TipoOperacion,
+    tipoOperacion?: string,
   ): boolean {
-    if (tipoOperacion === TipoOperacion.COMPRA) {
+    if (tipoOperacion === 'COMPRA') {
       return true;
     }
 
