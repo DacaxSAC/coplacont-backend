@@ -599,16 +599,6 @@ export class PeriodoContableService {
     if (!periodoActivo) {
       throw new BadRequestException('No hay un período activo configurado');
     }
-
-    const tieneMovimientos = await this.verificarComprobantesAsociados(
-      periodoActivo.id,
-    );
-    if (tieneMovimientos) {
-      throw new BadRequestException(
-        'No se puede cambiar el método de valoración porque ya existen movimientos en el período activo. ' +
-          'Para cambiar el método, debe cerrar el período actual y crear uno nuevo.',
-      );
-    }
   }
 
   /**

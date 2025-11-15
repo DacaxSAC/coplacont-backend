@@ -128,6 +128,45 @@ export class PeriodoContableController {
   }
 
   /**
+   * Obtener configuración del período activo de la empresa
+   */
+  @Get('configuracion')
+  @ApiOperation({
+    summary: 'Obtener configuración del período activo',
+    description:
+      'Obtiene la configuración (método de valoración, límites, etc.) de la empresa del usuario autenticado',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Configuración del período',
+    schema: {
+      type: 'object',
+      properties: {
+        metodoValoracion: { type: 'string', enum: Object.values(MetodoValoracion) },
+        duracionMeses: { type: 'number' },
+        mesInicio: { type: 'number' },
+        diasLimiteRetroactivo: { type: 'number' },
+        recalculoAutomaticoKardex: { type: 'boolean' },
+      },
+    },
+  })
+  async obtenerConfiguracion(
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene empresa asociada');
+    }
+    const config = await this.periodoContableService.obtenerConfiguracion(user.personaId);
+    return {
+      metodoValoracion: (config as any).metodoCalculoCosto,
+      duracionMeses: (config as any).duracionMeses,
+      mesInicio: (config as any).mesInicio,
+      diasLimiteRetroactivo: (config as any).diasLimiteRetroactivo,
+      recalculoAutomaticoKardex: (config as any).recalculoAutomaticoKardex,
+    };
+  }
+
+  /**
    * Obtener período por ID de la empresa
    */
   @Get(':id')
