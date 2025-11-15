@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Not, In } from 'typeorm';
 import { Comprobante } from '../entities/comprobante';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateComprobanteDto } from '../dto/comprobante/create-comprobante.dto';
@@ -189,35 +189,20 @@ export class ComprobanteService {
           queryRunner.manager,
         );
         comprobanteSaved.detalles = detallesSaved;
-
-        /**
-         * HASTA ESTE PUNTO TODO ESTA FUNCIONAL
-         */
-
-        // Obtener el tipo de operación para usar su descripción
-        const tipoOperacionDetalle = await this.tablaDetalleRepository.findOne({
-          where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
-        });
-
+        // Procesar lotes en función del tipo de operación y método de valoración
         const { costoUnitario, lotes } =
           await this.loteCreationService.procesarLotesComprobante(
             detallesSaved,
-            tipoOperacionDetalle?.descripcion || 'DESCONOCIDO',
+            tipoOperacion.descripcion,
             metodoValoracionFinal,
             fechaEmisionFinal,
           );
 
-        //Hay que ver si aun son necesarios
         costosUnitarios = costoUnitario;
         precioYcantidadPorLote = lotes;
 
         // Validar que los lotes se crearon correctamente para compras
-        // Obtener el tipo de operación para validar si es compra (código "02")
-        const tipoOperacion = await this.tablaDetalleRepository.findOne({
-          where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
-        });
-        
-        if (tipoOperacion && tipoOperacion.codigo === '02') { // Código "02" para COMPRA
+        if (tipoOperacion.codigo === '02') { // Código "02" para COMPRA
           const lotesValidos =
             await this.loteCreationService.validarLotesCompra(detallesSaved);
           if (!lotesValidos) {
@@ -238,33 +223,13 @@ export class ComprobanteService {
         throw new Error('Error al cargar el comprobante con sus relaciones');
       }
 
-      // Solo crear movimientos si:
-      // 1. Hay detalles en el comprobante
-      // 2. El tipo de operación es VENTA (código "01") o COMPRA (código "02")
+      // Solo crear movimientos si hay detalles y la operación es VENTA ("01") o COMPRA ("02")
       const tieneDetalles = comprobanteConRelaciones.detalles && comprobanteConRelaciones.detalles.length > 0;
-      
-      // Obtener el código del tipo de operación desde la tabla detalle
-      const tipoOperacionDetalle = await queryRunner.manager.findOne(TablaDetalle, {
-        where: { idTablaDetalle: comprobanteConRelaciones.tipoOperacion.idTablaDetalle }
-      });
-      
-      const esOperacionKardex = tipoOperacionDetalle && (
-        tipoOperacionDetalle.codigo === '01' || // VENTA
-        tipoOperacionDetalle.codigo === '02'    // COMPRA
+      const esOperacionKardex = ['01', '02'].includes(
+        comprobanteConRelaciones.tipoOperacion?.codigo,
       );
 
-      console.log('Tiene detalles:', tieneDetalles);
-      console.log('Código tipo operación:', tipoOperacionDetalle?.codigo);
-      console.log('Es operación kardex:', esOperacionKardex);
-
       if (tieneDetalles && esOperacionKardex) {
-        // Crear movimiento
-        console.log('🔍 DEBUG - Iniciando creación de movimiento');
-        console.log('🔍 DEBUG - comprobanteConRelaciones.tipoOperacion:', comprobanteConRelaciones.tipoOperacion);
-        console.log('🔍 DEBUG - comprobanteConRelaciones.detalles.length:', comprobanteConRelaciones.detalles?.length || 0);
-        console.log('🔍 DEBUG - costosUnitarios:', costosUnitarios);
-        console.log('🔍 DEBUG - precioYcantidadPorLote:', precioYcantidadPorLote);
-        
         try {
           const movimientoDto =
             await this.movimientoFactory.createMovimientoFromComprobante(
@@ -272,21 +237,13 @@ export class ComprobanteService {
               costosUnitarios,
               precioYcantidadPorLote,
             );
-          
-          console.log('🔍 DEBUG - movimientoDto creado:', JSON.stringify(movimientoDto, null, 2));
-          
           const movimientoCreado = await this.movimientoService.createWithManager(
             movimientoDto,
             queryRunner.manager,
           );
-          
-          console.log('🔍 DEBUG - movimientoCreado:', movimientoCreado);
         } catch (movimientoError) {
-          console.error('🚨 ERROR en creación de movimiento:', movimientoError);
           throw movimientoError;
         }
-      } else {
-        console.log('Omitiendo creación de movimientos - No es operación de kardex o no tiene detalles');
       }
 
       await queryRunner.commitTransaction();
@@ -316,14 +273,31 @@ export class ComprobanteService {
   }
 
   /**
-   * Obtiene todos los comprobantes filtrados por empresa
-   * @param personaId ID de la empresa (Persona)
+   * Obtiene todos los comprobantes registrados para la empresa del usuario,
+   * excluyendo los tipos de operación COMPRA y VENTA.
+   * Incluye totales, persona/entidad, tipos y detalles asociados.
+   * Ordena por `fechaEmision` e `idComprobante` de forma descendente.
+   *
+   * @param personaId ID de la empresa (Persona) del usuario autenticado
    * @returns Lista de comprobantes de la empresa
    */
   async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
     const comprobantes = await this.comprobanteRepository.find({
-      where: { persona: { id: personaId } },
-      relations: ['totales', 'persona', 'tipoOperacion', 'tipoComprobante'],
+      where: {
+        persona: { id: personaId },
+        // Excluir COMPRA (idTablaDetalle: 13) y VENTA (idTablaDetalle: 12)
+        tipoOperacion: { idTablaDetalle: Not(In([12, 13])) },
+      },
+      relations: [
+        'totales',
+        'persona',
+        'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
+        'detalles',
+        'detalles.inventario',
+      ],
+      order: { fechaEmision: 'DESC', idComprobante: 'DESC' },
     });
     return plainToInstance(ResponseComprobanteDto, comprobantes, {
       excludeExtraneousValues: true,

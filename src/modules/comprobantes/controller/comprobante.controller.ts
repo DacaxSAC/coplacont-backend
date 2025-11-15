@@ -2,6 +2,9 @@ import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
   ApiTags,
   ApiQuery,
   ApiExtraModels,
@@ -24,13 +27,24 @@ import type { AuthenticatedUser } from '../../users/decorators/current-user.deco
 export class ComprobanteController {
   constructor(private readonly comprobanteService: ComprobanteService) {}
 
+  /**
+   * Lista todos los comprobantes registrados de la empresa del usuario autenticado,
+   * excluyendo los de tipo de operación COMPRA (idTablaDetalle: 13) y VENTA (idTablaDetalle: 12).
+   * Incluye totales, entidad/persona, tipo de operación, tipo de comprobante y detalles.
+   */
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los comprobantes' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de comprobantes obtenida exitosamente',
-    type: [ResponseComprobanteDto],
+  @ApiOperation({
+    summary: 'Listar comprobantes (excluye compra y venta)',
+    description:
+      'Devuelve todos los comprobantes registrados para la empresa asociada al usuario, EXCEPTO los de tipo de operación VENTA (idTablaDetalle: 12) y COMPRA (idTablaDetalle: 13). Incluye totales, entidad/persona, tipo de operación, tipo de comprobante y detalles.',
   })
+  @ApiOkResponse({
+    description: 'Lista de comprobantes obtenida exitosamente',
+    type: ResponseComprobanteDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({ description: 'Token inválido o no proporcionado' })
+  @ApiForbiddenResponse({ description: 'El usuario no tiene acceso a este recurso' })
   findAll(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ResponseComprobanteDto[]> {
