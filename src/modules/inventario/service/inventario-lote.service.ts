@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { InventarioLote } from '../entities/inventario-lote.entity';
 import { Inventario } from '../entities/inventario.entity';
 import { CreateInventarioLoteDto } from '../dto/inventario-lote/create-inventario-lote.dto';

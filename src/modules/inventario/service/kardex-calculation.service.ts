@@ -358,12 +358,18 @@ export class KardexCalculationService {
           // Agregar todos los movimientos al kardex
           movimientosKardex.push(...resultado);
           // Actualizar saldo con el último movimiento del array
-          const ultimoMovimiento = resultado[resultado.length - 1];
-          saldoActual = {
-            cantidad: ultimoMovimiento.cantidadSaldo,
-            costoUnitario: ultimoMovimiento.costoUnitarioSaldo,
-            valorTotal: ultimoMovimiento.valorTotalSaldo,
-          };
+          if (resultado.length > 0) {
+            const ultimoMovimiento = resultado[resultado.length - 1];
+            saldoActual = {
+              cantidad: ultimoMovimiento.cantidadSaldo,
+              costoUnitario: ultimoMovimiento.costoUnitarioSaldo,
+              valorTotal: ultimoMovimiento.valorTotalSaldo,
+            };
+          } else {
+            console.warn(
+              '⚠️ DEBUG procesarMovimientos - Salida FIFO sin lotes consumidos; se mantiene saldo actual',
+            );
+          }
           // Continuar con el siguiente movimiento
           continue;
         } else {
