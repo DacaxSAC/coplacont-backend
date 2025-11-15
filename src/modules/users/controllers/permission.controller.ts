@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ResponsePermissionDto } from '../dto/permission/response-permission.dto';
 import { PermissionService } from '../services/permission.service';
 import { CreatePermissionDto } from '../dto/permission/create-permission.dto';

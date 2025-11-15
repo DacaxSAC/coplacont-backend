@@ -410,7 +410,7 @@ export class InventarioLoteService {
 
     // Actualizar el stock del inventario restando la cantidad actual del lote
     // Calcular stock actual del lote dinámicamente
-    const stockLote = await this.stockCalculationService.calcularStockLote(id);
+    // Stock del lote se calcula dinámicamente cuando se solicita
 
     // Soft delete: marcar como inactivo
     lote.estado = false;
@@ -427,14 +427,13 @@ export class InventarioLoteService {
    * @returns Costo promedio ponderado
    */
   async getCostoPromedioPonderado(idInventario: number): Promise<number> {
-    console.log('Parametro enviado a getCostoPromedioPonderado:', idInventario);
     const lotes = await this.inventarioLoteRepository.find({
       where: {
         inventario: { id: idInventario },
         estado: true,
       },
     });
-    console.log('Lotes:', lotes);
+
     if (lotes.length === 0) {
       return 0;
     }

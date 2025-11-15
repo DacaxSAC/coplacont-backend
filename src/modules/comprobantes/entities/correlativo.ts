@@ -1,4 +1,4 @@
-  import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Persona } from '../../users/entities/persona.entity';
 
 /**

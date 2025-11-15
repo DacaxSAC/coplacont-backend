@@ -1,5 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsArray, ValidateNested, IsDateString, IsEnum, IsInt, Min, IsNumber, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsArray,
+  ValidateNested,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  Min,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 import { Moneda } from '../../enum/tipo-moneda.enum';
 import { TransferenciaDetalleDto } from './transferencia-detalle.dto';
 

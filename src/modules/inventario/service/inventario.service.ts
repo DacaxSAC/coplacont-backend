@@ -184,17 +184,21 @@ export class InventarioService {
       [...productosAlm1].filter((id) => productosAlm2.has(id)),
     );
 
-    const productosMap = new Map<number, typeof invAlm1[0]['producto']>();
+    const productosMap = new Map<number, (typeof invAlm1)[0]['producto']>();
     for (const inv of invAlm1) {
-      if (comunes.has(inv.producto.id)) productosMap.set(inv.producto.id, inv.producto);
+      if (comunes.has(inv.producto.id))
+        productosMap.set(inv.producto.id, inv.producto);
     }
     for (const inv of invAlm2) {
-      if (comunes.has(inv.producto.id)) productosMap.set(inv.producto.id, inv.producto);
+      if (comunes.has(inv.producto.id))
+        productosMap.set(inv.producto.id, inv.producto);
     }
 
     const productosComunes = Array.from(productosMap.values());
     return productosComunes.map((producto) =>
-      plainToInstance(ResponseProductoDto, producto, { excludeExtraneousValues: true }),
+      plainToInstance(ResponseProductoDto, producto, {
+        excludeExtraneousValues: true,
+      }),
     );
   }
 

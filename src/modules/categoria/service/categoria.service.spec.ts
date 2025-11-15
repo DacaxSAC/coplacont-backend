@@ -13,7 +13,6 @@ import { TipoCategoria } from '../enum';
  */
 describe('CategoriaService', () => {
   let service: CategoriaService;
-  let repository: Repository<Categoria>;
 
   const mockRepository = {
     findOne: jest.fn(),
@@ -46,9 +45,6 @@ describe('CategoriaService', () => {
     }).compile();
 
     service = module.get<CategoriaService>(CategoriaService);
-    repository = module.get<Repository<Categoria>>(
-      getRepositoryToken(Categoria),
-    );
 
     // Reset mocks
     jest.clearAllMocks();

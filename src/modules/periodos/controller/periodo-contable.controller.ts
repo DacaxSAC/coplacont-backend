@@ -142,7 +142,10 @@ export class PeriodoContableController {
     schema: {
       type: 'object',
       properties: {
-        metodoValoracion: { type: 'string', enum: Object.values(MetodoValoracion) },
+        metodoValoracion: {
+          type: 'string',
+          enum: Object.values(MetodoValoracion),
+        },
         duracionMeses: { type: 'number' },
         mesInicio: { type: 'number' },
         diasLimiteRetroactivo: { type: 'number' },
@@ -150,13 +153,13 @@ export class PeriodoContableController {
       },
     },
   })
-  async obtenerConfiguracion(
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
+  async obtenerConfiguracion(@CurrentUser() user: AuthenticatedUser) {
     if (!user.personaId) {
       throw new Error('Usuario no tiene empresa asociada');
     }
-    const config = await this.periodoContableService.obtenerConfiguracion(user.personaId);
+    const config = await this.periodoContableService.obtenerConfiguracion(
+      user.personaId,
+    );
     return {
       metodoValoracion: (config as any).metodoCalculoCosto,
       duracionMeses: (config as any).duracionMeses,

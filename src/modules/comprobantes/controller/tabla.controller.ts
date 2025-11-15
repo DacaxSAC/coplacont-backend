@@ -28,7 +28,8 @@ export class TablaController {
   @Get()
   @ApiOperation({
     summary: 'Obtener todas las tablas',
-    description: 'Obtiene la lista completa de tablas maestras disponibles en el sistema',
+    description:
+      'Obtiene la lista completa de tablas maestras disponibles en el sistema',
   })
   @ApiResponse({
     status: 200,
@@ -53,7 +54,8 @@ export class TablaController {
   @Get(':numeroTabla')
   @ApiOperation({
     summary: 'Obtener tabla por número',
-    description: 'Obtiene una tabla específica con todos sus detalles usando el número de tabla',
+    description:
+      'Obtiene una tabla específica con todos sus detalles usando el número de tabla',
   })
   @ApiParam({
     name: 'numeroTabla',
@@ -77,7 +79,9 @@ export class TablaController {
     status: 500,
     description: 'Error interno del servidor',
   })
-  async findByNumero(@Param('numeroTabla') numeroTabla: string): Promise<TablaResponseDto> {
+  async findByNumero(
+    @Param('numeroTabla') numeroTabla: string,
+  ): Promise<TablaResponseDto> {
     return this.tablaService.findByNumero(numeroTabla);
   }
 
@@ -87,7 +91,8 @@ export class TablaController {
   @Get(':numeroTabla/detalles')
   @ApiOperation({
     summary: 'Obtener detalles de una tabla',
-    description: 'Obtiene únicamente los detalles de una tabla específica sin la información de la tabla padre',
+    description:
+      'Obtiene únicamente los detalles de una tabla específica sin la información de la tabla padre',
   })
   @ApiParam({
     name: 'numeroTabla',
@@ -111,7 +116,9 @@ export class TablaController {
     status: 500,
     description: 'Error interno del servidor',
   })
-  async findDetallesByNumero(@Param('numeroTabla') numeroTabla: string): Promise<TablaDetalleResponseDto[]> {
+  async findDetallesByNumero(
+    @Param('numeroTabla') numeroTabla: string,
+  ): Promise<TablaDetalleResponseDto[]> {
     return this.tablaService.findDetallesByNumero(numeroTabla);
   }
 
@@ -121,7 +128,8 @@ export class TablaController {
   @Get(':numeroTabla/detalles/:codigo')
   @ApiOperation({
     summary: 'Obtener detalle específico',
-    description: 'Obtiene un detalle específico de una tabla usando el número de tabla y el código del detalle',
+    description:
+      'Obtiene un detalle específico de una tabla usando el número de tabla y el código del detalle',
   })
   @ApiParam({
     name: 'numeroTabla',

@@ -177,10 +177,6 @@ export class LoteCreationService {
     // Invalidar caché después de la compra
     this.stockCacheService.invalidateInventario(inventario.id);
 
-    console.log(
-      `✅ Lote creado exitosamente: ID=${loteGuardado.id}, Inventario=${inventario.id}, Producto=${inventario.producto.id}, Almacén=${inventario.almacen.id}, Cantidad=${cantidad}`,
-    );
-
     return loteGuardado;
   }
 
@@ -189,12 +185,6 @@ export class LoteCreationService {
    */
   async validarLotesCompra(detalles: ComprobanteDetalle[]): Promise<boolean> {
     try {
-      console.log(
-        '🔍 Validando lotes creados para',
-        detalles.length,
-        'detalles',
-      );
-
       for (const detalle of detalles) {
         // Buscar el lote más reciente creado (por ID, no por fecha de ingreso)
         // para evitar problemas con compras retroactivas
@@ -205,38 +195,23 @@ export class LoteCreationService {
         });
 
         if (!loteReciente) {
-          console.error(
-            `❌ No se encontró lote para inventario ${detalle.inventario.id}`,
-          );
           return false;
         }
 
         // Validar que el lote tiene los datos correctos
         if (Number(loteReciente.cantidadInicial) !== Number(detalle.cantidad)) {
-          console.error(
-            `❌ Cantidad incorrecta en lote ${loteReciente.id}: esperado ${detalle.cantidad}, encontrado ${loteReciente.cantidadInicial}`,
-          );
           return false;
         }
 
         if (
           Number(loteReciente.costoUnitario) !== Number(detalle.precioUnitario)
         ) {
-          console.error(
-            `❌ Costo unitario incorrecto en lote ${loteReciente.id}: esperado ${detalle.precioUnitario}, encontrado ${loteReciente.costoUnitario}`,
-          );
           return false;
         }
-
-        console.log(
-          `✅ Lote ${loteReciente.id} validado correctamente para inventario ${detalle.inventario.id}`,
-        );
       }
 
-      console.log('✅ Todos los lotes validados correctamente');
       return true;
     } catch (error) {
-      console.error('❌ Error validando lotes:', error);
       return false;
     }
   }

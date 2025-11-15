@@ -23,11 +23,20 @@ export class ResponseLoteDto {
   observaciones?: string;
 
   @Expose()
-  @Transform(({ obj }) => ({
-    id: obj.inventario?.id,
-    producto: obj.inventario?.producto?.nombre,
-    almacen: obj.inventario?.almacen?.nombre,
-  }))
+  @Transform(({ obj }) => {
+    const o = obj as {
+      inventario?: {
+        id?: number;
+        producto?: { nombre?: string };
+        almacen?: { nombre?: string };
+      };
+    };
+    return {
+      id: o.inventario?.id as number,
+      producto: o.inventario?.producto?.nombre as string,
+      almacen: o.inventario?.almacen?.nombre as string,
+    };
+  })
   inventario: {
     id: number;
     producto: string;

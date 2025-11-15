@@ -85,10 +85,23 @@ export class KardexRepository {
 
     sql += ` ORDER BY c."fechaEmision" ASC, c."idComprobante" ASC`;
 
-    const movimientos = await this.dataSource.query(sql, params);
+    const movimientos: Array<{
+      fecha: Date;
+      tipoOperacion: string;
+      tipoMovimiento: string;
+      tipoComprobante: string;
+      numeroComprobante: string;
+      cantidad: string | number;
+      costoUnitario: string | number;
+      costoTotal: string | number;
+      idInventario: string | number;
+      nombreProducto: string;
+      nombreAlmacen: string;
+      idMovimientoDetalle?: number;
+    }> = await this.dataSource.query(sql, params);
 
     // Obtener detalles de salida para movimientos de tipo SALIDA
-    const movimientosConDetalles = await Promise.all(
+    const movimientosConDetalles: KardexMovementData[] = await Promise.all(
       movimientos.map(async (movimiento) => {
         if (
           movimiento.tipoMovimiento === 'SALIDA' &&
@@ -104,21 +117,50 @@ export class KardexRepository {
             WHERE ds.id_movimiento_detalle = $1
           `;
 
-          const detallesSalida = await this.dataSource.query(
-            detallesSalidaSql,
-            [movimiento.idMovimientoDetalle],
-          );
+          const detallesSalida: Array<{
+            id: number;
+            idLote: number;
+            costoUnitarioDeLote: number;
+            cantidad: number;
+          }> = await this.dataSource.query(detallesSalidaSql, [
+            movimiento.idMovimientoDetalle,
+          ]);
 
           return {
-            ...movimiento,
+            fecha: new Date(movimiento.fecha),
+            tipoOperacion: movimiento.tipoOperacion,
+            tipoMovimiento: TipoMovimiento.SALIDA,
+            tipoComprobante: movimiento.tipoComprobante,
+            numeroComprobante: movimiento.numeroComprobante,
+            cantidad: Number(movimiento.cantidad),
+            costoUnitario: Number(movimiento.costoUnitario),
+            costoTotal: Number(movimiento.costoTotal),
+            idInventario: Number(movimiento.idInventario),
+            nombreProducto: movimiento.nombreProducto,
+            nombreAlmacen: movimiento.nombreAlmacen,
             detallesSalida:
               detallesSalida.length > 0 ? detallesSalida : undefined,
           };
         }
 
         // Remover el campo idMovimientoDetalle del resultado final
-        const { idMovimientoDetalle, ...movimientoSinId } = movimiento;
-        return movimientoSinId;
+        const { idMovimientoDetalle, ...mov } = movimiento as any;
+        return {
+          fecha: new Date(mov.fecha),
+          tipoOperacion: mov.tipoOperacion,
+          tipoMovimiento:
+            mov.tipoMovimiento === 'ENTRADA'
+              ? TipoMovimiento.ENTRADA
+              : TipoMovimiento.SALIDA,
+          tipoComprobante: mov.tipoComprobante,
+          numeroComprobante: mov.numeroComprobante,
+          cantidad: Number(mov.cantidad),
+          costoUnitario: Number(mov.costoUnitario),
+          costoTotal: Number(mov.costoTotal),
+          idInventario: Number(mov.idInventario),
+          nombreProducto: mov.nombreProducto,
+          nombreAlmacen: mov.nombreAlmacen,
+        } as KardexMovementData;
       }),
     );
 
@@ -154,7 +196,13 @@ export class KardexRepository {
       WHERE i.id = $1 AND c."fechaEmision" < $2
     `;
 
-    const result = await this.dataSource.query(sql, [idInventario, fechaCorte]);
-    return result[0] || { cantidad: 0, costoTotal: 0 };
+    const result: Array<{
+      cantidad: string | number;
+      costoTotal: string | number;
+    }> = await this.dataSource.query(sql, [idInventario, fechaCorte]);
+    return {
+      cantidad: parseFloat(String(result[0]?.cantidad)) || 0,
+      costoTotal: parseFloat(String(result[0]?.costoTotal)) || 0,
+    };
   }
 }

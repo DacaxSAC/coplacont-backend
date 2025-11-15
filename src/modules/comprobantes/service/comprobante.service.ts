@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, DataSource, Not, In } from 'typeorm';
+import { Repository, DataSource, Not, In, EntityManager } from 'typeorm';
 import { Comprobante } from '../entities/comprobante';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateComprobanteDto } from '../dto/comprobante/create-comprobante.dto';
@@ -46,17 +46,19 @@ export class ComprobanteService {
   private async findOrCreateCorrelativo(
     idTipoOperacion: number,
     personaId: number,
-    manager?: any,
+    manager?: EntityManager,
   ) {
     // Validar que los parámetros requeridos no sean undefined o null
     if (idTipoOperacion === undefined || idTipoOperacion === null) {
-      throw new Error('idTipoOperacion es requerido y no puede ser undefined o null');
+      throw new Error(
+        'idTipoOperacion es requerido y no puede ser undefined o null',
+      );
     }
     if (personaId === undefined || personaId === null) {
       throw new Error('personaId es requerido y no puede ser undefined o null');
     }
 
-    const repository = manager
+    const repository: Repository<Correlativo> = manager
       ? manager.getRepository(Correlativo)
       : this.correlativoRepository;
     const queryBuilder = repository.createQueryBuilder('c');
@@ -137,17 +139,21 @@ export class ComprobanteService {
 
       // Obtener las entidades TablaDetalle para las relaciones
       const tipoOperacion = await this.tablaDetalleRepository.findOne({
-        where: { idTablaDetalle: createComprobanteDto.idTipoOperacion }
+        where: { idTablaDetalle: createComprobanteDto.idTipoOperacion },
       });
       if (!tipoOperacion) {
-        throw new Error(`Tipo de operación con ID ${createComprobanteDto.idTipoOperacion} no encontrado`);
+        throw new Error(
+          `Tipo de operación con ID ${createComprobanteDto.idTipoOperacion} no encontrado`,
+        );
       }
 
       const tipoComprobante = await this.tablaDetalleRepository.findOne({
-        where: { idTablaDetalle: createComprobanteDto.idTipoComprobante }
+        where: { idTablaDetalle: createComprobanteDto.idTipoComprobante },
       });
       if (!tipoComprobante) {
-        throw new Error(`Tipo de comprobante con ID ${createComprobanteDto.idTipoComprobante} no encontrado`);
+        throw new Error(
+          `Tipo de comprobante con ID ${createComprobanteDto.idTipoComprobante} no encontrado`,
+        );
       }
 
       // Asignación de CORRELATIVO
@@ -208,7 +214,12 @@ export class ComprobanteService {
         comprobanteSaved.detalles = detallesSaved;
         // Procesar lotes en función del tipo de operación y método de valoración
         // Determinar modo de operación para procesar lotes (COMPRA/VENTA) considerando notas
-        let modoOperacionParaLote = tipoOperacion.descripcion;
+        let modoOperacionParaLote =
+          tipoOperacion.codigo === '02'
+            ? 'COMPRA'
+            : tipoOperacion.codigo === '01'
+              ? 'VENTA'
+              : tipoOperacion.descripcion;
         if (['07', '08'].includes(tipoOperacion.codigo)) {
           const esNotaCredito = tipoOperacion.codigo === '07';
           const afectoCodigo = comprobanteAfecto?.tipoOperacion?.codigo;
@@ -233,7 +244,8 @@ export class ComprobanteService {
         precioYcantidadPorLote = lotes;
 
         // Validar que los lotes se crearon correctamente para compras
-        if (tipoOperacion.codigo === '02') { // Código "02" para COMPRA
+        if (tipoOperacion.codigo === '02') {
+          // Código "02" para COMPRA
           const lotesValidos =
             await this.loteCreationService.validarLotesCompra(detallesSaved);
           if (!lotesValidos) {
@@ -252,36 +264,45 @@ export class ComprobanteService {
       }
 
       // Cargar las relaciones necesarias para el MovimientoFactory DESPUÉS de guardar los detalles
-      const comprobanteConRelaciones = await queryRunner.manager.findOne(Comprobante, {
-        where: { idComprobante: comprobanteSaved.idComprobante },
-        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto', 'comprobanteAfecto', 'comprobanteAfecto.tipoOperacion']
-      });
-      
+      const comprobanteConRelaciones = await queryRunner.manager.findOne(
+        Comprobante,
+        {
+          where: { idComprobante: comprobanteSaved.idComprobante },
+          relations: [
+            'tipoOperacion',
+            'tipoComprobante',
+            'detalles',
+            'detalles.inventario',
+            'detalles.inventario.producto',
+            'comprobanteAfecto',
+            'comprobanteAfecto.tipoOperacion',
+          ],
+        },
+      );
+
       if (!comprobanteConRelaciones) {
         throw new Error('Error al cargar el comprobante con sus relaciones');
       }
 
       // Solo crear movimientos si hay detalles y la operación es VENTA ("01") o COMPRA ("02")
-      const tieneDetalles = comprobanteConRelaciones.detalles && comprobanteConRelaciones.detalles.length > 0;
+      const tieneDetalles =
+        comprobanteConRelaciones.detalles &&
+        comprobanteConRelaciones.detalles.length > 0;
       const esOperacionKardex = ['01', '02', '07', '08'].includes(
         comprobanteConRelaciones.tipoOperacion?.codigo,
       );
 
       if (tieneDetalles && esOperacionKardex) {
-        try {
-          const movimientoDto =
-            await this.movimientoFactory.createMovimientoFromComprobante(
-              comprobanteConRelaciones,
-              costosUnitarios,
-              precioYcantidadPorLote,
-            );
-          const movimientoCreado = await this.movimientoService.createWithManager(
-            movimientoDto,
-            queryRunner.manager,
+        const movimientoDto =
+          await this.movimientoFactory.createMovimientoFromComprobante(
+            comprobanteConRelaciones,
+            costosUnitarios,
+            precioYcantidadPorLote,
           );
-        } catch (movimientoError) {
-          throw movimientoError;
-        }
+        await this.movimientoService.createWithManager(
+          movimientoDto,
+          queryRunner.manager,
+        );
       }
 
       await queryRunner.commitTransaction();
@@ -364,9 +385,7 @@ export class ComprobanteService {
     });
   }
 
-  async existDetails(
-    createComprobanteDto: CreateComprobanteDto,
-  ): Promise<boolean> {
+  existDetails(createComprobanteDto: CreateComprobanteDto): boolean {
     return (
       createComprobanteDto.detalles !== undefined &&
       createComprobanteDto.detalles !== null &&

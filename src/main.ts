@@ -11,17 +11,18 @@ import {
 import { DataSource } from 'typeorm';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
+import type { Express, Request, Response, NextFunction } from 'express';
 
-let cachedApp: any;
+let cachedApp: Express | null = null;
 
-async function createApp() {
+async function createApp(): Promise<Express> {
   if (cachedApp) {
     return cachedApp;
   }
 
   initializeTransactionalContext();
 
-  const expressApp = express();
+  const expressApp: Express = express();
   const app = await NestFactory.create(
     AppModule,
     new ExpressAdapter(expressApp),
@@ -42,9 +43,10 @@ async function createApp() {
   setupSwagger(app);
 
   // Redirección automática de / a /api/docs
-  app.use('/', (req, res, next) => {
+  app.use('/', (req: Request, res: Response, next: NextFunction) => {
     if (req.url === '/') {
-      return res.redirect('/api/docs');
+      res.redirect('/api/docs');
+      return;
     }
     next();
   });
@@ -55,7 +57,7 @@ async function createApp() {
 }
 
 // Para desarrollo local
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await createApp();
   const port = process.env.PORT ?? 3000;
   app.listen(port, () => {
@@ -64,9 +66,9 @@ async function bootstrap() {
 }
 
 // Para Vercel
-export default async (req: any, res: any) => {
+export default async (req: Request, res: Response): Promise<void> => {
   const app = await createApp();
-  return app(req, res);
+  app(req, res);
 };
 
 // Solo ejecutar bootstrap en desarrollo local

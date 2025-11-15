@@ -125,7 +125,13 @@ export class CostoVentaService {
   /**
    * Calcula las sumatorias anuales a partir de los datos mensuales
    */
-  private calcularSumatorias(datosMensuales: any[]): CostoVentaSumatoriaDto {
+  private calcularSumatorias(
+    datosMensuales: Array<{
+      comprasTotales: number | string;
+      salidasTotales: number | string;
+      inventarioFinal: number | string;
+    }>,
+  ): CostoVentaSumatoriaDto {
     const totalComprasAnual = datosMensuales.reduce(
       (sum, dato) => sum + Number(dato.comprasTotales),
       0,
@@ -169,7 +175,7 @@ export class CostoVentaService {
   async exportCostoVentaReport(
     request: CostoVentaRequestDto,
     formato: 'json' | 'excel' = 'json',
-  ): Promise<any> {
+  ): Promise<CostoVentaResponseDto> {
     const reporte = await this.generateCostoVentaReport(request);
 
     switch (formato) {
@@ -302,7 +308,7 @@ export class CostoVentaService {
   async exportCostoVentaPorInventarioReport(
     request: CostoVentaPorInventarioRequestDto,
     formato: 'json' | 'excel' = 'json',
-  ): Promise<any> {
+  ): Promise<CostoVentaPorInventarioResponseDto> {
     const reporte = await this.generateCostoVentaPorInventarioReport(request);
 
     switch (formato) {

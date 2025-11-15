@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
 import { EntidadService } from './entidad.service';
 import { Entidad } from '../entities';
 import { CreateEntidadDto, UpdateEntidadDto, ActivateRoleDto } from '../dto';
@@ -13,7 +12,6 @@ import { EntidadType } from '../enums';
  */
 describe('EntidadService', () => {
   let service: EntidadService;
-  let repository: Repository<Entidad>;
 
   const mockRepository = {
     findOne: jest.fn(),
@@ -46,7 +44,6 @@ describe('EntidadService', () => {
     }).compile();
 
     service = module.get<EntidadService>(EntidadService);
-    repository = module.get<Repository<Entidad>>(getRepositoryToken(Entidad));
 
     // Reset mocks
     jest.clearAllMocks();

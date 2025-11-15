@@ -20,7 +20,7 @@ import { MovimientosModule } from '../movimientos/movimientos.module';
 import { InventarioModule } from '../inventario/inventario.module';
 import { ComprobanteDetalleService } from './service/comprobante-detalle.service';
 import { ComprobanteTotalesService } from './service/comprobante-totales.service';
-import {TransferenciasService} from './service/transferencias.service';
+import { TransferenciasService } from './service/transferencias.service';
 import { UserModule } from '../users/user.module';
 import { PeriodosModule } from '../periodos/periodos.module';
 

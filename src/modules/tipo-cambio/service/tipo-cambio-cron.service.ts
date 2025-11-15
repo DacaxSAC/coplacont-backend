@@ -1,7 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
 import { TipoCambioService } from './tipo-cambio.service';
-import { ApiResponseDto } from '../../entidades/dto/api-response.dto';
 
 //Servicio para ejecutar tareas programadas relacionadas con tipos de cambio
 @Injectable()

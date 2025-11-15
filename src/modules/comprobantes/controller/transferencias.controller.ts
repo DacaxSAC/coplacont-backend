@@ -40,7 +40,7 @@ export class TransferenciasController {
    * @param user Usuario autenticado, usado para obtener `personaId`.
    * @param dto Datos de la transferencia, incluyendo almacenes y lista de productos.
    * @returns Comprobantes creados (salida y entrada) con sus relaciones principales.
-  */
+   */
   @Post()
   @ApiOperation({ summary: 'Registrar transferencia entre almacenes' })
   @ApiBody({
@@ -57,16 +57,27 @@ export class TransferenciasController {
           serie: 'TR001',
           numero: '000123',
           detalles: [
-            { idProducto: 101, cantidad: 10, unidadMedida: 'UND', descripcion: 'Producto A' },
+            {
+              idProducto: 101,
+              cantidad: 10,
+              unidadMedida: 'UND',
+              descripcion: 'Producto A',
+            },
             { idProducto: 102, cantidad: 5, unidadMedida: 'UND' },
           ],
         },
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Transferencia registrada exitosamente', type: ResponseTransferenciaDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Transferencia registrada exitosamente',
+    type: ResponseTransferenciaDto,
+  })
   @ApiUnauthorizedResponse({ description: 'Token inválido o no proporcionado' })
-  @ApiForbiddenResponse({ description: 'El usuario no tiene acceso a este recurso' })
+  @ApiForbiddenResponse({
+    description: 'El usuario no tiene acceso a este recurso',
+  })
   async register(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateTransferenciaDto,
@@ -84,10 +95,17 @@ export class TransferenciasController {
    * @returns Lista de comprobantes de transferencias.
    */
   @ApiOperation({ summary: 'Listar transferencias de almacén' })
-  @ApiResponse({ status: 200, description: 'Listado obtenido', type: ResponseTransferenciaDto, isArray: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Listado obtenido',
+    type: ResponseTransferenciaDto,
+    isArray: false,
+  })
   async findAll(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<import('../dto/comprobante/response-comprobante.dto').ResponseComprobanteDto[]> {
+  ): Promise<
+    import('../dto/comprobante/response-comprobante.dto').ResponseComprobanteDto[]
+  > {
     const personaId = user.personaId as number;
     return this.transferenciasService.findAll(personaId);
   }

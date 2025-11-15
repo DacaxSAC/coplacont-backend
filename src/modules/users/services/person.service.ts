@@ -8,7 +8,6 @@ import { CreatePersonaWithUserDto } from '../dto/persona/create-persona-with-use
 import { UserService } from './user.service';
 import { CreateUserForPersonaDto } from '../dto/user/create-user-for-persona.dto';
 import { hash } from 'bcrypt';
-import { randomBytes } from 'crypto';
 import { EmailService } from './email.service';
 import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';

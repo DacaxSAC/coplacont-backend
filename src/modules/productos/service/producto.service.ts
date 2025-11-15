@@ -235,7 +235,7 @@ export class ProductoService {
     }
 
     // Actualizar producto (excluyendo idCategoria ya que se maneja por separado)
-    const { idCategoria, ...updateData } = updateProductoDto;
+    const updateData = (({ idCategoria, ...rest }) => rest)(updateProductoDto);
     Object.assign(producto, updateData);
 
     const updatedProducto = await this.productoRepository.save(producto);

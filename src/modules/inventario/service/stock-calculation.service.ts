@@ -6,10 +6,7 @@ import { Inventario } from '../entities/inventario.entity';
 import { MovimientoDetalle } from '../../movimientos/entities/movimiento-detalle.entity';
 import { TipoMovimiento } from '../../movimientos/enum/tipo-movimiento.enum';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
-import {
-  StockCacheService,
-  InventarioStockCacheResult,
-} from './stock-cache.service';
+import { StockCacheService } from './stock-cache.service';
 
 /**
  * Interfaz para el resultado del cálculo de stock de lote
@@ -106,7 +103,7 @@ export class StockCalculationService {
     }
 
     const movimientos = await queryBuilder
-      .select(['md.cantidad', 'm.tipo'])
+      .select(['md.cantidad as md_cantidad', 'm.tipo as m_tipo'])
       .getRawMany();
 
     // Calcular stock actual basado únicamente en movimientos reales
@@ -236,30 +233,11 @@ export class StockCalculationService {
     idInventario: number,
     fechaHasta?: Date,
   ): Promise<LoteDisponible[]> {
-    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Parámetros:', {
-      idInventario,
-      fechaHasta: fechaHasta?.toISOString(),
-    });
-
     const stockInventario = await this.calcularStockInventario(
       idInventario,
       fechaHasta,
     );
-
-    console.log('🔍 DEBUG obtenerLotesDisponiblesFIFO - Stock inventario:', {
-      stockActual: stockInventario?.stockActual,
-      lotesCount: stockInventario?.lotes?.length || 0,
-      lotes: stockInventario?.lotes?.map((l) => ({
-        idLote: l.idLote,
-        cantidadActual: l.cantidadActual,
-        costoUnitario: l.costoUnitario,
-      })),
-    });
-
     if (!stockInventario) {
-      console.log(
-        '🔍 DEBUG obtenerLotesDisponiblesFIFO - No se encontró stock inventario',
-      );
       return [];
     }
 
@@ -272,11 +250,6 @@ export class StockCalculationService {
         fechaIngreso: lote.fechaIngreso,
       }))
       .sort((a, b) => a.fechaIngreso.getTime() - b.fechaIngreso.getTime());
-
-    console.log(
-      '🔍 DEBUG obtenerLotesDisponiblesFIFO - Lotes disponibles finales:',
-      lotesDisponibles.length,
-    );
 
     return lotesDisponibles;
   }

@@ -44,7 +44,9 @@ export class ComprobanteController {
     isArray: true,
   })
   @ApiUnauthorizedResponse({ description: 'Token inválido o no proporcionado' })
-  @ApiForbiddenResponse({ description: 'El usuario no tiene acceso a este recurso' })
+  @ApiForbiddenResponse({
+    description: 'El usuario no tiene acceso a este recurso',
+  })
   findAll(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ResponseComprobanteDto[]> {
@@ -80,12 +82,12 @@ export class ComprobanteController {
     if (!user.personaId) {
       throw new Error('Usuario no tiene una empresa asociada');
     }
-    
+
     const parsedIdTipoOperacion = parseInt(idTipoOperacion, 10);
     if (isNaN(parsedIdTipoOperacion)) {
       throw new Error('idTipoOperacion debe ser un número válido');
     }
-    
+
     return this.comprobanteService.getNextCorrelativo(
       parsedIdTipoOperacion,
       user.personaId,
@@ -117,7 +119,11 @@ export class ComprobanteController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Comprobante creado exitosamente', type: ResponseComprobanteDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Comprobante creado exitosamente',
+    type: ResponseComprobanteDto,
+  })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   create(
     @Body() createComprobanteDto: CreateComprobanteDto,

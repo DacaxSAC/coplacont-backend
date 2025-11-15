@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository, In } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
@@ -46,12 +46,20 @@ export class TransferenciasService {
     await queryRunner.startTransaction();
 
     try {
-      const periodoActivoDto = await this.periodoContableService.obtenerPeriodoActivo(personaId);
-      const periodoActual = await this.periodoContableService.obtenerPorId(periodoActivoDto.id);
+      const periodoActivoDto =
+        await this.periodoContableService.obtenerPeriodoActivo(personaId);
+      const periodoActual = await this.periodoContableService.obtenerPorId(
+        periodoActivoDto.id,
+      );
 
       const fechaEmision = new Date(dto.fechaEmision);
-      if (fechaEmision < new Date(periodoActual.fechaInicio) || fechaEmision > new Date(periodoActual.fechaFin)) {
-        throw new Error('Fecha de emision del comprobante no esta dentro del periodo contable de la persona');
+      if (
+        fechaEmision < new Date(periodoActual.fechaInicio) ||
+        fechaEmision > new Date(periodoActual.fechaFin)
+      ) {
+        throw new Error(
+          'Fecha de emision del comprobante no esta dentro del periodo contable de la persona',
+        );
       }
 
       const persona = await this.personaService.findById(personaId);
@@ -59,22 +67,48 @@ export class TransferenciasService {
         throw new Error(`Persona con ID ${personaId} no encontrada`);
       }
 
-      const metodoValoracion = (await this.periodoContableService.obtenerConfiguracion(personaId)).metodoCalculoCosto;
+      const metodoValoracion = (
+        await this.periodoContableService.obtenerConfiguracion(personaId)
+      ).metodoCalculoCosto;
 
-      const tipoOperacionEntrada = await this.tablaDetalleRepository.findOne({ where: { idTablaDetalle: 29 } });
-      const tipoOperacionSalida = await this.tablaDetalleRepository.findOne({ where: { idTablaDetalle: 30 } });
-      const tipoComprobanteEspecial = await this.tablaDetalleRepository.findOne({ where: { idTablaDetalle: 31 } });
+      const tipoOperacionEntrada = await this.tablaDetalleRepository.findOne({
+        where: { idTablaDetalle: 29 },
+      });
+      const tipoOperacionSalida = await this.tablaDetalleRepository.findOne({
+        where: { idTablaDetalle: 30 },
+      });
+      const tipoComprobanteEspecial = await this.tablaDetalleRepository.findOne(
+        { where: { idTablaDetalle: 31 } },
+      );
 
-      if (!tipoOperacionEntrada || !tipoOperacionSalida || !tipoComprobanteEspecial) {
-        throw new Error('No se encontraron tipos de operación o comprobante para transferencia');
+      if (
+        !tipoOperacionEntrada ||
+        !tipoOperacionSalida ||
+        !tipoComprobanteEspecial
+      ) {
+        throw new Error(
+          'No se encontraron tipos de operación o comprobante para transferencia',
+        );
       }
 
       const manager = queryRunner.manager;
 
-      const inventariosOrigen = await this.mapInventarios(manager, dto.idAlmacenOrigen, dto.detalles);
-      const inventariosDestino = await this.mapInventarios(manager, dto.idAlmacenDestino, dto.detalles);
+      const inventariosOrigen = await this.mapInventarios(
+        manager,
+        dto.idAlmacenOrigen,
+        dto.detalles,
+      );
+      const inventariosDestino = await this.mapInventarios(
+        manager,
+        dto.idAlmacenDestino,
+        dto.detalles,
+      );
 
-      const correlativoSalida = await this.findOrCreateCorrelativo(manager, tipoOperacionSalida.idTablaDetalle, personaId);
+      const correlativoSalida = await this.findOrCreateCorrelativo(
+        manager,
+        tipoOperacionSalida.idTablaDetalle,
+        personaId,
+      );
       correlativoSalida.ultimoNumero += 1;
       await manager.save(correlativoSalida);
 
@@ -94,22 +128,29 @@ export class TransferenciasService {
 
       const comprobanteSalidaSaved = await manager.save(comprobanteSalida);
 
-      const detallesSalida: CreateComprobanteDetalleDto[] = dto.detalles.map((d, i) => {
-        const inv = inventariosOrigen[i];
-        const unidad = (inv.producto?.unidadMedida || 'UND').toString().trim().slice(0, 10);
-        const descripcion = (d.descripcion?.trim() || 'Transferencia entre almacenes - SALIDA').slice(0, 255);
-        return {
-          idInventario: inv.id,
-          cantidad: d.cantidad,
-          unidadMedida: unidad,
-          precioUnitario: 0,
-          subtotal: 0,
-          igv: 0,
-          isc: 0,
-          total: 0,
-          descripcion,
-        } as CreateComprobanteDetalleDto;
-      });
+      const detallesSalida: CreateComprobanteDetalleDto[] = dto.detalles.map(
+        (d, i) => {
+          const inv = inventariosOrigen[i];
+          const unidad = (inv.producto?.unidadMedida || 'UND')
+            .toString()
+            .trim()
+            .slice(0, 10);
+          const descripcion = (
+            d.descripcion?.trim() || 'Transferencia entre almacenes - SALIDA'
+          ).slice(0, 255);
+          return {
+            idInventario: inv.id,
+            cantidad: d.cantidad,
+            unidadMedida: unidad,
+            precioUnitario: 0,
+            subtotal: 0,
+            igv: 0,
+            isc: 0,
+            total: 0,
+            descripcion,
+          } as CreateComprobanteDetalleDto;
+        },
+      );
 
       const detallesSalidaSaved = await this.comprobanteDetalleService.register(
         comprobanteSalidaSaved.idComprobante,
@@ -117,30 +158,45 @@ export class TransferenciasService {
         manager,
       );
 
-      const procesadoSalida = await this.loteCreationService.procesarLotesComprobante(
-        detallesSalidaSaved,
-        tipoOperacionSalida.descripcion,
-        metodoValoracion,
-        fechaEmision,
-      );
+      const procesadoSalida =
+        await this.loteCreationService.procesarLotesComprobante(
+          detallesSalidaSaved,
+          tipoOperacionSalida.descripcion,
+          metodoValoracion,
+          fechaEmision,
+        );
 
       const comprobanteSalidaConRel = await manager.findOne(Comprobante, {
         where: { idComprobante: comprobanteSalidaSaved.idComprobante },
-        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto'],
+        relations: [
+          'tipoOperacion',
+          'tipoComprobante',
+          'detalles',
+          'detalles.inventario',
+          'detalles.inventario.producto',
+        ],
       });
 
       if (!comprobanteSalidaConRel) {
         throw new Error('Error al cargar comprobante de salida');
       }
 
-      const movimientoSalidaDto = await this.movimientoFactory.createMovimientoFromComprobante(
-        comprobanteSalidaConRel,
-        procesadoSalida.costoUnitario,
-        procesadoSalida.lotes,
+      const movimientoSalidaDto =
+        await this.movimientoFactory.createMovimientoFromComprobante(
+          comprobanteSalidaConRel,
+          procesadoSalida.costoUnitario,
+          procesadoSalida.lotes,
+        );
+      await this.movimientoService.createWithManager(
+        movimientoSalidaDto,
+        manager,
       );
-      await this.movimientoService.createWithManager(movimientoSalidaDto, manager);
 
-      const correlativoEntrada = await this.findOrCreateCorrelativo(manager, tipoOperacionEntrada.idTablaDetalle, personaId);
+      const correlativoEntrada = await this.findOrCreateCorrelativo(
+        manager,
+        tipoOperacionEntrada.idTablaDetalle,
+        personaId,
+      );
       correlativoEntrada.ultimoNumero += 1;
       await manager.save(correlativoEntrada);
 
@@ -161,73 +217,122 @@ export class TransferenciasService {
       const comprobanteEntradaSaved = await manager.save(comprobanteEntrada);
 
       const costosUnitariosEntrada = procesadoSalida.costoUnitario;
-      const detallesEntrada: CreateComprobanteDetalleDto[] = dto.detalles.map((d, i) => {
-        const inv = inventariosDestino[i];
-        const precioUnit = Number(costosUnitariosEntrada[i] || 0);
-        const subtotal = Number((precioUnit * d.cantidad).toFixed(8));
-        const unidad = (inv.producto?.unidadMedida || 'UND').toString().trim().slice(0, 10);
-        const descripcion = (d.descripcion?.trim() || 'Transferencia entre almacenes - ENTRADA').slice(0, 255);
-        return {
-          idInventario: inv.id,
-          cantidad: d.cantidad,
-          unidadMedida: unidad,
-          precioUnitario: precioUnit,
-          subtotal,
-          igv: 0,
-          isc: 0,
-          total: subtotal,
-          descripcion,
-        } as CreateComprobanteDetalleDto;
-      });
-
-      const detallesEntradaSaved = await this.comprobanteDetalleService.register(
-        comprobanteEntradaSaved.idComprobante,
-        detallesEntrada,
-        manager,
+      const detallesEntrada: CreateComprobanteDetalleDto[] = dto.detalles.map(
+        (d, i) => {
+          const inv = inventariosDestino[i];
+          const precioUnit = Number(costosUnitariosEntrada[i] || 0);
+          const subtotal = Number((precioUnit * d.cantidad).toFixed(8));
+          const unidad = (inv.producto?.unidadMedida || 'UND')
+            .toString()
+            .trim()
+            .slice(0, 10);
+          const descripcion = (
+            d.descripcion?.trim() || 'Transferencia entre almacenes - ENTRADA'
+          ).slice(0, 255);
+          return {
+            idInventario: inv.id,
+            cantidad: d.cantidad,
+            unidadMedida: unidad,
+            precioUnitario: precioUnit,
+            subtotal,
+            igv: 0,
+            isc: 0,
+            total: subtotal,
+            descripcion,
+          } as CreateComprobanteDetalleDto;
+        },
       );
 
-      const procesadoEntrada = await this.loteCreationService.procesarLotesComprobante(
-        detallesEntradaSaved,
-        'COMPRA',
-        metodoValoracion,
-        fechaEmision,
-      );
+      const detallesEntradaSaved =
+        await this.comprobanteDetalleService.register(
+          comprobanteEntradaSaved.idComprobante,
+          detallesEntrada,
+          manager,
+        );
+
+      const procesadoEntrada =
+        await this.loteCreationService.procesarLotesComprobante(
+          detallesEntradaSaved,
+          'COMPRA',
+          metodoValoracion,
+          fechaEmision,
+        );
 
       const comprobanteEntradaConRel = await manager.findOne(Comprobante, {
         where: { idComprobante: comprobanteEntradaSaved.idComprobante },
-        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto'],
+        relations: [
+          'tipoOperacion',
+          'tipoComprobante',
+          'detalles',
+          'detalles.inventario',
+          'detalles.inventario.producto',
+        ],
       });
 
       if (!comprobanteEntradaConRel) {
         throw new Error('Error al cargar comprobante de entrada');
       }
 
-      const movimientoEntradaDto = await this.movimientoFactory.createMovimientoFromComprobante(
-        comprobanteEntradaConRel,
-        procesadoEntrada.costoUnitario,
-        procesadoEntrada.lotes,
+      const movimientoEntradaDto =
+        await this.movimientoFactory.createMovimientoFromComprobante(
+          comprobanteEntradaConRel,
+          procesadoEntrada.costoUnitario,
+          procesadoEntrada.lotes,
+        );
+      await this.movimientoService.createWithManager(
+        movimientoEntradaDto,
+        manager,
       );
-      await this.movimientoService.createWithManager(movimientoEntradaDto, manager);
 
       await queryRunner.commitTransaction();
 
       const salidaWithRelations = await this.comprobanteRepository.findOne({
         where: { idComprobante: comprobanteSalidaSaved.idComprobante },
-        relations: ['totales', 'persona', 'entidad', 'tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto'],
+        relations: [
+          'totales',
+          'persona',
+          'entidad',
+          'tipoOperacion',
+          'tipoComprobante',
+          'detalles',
+          'detalles.inventario',
+          'detalles.inventario.producto',
+        ],
       });
       const entradaWithRelations = await this.comprobanteRepository.findOne({
         where: { idComprobante: comprobanteEntradaSaved.idComprobante },
-        relations: ['totales', 'persona', 'entidad', 'tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto'],
+        relations: [
+          'totales',
+          'persona',
+          'entidad',
+          'tipoOperacion',
+          'tipoComprobante',
+          'detalles',
+          'detalles.inventario',
+          'detalles.inventario.producto',
+        ],
       });
 
       if (!salidaWithRelations || !entradaWithRelations) {
         throw new Error('Error al cargar comprobantes creados');
       }
 
-      const response: ResponseTransferenciaDto = plainToInstance(ResponseTransferenciaDto, {
-        comprobanteSalida: plainToInstance(ResponseComprobanteDto, salidaWithRelations, { excludeExtraneousValues: true }),
-        comprobanteEntrada: plainToInstance(ResponseComprobanteDto, entradaWithRelations, { excludeExtraneousValues: true }),
-      }, { excludeExtraneousValues: true });
+      const response: ResponseTransferenciaDto = plainToInstance(
+        ResponseTransferenciaDto,
+        {
+          comprobanteSalida: plainToInstance(
+            ResponseComprobanteDto,
+            salidaWithRelations,
+            { excludeExtraneousValues: true },
+          ),
+          comprobanteEntrada: plainToInstance(
+            ResponseComprobanteDto,
+            entradaWithRelations,
+            { excludeExtraneousValues: true },
+          ),
+        },
+        { excludeExtraneousValues: true },
+      );
 
       return response;
     } catch (error) {
@@ -244,7 +349,9 @@ export class TransferenciasService {
     personaId: number,
   ): Promise<Correlativo> {
     const repository = manager.getRepository(Correlativo);
-    const queryBuilder = repository.createQueryBuilder('c').setLock('pessimistic_write');
+    const queryBuilder = repository
+      .createQueryBuilder('c')
+      .setLock('pessimistic_write');
     let correlativo = await queryBuilder
       .where('c.tipo = :tipo AND c.personaId = :personaId', {
         tipo: idTipoOperacion.toString(),
@@ -280,7 +387,9 @@ export class TransferenciasService {
     const result: Inventario[] = [];
 
     for (const d of detalles) {
-      const producto = await productoRepo.findOne({ where: { id: d.idProducto } });
+      const producto = await productoRepo.findOne({
+        where: { id: d.idProducto },
+      });
       if (!producto) {
         throw new Error(`Producto no encontrado: ${d.idProducto}`);
       }

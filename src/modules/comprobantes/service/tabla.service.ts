@@ -52,7 +52,7 @@ export class TablaService {
     }
 
     // Filtrar solo detalles activos
-    tabla.detalles = tabla.detalles.filter(detalle => detalle.activo);
+    tabla.detalles = tabla.detalles.filter((detalle) => detalle.activo);
 
     return plainToInstance(TablaResponseDto, tabla, {
       excludeExtraneousValues: true,
@@ -64,7 +64,9 @@ export class TablaService {
    * @param numeroTabla - Número de la tabla (ej: "12")
    * @returns Promise<TablaDetalleResponseDto[]> Lista de detalles de la tabla
    */
-  async findDetallesByNumero(numeroTabla: string): Promise<TablaDetalleResponseDto[]> {
+  async findDetallesByNumero(
+    numeroTabla: string,
+  ): Promise<TablaDetalleResponseDto[]> {
     const tabla = await this.tablaRepository.findOne({
       where: { numeroTabla, activo: true },
       relations: ['detalles'],
@@ -75,7 +77,7 @@ export class TablaService {
     }
 
     // Filtrar solo detalles activos
-    const detallesActivos = tabla.detalles.filter(detalle => detalle.activo);
+    const detallesActivos = tabla.detalles.filter((detalle) => detalle.activo);
 
     return plainToInstance(TablaDetalleResponseDto, detallesActivos, {
       excludeExtraneousValues: true,
@@ -88,7 +90,10 @@ export class TablaService {
    * @param codigo - Código del detalle (ej: "01")
    * @returns Promise<TablaDetalleResponseDto> Detalle específico
    */
-  async findDetalleByCodigo(numeroTabla: string, codigo: string): Promise<TablaDetalleResponseDto> {
+  async findDetalleByCodigo(
+    numeroTabla: string,
+    codigo: string,
+  ): Promise<TablaDetalleResponseDto> {
     const detalle = await this.tablaDetalleRepository.findOne({
       where: {
         tabla: { numeroTabla },
@@ -100,7 +105,7 @@ export class TablaService {
 
     if (!detalle) {
       throw new NotFoundException(
-        `No se encontró el detalle con código ${codigo} en la tabla ${numeroTabla}`
+        `No se encontró el detalle con código ${codigo} en la tabla ${numeroTabla}`,
       );
     }
 

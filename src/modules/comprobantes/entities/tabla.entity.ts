@@ -1,9 +1,4 @@
-import {
-  Column,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { TablaDetalle } from './tabla-detalle.entity';
 
 /**
@@ -30,10 +25,10 @@ export class Tabla {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fechaCreacion: Date;
 
-  @Column({ 
-    type: 'timestamp', 
+  @Column({
+    type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
+    onUpdate: 'CURRENT_TIMESTAMP',
   })
   fechaActualizacion: Date;
 

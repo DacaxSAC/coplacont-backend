@@ -76,9 +76,8 @@ export class CostoVentaController {
     try {
       return await this.costoVentaService.generateCostoVentaReport(query);
     } catch (error) {
-      throw new BadRequestException(
-        `Error al generar el reporte: ${error.message}`,
-      );
+      const msg = (error as Error)?.message || 'Error al generar el reporte';
+      throw new BadRequestException(`Error al generar el reporte: ${msg}`);
     }
   }
 
@@ -155,9 +154,8 @@ export class CostoVentaController {
         formato as 'json',
       );
     } catch (error) {
-      throw new BadRequestException(
-        `Error al exportar el reporte: ${error.message}`,
-      );
+      const msg = (error as Error)?.message || 'Error al exportar el reporte';
+      throw new BadRequestException(`Error al exportar el reporte: ${msg}`);
     }
   }
 
@@ -216,9 +214,8 @@ export class CostoVentaController {
         sumatorias: reporte.sumatorias,
       };
     } catch (error) {
-      throw new BadRequestException(
-        `Error al obtener el resumen: ${error.message}`,
-      );
+      const msg = (error as Error)?.message || 'Error al obtener el resumen';
+      throw new BadRequestException(`Error al obtener el resumen: ${msg}`);
     }
   }
 
@@ -342,18 +339,24 @@ export class CostoVentaController {
   async exportCostoVentaPorInventarioReport(
     @Query(new ValidationPipe({ transform: true }))
     query: CostoVentaPorInventarioRequestDto & { formato?: string },
-  ): Promise<any> {
+  ): Promise<import('../dto/costo-venta').CostoVentaPorInventarioResponseDto> {
     try {
       const formato = query.formato || 'json';
-      const { formato: _, ...requestData } = query;
-
+      const requestData: CostoVentaPorInventarioRequestDto = {
+        año: query.año,
+        idAlmacen: query.idAlmacen,
+        idProducto: query.idProducto,
+      };
       return await this.costoVentaService.exportCostoVentaPorInventarioReport(
-        requestData as CostoVentaPorInventarioRequestDto,
-        formato as 'json' | 'excel',
+        requestData,
+        formato as 'json',
       );
     } catch (error) {
+      const msg =
+        (error as Error)?.message ||
+        'Error al exportar el reporte por inventario';
       throw new BadRequestException(
-        `Error al exportar el reporte por inventario: ${error.message}`,
+        `Error al exportar el reporte por inventario: ${msg}`,
       );
     }
   }

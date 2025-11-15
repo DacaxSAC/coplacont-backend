@@ -38,10 +38,10 @@ export class TablaDetalle {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fechaCreacion: Date;
 
-  @Column({ 
-    type: 'timestamp', 
+  @Column({
+    type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
+    onUpdate: 'CURRENT_TIMESTAMP',
   })
   fechaActualizacion: Date;
 }

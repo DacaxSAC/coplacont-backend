@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  KardexRequestDto,
-  KardexResponseDto,
-} from '../dto';
+import { KardexRequestDto, KardexResponseDto } from '../dto';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';
@@ -113,8 +110,6 @@ export class KardexService {
 
     // Calcular saldo inicial basado en el primer movimiento o valores por defecto
     const primerMovimiento = kardexResult.movimientos[0];
-    const ultimoMovimiento =
-      kardexResult.movimientos[kardexResult.movimientos.length - 1];
 
     // Calcular saldo inicial restando el primer movimiento del saldo después del primer movimiento
     let saldoInicialCantidad = 0;

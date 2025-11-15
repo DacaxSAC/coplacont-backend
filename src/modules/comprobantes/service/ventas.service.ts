@@ -28,7 +28,14 @@ export class VentasService {
         tipoOperacion: { idTablaDetalle: 12 }, // ID 12 para VENTA en Tabla 12
         persona: { id: personaId },
       },
-      relations: ['totales', 'persona', 'detalles', 'entidad', 'tipoOperacion', 'tipoComprobante'],
+      relations: [
+        'totales',
+        'persona',
+        'detalles',
+        'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
+      ],
       order: { fechaRegistro: 'DESC' },
     });
 
@@ -51,11 +58,13 @@ export class VentasService {
   ): Promise<ResponseComprobanteWithDetallesDto | null> {
     // Buscar el TablaDetalle para VENTA (código "01")
     const tipoVenta = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '01' } // Código "01" para VENTA
+      where: { codigo: '01' }, // Código "01" para VENTA
     });
 
     if (!tipoVenta) {
-      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación VENTA en la tabla de detalles',
+      );
     }
 
     const comprobante = await this.comprobanteRepository.findOne({
@@ -98,11 +107,13 @@ export class VentasService {
   ): Promise<ResponseComprobanteDto[]> {
     // Buscar el TablaDetalle para VENTA (código "01")
     const tipoVenta = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '01' } // Código "01" para VENTA
+      where: { codigo: '01' }, // Código "01" para VENTA
     });
 
     if (!tipoVenta) {
-      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación VENTA en la tabla de detalles',
+      );
     }
 
     const comprobantes = await this.comprobanteRepository
@@ -113,7 +124,9 @@ export class VentasService {
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
       .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
       .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
-      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', {
+        tipoId: tipoVenta.idTablaDetalle,
+      })
       .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
       .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
       .andWhere('persona.id = :personaId', { personaId })
@@ -137,11 +150,13 @@ export class VentasService {
   ): Promise<ResponseComprobanteDto[]> {
     // Buscar el TablaDetalle para VENTA (código "01")
     const tipoVenta = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '01' } // Código "01" para VENTA
+      where: { codigo: '01' }, // Código "01" para VENTA
     });
 
     if (!tipoVenta) {
-      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación VENTA en la tabla de detalles',
+      );
     }
 
     const comprobantes = await this.comprobanteRepository
@@ -152,7 +167,9 @@ export class VentasService {
       .leftJoinAndSelect('comprobante.detalles', 'detalles')
       .leftJoinAndSelect('comprobante.tipoOperacion', 'tipoOperacion')
       .leftJoinAndSelect('comprobante.tipoComprobante', 'tipoComprobante')
-      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
+      .where('comprobante.tipoOperacion.idTablaDetalle = :tipoId', {
+        tipoId: tipoVenta.idTablaDetalle,
+      })
       .andWhere('entidad.id = :clienteId', { clienteId })
       .andWhere('persona.id = :personaId', { personaId })
       .getMany();
@@ -176,11 +193,13 @@ export class VentasService {
   ): Promise<number> {
     // Buscar el TablaDetalle para VENTA (código "01")
     const tipoVenta = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '01' } // Código "01" para VENTA
+      where: { codigo: '01' }, // Código "01" para VENTA
     });
 
     if (!tipoVenta) {
-      throw new Error('No se encontró el tipo de operación VENTA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación VENTA en la tabla de detalles',
+      );
     }
 
     const result = await this.comprobanteRepository
@@ -189,7 +208,9 @@ export class VentasService {
       .leftJoin('comprobante.persona', 'persona')
       .leftJoin('comprobante.tipoOperacion', 'tipoOperacion')
       .select('SUM(totales.totalGeneral)', 'total')
-      .where('tipoOperacion.idTablaDetalle = :tipoId', { tipoId: tipoVenta.idTablaDetalle })
+      .where('tipoOperacion.idTablaDetalle = :tipoId', {
+        tipoId: tipoVenta.idTablaDetalle,
+      })
       .andWhere('comprobante.fechaEmision >= :fechaInicio', { fechaInicio })
       .andWhere('comprobante.fechaEmision <= :fechaFin', { fechaFin })
       .andWhere('persona.id = :personaId', { personaId })

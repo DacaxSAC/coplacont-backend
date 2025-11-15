@@ -1,10 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsNumber,
-  IsDateString,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsNumber, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class KardexFilterDto {

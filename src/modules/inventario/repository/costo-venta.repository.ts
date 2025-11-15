@@ -83,10 +83,11 @@ export class CostoVentaRepository {
       ORDER BY mes
     `;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{ mes: string | number; total: string | number }> =
+      await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      mes: parseInt(row.mes),
-      total: parseFloat(row.total) || 0,
+      mes: parseInt(String(row.mes)),
+      total: parseFloat(String(row.total)) || 0,
     }));
   }
 
@@ -137,10 +138,11 @@ export class CostoVentaRepository {
       ORDER BY mes
     `;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{ mes: string | number; total: string | number }> =
+      await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      mes: parseInt(row.mes),
-      total: parseFloat(row.total) || 0,
+      mes: parseInt(String(row.mes)),
+      total: parseFloat(String(row.total)) || 0,
     }));
   }
 
@@ -188,8 +190,9 @@ export class CostoVentaRepository {
       paramIndex++;
     }
 
-    const result = await this.dataSource.query(sql, params);
-    return parseFloat(result[0]?.total) || 0;
+    const result: Array<{ total: string | number }> =
+      await this.dataSource.query(sql, params);
+    return parseFloat(String(result[0]?.total)) || 0;
   }
 
   /**
@@ -197,7 +200,9 @@ export class CostoVentaRepository {
    */
   async getAlmacenInfo(idAlmacen: number): Promise<{ nombre: string } | null> {
     const sql = `SELECT nombre FROM almacen WHERE id = $1`;
-    const result = await this.dataSource.query(sql, [idAlmacen]);
+    const result: Array<{ nombre: string }> = await this.dataSource.query(sql, [
+      idAlmacen,
+    ]);
     return result[0] || null;
   }
 
@@ -208,7 +213,9 @@ export class CostoVentaRepository {
     idProducto: number,
   ): Promise<{ nombre: string } | null> {
     const sql = `SELECT nombre FROM producto WHERE id = $1`;
-    const result = await this.dataSource.query(sql, [idProducto]);
+    const result: Array<{ nombre: string }> = await this.dataSource.query(sql, [
+      idProducto,
+    ]);
     return result[0] || null;
   }
 
@@ -291,10 +298,13 @@ export class CostoVentaRepository {
 
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{
+      idInventario: string | number;
+      total: string | number;
+    }> = await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0,
+      idInventario: parseInt(String(row.idInventario)),
+      total: parseFloat(String(row.total)) || 0,
     }));
   }
 
@@ -340,10 +350,13 @@ export class CostoVentaRepository {
 
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{
+      idInventario: string | number;
+      total: string | number;
+    }> = await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0,
+      idInventario: parseInt(String(row.idInventario)),
+      total: parseFloat(String(row.total)) || 0,
     }));
   }
 
@@ -392,10 +405,13 @@ export class CostoVentaRepository {
 
     sql += ` GROUP BY i.id ORDER BY i.id`;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{
+      idInventario: string | number;
+      total: string | number;
+    }> = await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      idInventario: parseInt(row.idInventario),
-      total: parseFloat(row.total) || 0,
+      idInventario: parseInt(String(row.idInventario)),
+      total: parseFloat(String(row.total)) || 0,
     }));
   }
 
@@ -435,9 +451,13 @@ export class CostoVentaRepository {
 
     sql += ` ORDER BY a.nombre, p.nombre`;
 
-    const result = await this.dataSource.query(sql, params);
+    const result: Array<{
+      idInventario: string | number;
+      nombreProducto: string;
+      nombreAlmacen: string;
+    }> = await this.dataSource.query(sql, params);
     return result.map((row) => ({
-      idInventario: parseInt(row.idInventario),
+      idInventario: parseInt(String(row.idInventario)),
       nombreProducto: row.nombreProducto,
       nombreAlmacen: row.nombreAlmacen,
     }));

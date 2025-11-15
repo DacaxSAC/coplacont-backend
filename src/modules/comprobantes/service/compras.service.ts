@@ -55,11 +55,13 @@ export class ComprasService {
   ): Promise<ResponseComprobanteDto | null> {
     // Buscar el TablaDetalle para COMPRA (código "02")
     const tipoCompra = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '02' } // Código "02" para COMPRA
+      where: { codigo: '02' }, // Código "02" para COMPRA
     });
 
     if (!tipoCompra) {
-      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación COMPRA en la tabla de detalles',
+      );
     }
 
     const comprobante = await this.comprobanteRepository.findOne({
@@ -102,11 +104,13 @@ export class ComprasService {
   ): Promise<ResponseComprobanteDto[]> {
     // Buscar el TablaDetalle para COMPRA (código "02")
     const tipoCompra = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '02' } // Código "02" para COMPRA
+      where: { codigo: '02' }, // Código "02" para COMPRA
     });
 
     if (!tipoCompra) {
-      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación COMPRA en la tabla de detalles',
+      );
     }
 
     const comprobantes = await this.comprobanteRepository
@@ -143,11 +147,13 @@ export class ComprasService {
   ): Promise<ResponseComprobanteDto[]> {
     // Buscar el TablaDetalle para COMPRA (código "02")
     const tipoCompra = await this.tablaDetalleRepository.findOne({
-      where: { codigo: '02' } // Código "02" para COMPRA
+      where: { codigo: '02' }, // Código "02" para COMPRA
     });
 
     if (!tipoCompra) {
-      throw new Error('No se encontró el tipo de operación COMPRA en la tabla de detalles');
+      throw new Error(
+        'No se encontró el tipo de operación COMPRA en la tabla de detalles',
+      );
     }
 
     const comprobantes = await this.comprobanteRepository

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsPositive, Min } from 'class-validator';
+import { IsNumber, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**

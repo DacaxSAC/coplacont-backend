@@ -1,5 +1,20 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, HttpCode, HttpStatus, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  HttpCode,
+  HttpStatus,
+  Body,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { PersonaService } from '../services/person.service';
 import {
   PersonaWithUsersResponseDto,
@@ -256,7 +271,7 @@ export class PersonaController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePersonaDto: UpdatePersonaDto,
   ): Promise<PersonaWithUsersResponseDto> {
-    const updatedPersona = await this.personaService.update(id, updatePersonaDto);
+    await this.personaService.update(id, updatePersonaDto);
     const result = await this.findByIdWithUsers(id);
     if (!result) {
       throw new Error('Empresa no encontrada después de la actualización');

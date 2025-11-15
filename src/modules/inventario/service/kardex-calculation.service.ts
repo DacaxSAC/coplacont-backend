@@ -120,7 +120,6 @@ export class KardexCalculationService {
     const saldoInicial = await this.calcularSaldoInicial(
       idInventario,
       fechaDesde,
-      metodoValoracion,
     );
 
     // Procesar movimientos según el método de valoración
@@ -165,12 +164,6 @@ export class KardexCalculationService {
     fechaDesde: Date,
     fechaHasta: Date,
   ): Promise<any[]> {
-    console.log('🔍 DEBUG obtenerMovimientosInventario - Parámetros:', {
-      idInventario,
-      fechaDesde,
-      fechaHasta,
-    });
-
     const movimientos = await this.movimientoDetalleRepository
       .createQueryBuilder('md')
       .innerJoin('md.movimiento', 'm')
@@ -198,43 +191,10 @@ export class KardexCalculationService {
       .addOrderBy('m.id', 'ASC')
       .getRawMany();
 
-    console.log(
-      '🔍 DEBUG obtenerMovimientosInventario - Total movimientos encontrados:',
-      movimientos.length,
-    );
-    
+    // Si no hay movimientos, retornar lista vacía
     if (movimientos.length === 0) {
-      // Si no hay movimientos, verificar si existen MovimientoDetalle para este inventario
-      const totalMovimientoDetalle = await this.movimientoDetalleRepository
-        .createQueryBuilder('md')
-        .where('md.idInventario = :idInventario', { idInventario })
-        .getCount();
-      
-      console.log('🔍 DEBUG - Total MovimientoDetalle para inventario:', totalMovimientoDetalle);
-      
-      // Verificar si existen movimientos sin filtros de fecha
-      const movimientosSinFiltro = await this.movimientoDetalleRepository
-        .createQueryBuilder('md')
-        .innerJoin('md.movimiento', 'm')
-        .where('md.idInventario = :idInventario', { idInventario })
-        .select(['md.id', 'm.fecha', 'm.estado', 'm.tipo'])
-        .getRawMany();
-      
-      console.log('🔍 DEBUG - Movimientos sin filtro de fecha:', movimientosSinFiltro);
+      return [];
     }
-    
-    console.log(
-      '🔍 DEBUG obtenerMovimientosInventario - Primeros 5 movimientos:',
-      movimientos.slice(0, 5).map((m) => ({
-        idMovimientoDetalle: m.idmovimientodetalle,
-        idMovimiento: m.idmovimiento,
-        fecha: m.m_fecha,
-        tipo: m.tipomovimiento,
-        cantidad: m.md_cantidad,
-        tipoOperacion: m.tipooperacion,
-        estado: m.m_estado,
-      })),
-    );
 
     return movimientos;
   }
@@ -245,7 +205,6 @@ export class KardexCalculationService {
   private async calcularSaldoInicial(
     idInventario: number,
     fechaDesde: Date,
-    metodoValoracion: MetodoValoracion,
   ): Promise<{ cantidad: number; costoUnitario: number; valorTotal: number }> {
     // Obtener stock hasta la fecha de inicio (un día antes)
     const fechaAnterior = new Date(fechaDesde);
@@ -282,16 +241,6 @@ export class KardexCalculationService {
     metodoValoracion: MetodoValoracion,
     idInventario: number,
   ): Promise<KardexMovement[]> {
-    console.log(
-      '🔍 DEBUG procesarMovimientos - Iniciando procesamiento con',
-      movimientos.length,
-      'movimientos',
-    );
-    console.log(
-      '🔍 DEBUG procesarMovimientos - Método de valoración:',
-      metodoValoracion,
-    );
-
     const movimientosKardex: KardexMovement[] = [];
     let saldoActual = { ...saldoInicial };
 
@@ -305,16 +254,6 @@ export class KardexCalculationService {
 
     for (let i = 0; i < movimientos.length; i++) {
       const mov = movimientos[i];
-      console.log(
-        `🔍 DEBUG procesarMovimientos - Procesando movimiento ${i + 1}/${movimientos.length}:`,
-        {
-          idMovimientoDetalle: mov.idmovimientodetalle,
-          idMovimiento: mov.idmovimiento,
-          fecha: mov.m_fecha,
-          tipo: mov.tipomovimiento,
-          cantidad: mov.md_cantidad,
-        },
-      );
 
       const esEntrada = this.esMovimientoEntrada(
         mov.tipomovimiento,
@@ -324,7 +263,6 @@ export class KardexCalculationService {
       let movimientoKardex: KardexMovement;
 
       if (esEntrada) {
-        console.log('🔍 DEBUG procesarMovimientos - Procesando como ENTRADA');
         movimientoKardex = await this.procesarEntrada(
           mov,
           saldoActual,
@@ -341,8 +279,7 @@ export class KardexCalculationService {
           );
         }
       } else {
-        console.log('🔍 DEBUG procesarMovimientos - Procesando como SALIDA');
-        const resultado = await this.procesarSalida(
+        const resultado = this.procesarSalida(
           mov,
           saldoActual,
           metodoValoracion,
@@ -351,10 +288,6 @@ export class KardexCalculationService {
 
         // Manejar el caso en que procesarSalida devuelve un array (FIFO con múltiples lotes)
         if (Array.isArray(resultado)) {
-          console.log(
-            '🔍 DEBUG procesarMovimientos - Salida FIFO con múltiples lotes:',
-            resultado.length,
-          );
           // Agregar todos los movimientos al kardex
           movimientosKardex.push(...resultado);
           // Actualizar saldo con el último movimiento del array
@@ -365,10 +298,6 @@ export class KardexCalculationService {
               costoUnitario: ultimoMovimiento.costoUnitarioSaldo,
               valorTotal: ultimoMovimiento.valorTotalSaldo,
             };
-          } else {
-            console.warn(
-              '⚠️ DEBUG procesarMovimientos - Salida FIFO sin lotes consumidos; se mantiene saldo actual',
-            );
           }
           // Continuar con el siguiente movimiento
           continue;
@@ -386,20 +315,10 @@ export class KardexCalculationService {
         costoUnitario: movimientoKardex.costoUnitarioSaldo,
         valorTotal: movimientoKardex.valorTotalSaldo,
       };
-
-      console.log(
-        `🔍 DEBUG procesarMovimientos - Saldo actualizado después del movimiento ${i + 1}:`,
-        saldoActual,
-      );
     }
 
     // Limpiar estado temporal
     this.lotesDisponiblesTemporales.clear();
-
-    console.log(
-      '🔍 DEBUG procesarMovimientos - Procesamiento completado. Total movimientos kardex:',
-      movimientosKardex.length,
-    );
 
     return movimientosKardex;
   }
@@ -452,7 +371,7 @@ export class KardexCalculationService {
   /**
    * Procesa un movimiento de salida (venta)
    */
-  private async procesarSalida(
+  private procesarSalida(
     mov: any,
     saldoAnterior: {
       cantidad: number;
@@ -461,7 +380,7 @@ export class KardexCalculationService {
     },
     metodoValoracion: MetodoValoracion,
     idInventario: number,
-  ): Promise<KardexMovement | KardexMovement[]> {
+  ): KardexMovement | KardexMovement[] {
     const cantidad = Number(mov.md_cantidad);
 
     // Para método PROMEDIO, mantener el comportamiento original
@@ -499,7 +418,7 @@ export class KardexCalculationService {
     // Para método FIFO, crear un movimiento por cada lote consumido
     else {
       // Calcular los lotes a consumir usando FIFO
-      const resultadoFIFO = await this.calcularCostoFIFO(
+      const resultadoFIFO = this.calcularCostoFIFO(
         idInventario,
         cantidad,
         new Date(mov.m_fecha),
@@ -570,11 +489,6 @@ export class KardexCalculationService {
    * Obtiene el costo unitario de una entrada desde el lote
    */
   private async obtenerCostoUnitarioEntrada(idLote: number): Promise<number> {
-    console.log(
-      '🔍 DEBUG obtenerCostoUnitarioEntrada - idLote recibido:',
-      idLote,
-    );
-
     if (!idLote) {
       return 0;
     }
@@ -611,17 +525,6 @@ export class KardexCalculationService {
         fechaIngreso: lote.fechaIngreso,
       });
     }
-
-    console.log(
-      '🔍 DEBUG inicializarLotesTemporales - Lotes inicializados:',
-      Array.from(this.lotesDisponiblesTemporales.entries()).map(
-        ([id, lote]) => ({
-          idLote: id,
-          cantidadDisponible: lote.cantidadDisponible,
-          costoUnitario: lote.costoUnitario,
-        }),
-      ),
-    );
   }
 
   /**
@@ -646,33 +549,19 @@ export class KardexCalculationService {
         fechaIngreso: fechaIngreso,
       });
     }
-
-    console.log('🔍 DEBUG actualizarLoteTemporalEntrada - Lote actualizado:', {
-      idLote,
-      cantidad,
-      costoUnitario,
-      cantidadDisponibleTotal:
-        this.lotesDisponiblesTemporales.get(idLote)?.cantidadDisponible,
-    });
   }
 
   /**
    * Calcula el costo FIFO para una salida específica usando el estado temporal
    */
-  private async calcularCostoFIFO(
+  private calcularCostoFIFO(
     idInventario: number,
     cantidadSalida: number,
     fechaMovimiento: Date,
-  ): Promise<{
+  ): {
     costoUnitarioPromedio: number;
     detallesSalida: DetalleSalidaCalculado[];
-  }> {
-    console.log('🔍 DEBUG calcularCostoFIFO - Parámetros:', {
-      idInventario,
-      cantidadSalida,
-      fechaMovimiento: fechaMovimiento.toISOString(),
-    });
-
+  } {
     // Usar lotes temporales en lugar de consultar la base de datos
     const lotesDisponibles = Array.from(
       this.lotesDisponiblesTemporales.entries(),
@@ -692,16 +581,6 @@ export class KardexCalculationService {
         return a.idLote - b.idLote;
       });
 
-    console.log(
-      '🔍 DEBUG calcularCostoFIFO - Lotes disponibles (temporal):',
-      lotesDisponibles.map((l) => ({
-        idLote: l.idLote,
-        cantidadDisponible: l.cantidadDisponible,
-        costoUnitario: l.costoUnitario,
-        fechaIngreso: l.fechaIngreso,
-      })),
-    );
-
     const detallesSalida: DetalleSalidaCalculado[] = [];
     let cantidadRestante = cantidadSalida;
     let costoTotalSalida = 0;
@@ -714,13 +593,6 @@ export class KardexCalculationService {
         lote.cantidadDisponible,
       );
       const costoDelLote = cantidadDelLote * lote.costoUnitario;
-
-      console.log('🔍 DEBUG calcularCostoFIFO - Procesando lote:', {
-        idLote: lote.idLote,
-        cantidadDelLote,
-        costoUnitario: lote.costoUnitario,
-        costoDelLote,
-      });
 
       detallesSalida.push({
         idLote: lote.idLote,
@@ -736,14 +608,6 @@ export class KardexCalculationService {
       const loteTemp = this.lotesDisponiblesTemporales.get(lote.idLote);
       if (loteTemp) {
         loteTemp.cantidadDisponible -= cantidadDelLote;
-        console.log(
-          '🔍 DEBUG calcularCostoFIFO - Lote actualizado después de salida:',
-          {
-            idLote: lote.idLote,
-            cantidadConsumida: cantidadDelLote,
-            cantidadRestanteEnLote: loteTemp.cantidadDisponible,
-          },
-        );
       }
 
       cantidadRestante -= cantidadDelLote;
@@ -751,13 +615,6 @@ export class KardexCalculationService {
 
     const costoUnitarioPromedio =
       cantidadSalida > 0 ? costoTotalSalida / cantidadSalida : 0;
-
-    console.log('🔍 DEBUG calcularCostoFIFO - Resultado:', {
-      costoTotalSalida,
-      cantidadSalida,
-      costoUnitarioPromedio,
-      detallesSalida: detallesSalida.length,
-    });
 
     return {
       costoUnitarioPromedio,

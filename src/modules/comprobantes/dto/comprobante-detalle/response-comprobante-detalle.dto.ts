@@ -6,7 +6,13 @@ export class ResponseComprobanteDetalleDto {
 
   // Id del inventario asociado al detalle
   @Expose()
-  @Transform(({ obj }) => obj?.inventario?.id, { toClassOnly: true })
+  @Transform(
+    ({ obj }) => {
+      const o = obj as { inventario?: { id?: number } };
+      return o.inventario?.id;
+    },
+    { toClassOnly: true },
+  )
   idInventario?: number;
 
   @Expose()

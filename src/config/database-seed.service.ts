@@ -67,7 +67,9 @@ export class DatabaseSeedService implements OnModuleInit {
         this.logger.log('Los roles ya existen en la base de datos');
       }
     } catch (error) {
-      this.logger.error('Error al crear roles por defecto:', error.message);
+      const msg =
+        (error as Error)?.message || 'Error al crear roles por defecto';
+      this.logger.error('Error al crear roles por defecto:', msg);
     }
   }
 
@@ -128,9 +130,12 @@ export class DatabaseSeedService implements OnModuleInit {
         );
       }
     } catch (error) {
+      const msg =
+        (error as Error)?.message ||
+        'Error al crear usuario administrador por defecto';
       this.logger.error(
         'Error al crear usuario administrador por defecto:',
-        error.message,
+        msg,
       );
     }
   }
@@ -143,7 +148,8 @@ export class DatabaseSeedService implements OnModuleInit {
       await this.seedTabla10();
       await this.seedTabla12();
     } catch (error) {
-      this.logger.error('Error al crear tablas maestras:', error.message);
+      const msg = (error as Error)?.message || 'Error al crear tablas maestras';
+      this.logger.error('Error al crear tablas maestras:', msg);
     }
   }
 
@@ -160,7 +166,7 @@ export class DatabaseSeedService implements OnModuleInit {
 
       if (!tabla10) {
         this.logger.log('Creando Tabla 10 (Tipos de Comprobante)...');
-        
+
         // Crear la tabla 10
         tabla10 = this.tablaRepository.create({
           numeroTabla: '10',
@@ -178,8 +184,16 @@ export class DatabaseSeedService implements OnModuleInit {
         { codigo: '02', descripcion: 'Recibo por Honorarios' },
         { codigo: '03', descripcion: 'Boleta de Venta' },
         { codigo: '04', descripcion: 'Liquidación de compra' },
-        { codigo: '05', descripcion: 'Boleto de compañía de aviación comercial por el servicio de transporte aéreo de pasajeros' },
-        { codigo: '06', descripcion: 'Carta de porte aéreo por el servicio de transporte de carga aérea' },
+        {
+          codigo: '05',
+          descripcion:
+            'Boleto de compañía de aviación comercial por el servicio de transporte aéreo de pasajeros',
+        },
+        {
+          codigo: '06',
+          descripcion:
+            'Carta de porte aéreo por el servicio de transporte de carga aérea',
+        },
         { codigo: '07', descripcion: 'Nota de crédito' },
         { codigo: '08', descripcion: 'Nota de débito' },
         { codigo: '09', descripcion: 'Guía de remisión - Remitente' },
@@ -189,7 +203,10 @@ export class DatabaseSeedService implements OnModuleInit {
 
       for (const detalle of detallesTabla10) {
         const existente = await this.tablaDetalleRepository.findOne({
-          where: { codigo: detalle.codigo, tabla: { idTabla: tabla10.idTabla } },
+          where: {
+            codigo: detalle.codigo,
+            tabla: { idTabla: tabla10.idTabla },
+          },
           relations: ['tabla'],
         });
 
@@ -201,7 +218,9 @@ export class DatabaseSeedService implements OnModuleInit {
             activo: true,
           });
           await this.tablaDetalleRepository.save(nuevo);
-          this.logger.log(`Detalle agregado a Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`);
+          this.logger.log(
+            `Detalle agregado a Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`,
+          );
         } else {
           // Actualizar descripción si cambió y asegurar que está activo
           const descCambio = existente.descripcion !== detalle.descripcion;
@@ -210,7 +229,9 @@ export class DatabaseSeedService implements OnModuleInit {
             existente.descripcion = detalle.descripcion;
             existente.activo = true;
             await this.tablaDetalleRepository.save(existente);
-            this.logger.log(`Detalle actualizado en Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`);
+            this.logger.log(
+              `Detalle actualizado en Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`,
+            );
           }
         }
       }
@@ -234,7 +255,7 @@ export class DatabaseSeedService implements OnModuleInit {
 
       if (!tabla12) {
         this.logger.log('Creando Tabla 12 (Tipos de Operación)...');
-        
+
         // Crear la tabla 12
         tabla12 = this.tablaRepository.create({
           numeroTabla: '12',
@@ -283,7 +304,9 @@ export class DatabaseSeedService implements OnModuleInit {
 
         this.logger.log('Tabla 12 y sus detalles creados exitosamente');
       } else {
-        this.logger.log('La Tabla 12 y sus detalles ya existen en la base de datos');
+        this.logger.log(
+          'La Tabla 12 y sus detalles ya existen en la base de datos',
+        );
       }
     } catch (error) {
       this.logger.error('Error al crear Tabla 12:', error.message);

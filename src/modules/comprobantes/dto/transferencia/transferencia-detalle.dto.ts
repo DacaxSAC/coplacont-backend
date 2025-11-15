@@ -1,5 +1,11 @@
-import { Type } from 'class-transformer';
-import { IsInt, Min, IsString, Length, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsInt,
+  Min,
+  IsString,
+  Length,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
 
 export class TransferenciaDetalleDto {
   @IsInt()
