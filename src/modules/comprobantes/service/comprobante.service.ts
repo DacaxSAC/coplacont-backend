@@ -46,6 +46,14 @@ export class ComprobanteService {
     personaId: number,
     manager?: any,
   ) {
+    // Validar que los parámetros requeridos no sean undefined o null
+    if (idTipoOperacion === undefined || idTipoOperacion === null) {
+      throw new Error('idTipoOperacion es requerido y no puede ser undefined o null');
+    }
+    if (personaId === undefined || personaId === null) {
+      throw new Error('personaId es requerido y no puede ser undefined o null');
+    }
+
     const repository = manager
       ? manager.getRepository(Correlativo)
       : this.correlativoRepository;
@@ -230,33 +238,55 @@ export class ComprobanteService {
         throw new Error('Error al cargar el comprobante con sus relaciones');
       }
 
-      // Crear movimiento
-      console.log('🔍 DEBUG - Iniciando creación de movimiento');
-      console.log('🔍 DEBUG - comprobanteConRelaciones.tipoOperacion:', comprobanteConRelaciones.tipoOperacion);
-      console.log('🔍 DEBUG - comprobanteConRelaciones.detalles.length:', comprobanteConRelaciones.detalles?.length || 0);
-      console.log('🔍 DEBUG - costosUnitarios:', costosUnitarios);
-      console.log('🔍 DEBUG - precioYcantidadPorLote:', precioYcantidadPorLote);
-      console.log('🔍 DEBUG - Verificando si tipoOperacion es COMPRA:', comprobanteConRelaciones.tipoOperacion?.descripcion === 'COMPRA');
+      // Solo crear movimientos si:
+      // 1. Hay detalles en el comprobante
+      // 2. El tipo de operación es VENTA (código "01") o COMPRA (código "02")
+      const tieneDetalles = comprobanteConRelaciones.detalles && comprobanteConRelaciones.detalles.length > 0;
       
-      try {
-        const movimientoDto =
-          await this.movimientoFactory.createMovimientoFromComprobante(
-            comprobanteConRelaciones,
-            costosUnitarios,
-            precioYcantidadPorLote,
+      // Obtener el código del tipo de operación desde la tabla detalle
+      const tipoOperacionDetalle = await queryRunner.manager.findOne(TablaDetalle, {
+        where: { idTablaDetalle: comprobanteConRelaciones.tipoOperacion.idTablaDetalle }
+      });
+      
+      const esOperacionKardex = tipoOperacionDetalle && (
+        tipoOperacionDetalle.codigo === '01' || // VENTA
+        tipoOperacionDetalle.codigo === '02'    // COMPRA
+      );
+
+      console.log('Tiene detalles:', tieneDetalles);
+      console.log('Código tipo operación:', tipoOperacionDetalle?.codigo);
+      console.log('Es operación kardex:', esOperacionKardex);
+
+      if (tieneDetalles && esOperacionKardex) {
+        // Crear movimiento
+        console.log('🔍 DEBUG - Iniciando creación de movimiento');
+        console.log('🔍 DEBUG - comprobanteConRelaciones.tipoOperacion:', comprobanteConRelaciones.tipoOperacion);
+        console.log('🔍 DEBUG - comprobanteConRelaciones.detalles.length:', comprobanteConRelaciones.detalles?.length || 0);
+        console.log('🔍 DEBUG - costosUnitarios:', costosUnitarios);
+        console.log('🔍 DEBUG - precioYcantidadPorLote:', precioYcantidadPorLote);
+        
+        try {
+          const movimientoDto =
+            await this.movimientoFactory.createMovimientoFromComprobante(
+              comprobanteConRelaciones,
+              costosUnitarios,
+              precioYcantidadPorLote,
+            );
+          
+          console.log('🔍 DEBUG - movimientoDto creado:', JSON.stringify(movimientoDto, null, 2));
+          
+          const movimientoCreado = await this.movimientoService.createWithManager(
+            movimientoDto,
+            queryRunner.manager,
           );
-        
-        console.log('🔍 DEBUG - movimientoDto creado:', JSON.stringify(movimientoDto, null, 2));
-        
-        const movimientoCreado = await this.movimientoService.createWithManager(
-          movimientoDto,
-          queryRunner.manager,
-        );
-        
-        console.log('🔍 DEBUG - movimientoCreado:', movimientoCreado);
-      } catch (movimientoError) {
-        console.error('🚨 ERROR en creación de movimiento:', movimientoError);
-        throw movimientoError;
+          
+          console.log('🔍 DEBUG - movimientoCreado:', movimientoCreado);
+        } catch (movimientoError) {
+          console.error('🚨 ERROR en creación de movimiento:', movimientoError);
+          throw movimientoError;
+        }
+      } else {
+        console.log('Omitiendo creación de movimientos - No es operación de kardex o no tiene detalles');
       }
 
       await queryRunner.commitTransaction();
