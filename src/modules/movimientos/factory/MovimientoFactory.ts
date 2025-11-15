@@ -29,19 +29,20 @@ export class MovimientoFactory {
     console.log('🔍 DEBUG MovimientoFactory - comprobante.tipoOperacion:', comprobante.tipoOperacion);
     console.log('🔍 DEBUG MovimientoFactory - comprobante.detalles:', comprobante.detalles?.length || 0);
     
-    const detalles =
-      await this.createMovimientosDetallesFromDetallesComprobante(
-        comprobante.detalles,
-        comprobante.tipoOperacion.descripcion,
-        costosUnitarios,
-        precioYcantidadPorLote,
-      );
+    const tipoMovimiento = this.generateTipoFromComprobante(comprobante);
+    const modoOperacion = tipoMovimiento === TipoMovimiento.ENTRADA ? 'COMPRA' : 'VENTA';
+    const detalles = await this.createMovimientosDetallesFromDetallesComprobante(
+      comprobante.detalles,
+      modoOperacion,
+      costosUnitarios,
+      precioYcantidadPorLote,
+    );
 
     console.log('🔍 DEBUG MovimientoFactory - detalles creados:', detalles.length);
 
     return {
       numeroDocumento: comprobante.serie + '-' + comprobante.numero,
-      tipo: this.generateTipoFromTipoOperacion(comprobante.tipoOperacion.descripcion),
+      tipo: tipoMovimiento,
       fecha: comprobante.fechaEmision,
       observaciones: `Movimiento generado desde comprobante ${comprobante.serie}-${comprobante.numero}`,
       estado: EstadoMovimiento.PROCESADO,
@@ -176,12 +177,22 @@ export class MovimientoFactory {
     return movimientoDetalles;
   }
 
-  private generateTipoFromTipoOperacion(tipoOperacion: string): TipoMovimiento {
-    const op = (tipoOperacion || '').trim().toUpperCase();
-    if (op === 'COMPRA') return TipoMovimiento.ENTRADA;
-    if (op === 'VENTA') return TipoMovimiento.SALIDA;
-    if (op.includes('ENTRADA') || op.includes('INGRESO')) return TipoMovimiento.ENTRADA;
-    if (op.includes('SALIDA') || op.includes('EGRESO')) return TipoMovimiento.SALIDA;
-    throw new Error(`Tipo de operación no soportado: ${tipoOperacion}`);
+  private generateTipoFromComprobante(comprobante: Comprobante): TipoMovimiento {
+    const desc = (comprobante.tipoOperacion?.descripcion || '').trim().toUpperCase();
+    const cod = (comprobante.tipoOperacion?.codigo || '').trim();
+    if (desc === 'COMPRA' || cod === '02' || desc.includes('ENTRADA') || desc.includes('INGRESO')) return TipoMovimiento.ENTRADA;
+    if (desc === 'VENTA' || cod === '01' || desc.includes('SALIDA') || desc.includes('EGRESO')) return TipoMovimiento.SALIDA;
+
+    if (cod === '07' || desc.includes('NOTA DE CRÉDITO') || desc.includes('NOTA DE CREDITO')) {
+      const afectoCod = comprobante.comprobanteAfecto?.tipoOperacion?.codigo;
+      if (afectoCod === '01') return TipoMovimiento.ENTRADA; // NC sobre venta: entrada
+      if (afectoCod === '02') return TipoMovimiento.SALIDA;  // NC sobre compra: salida
+    }
+    if (cod === '08' || desc.includes('NOTA DE DÉBITO') || desc.includes('NOTA DE DEBITO')) {
+      const afectoCod = comprobante.comprobanteAfecto?.tipoOperacion?.codigo;
+      if (afectoCod === '01') return TipoMovimiento.SALIDA; // ND sobre venta: salida
+      if (afectoCod === '02') return TipoMovimiento.ENTRADA; // ND sobre compra: entrada
+    }
+    throw new Error(`Tipo de operación no soportado: ${comprobante.tipoOperacion?.descripcion}`);
   }
 }

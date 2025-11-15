@@ -159,6 +159,15 @@ export class ComprobanteService {
       correlativo.ultimoNumero += 1;
       await queryRunner.manager.save(correlativo);
 
+      // Si existe comprobante afecto (notas), cargarlo
+      let comprobanteAfecto: Comprobante | null = null;
+      if (createComprobanteDto.idComprobanteAfecto) {
+        comprobanteAfecto = await this.comprobanteRepository.findOne({
+          where: { idComprobante: createComprobanteDto.idComprobanteAfecto },
+          relations: ['tipoOperacion'],
+        });
+      }
+
       // Crea instancia de COMPROBANTE
       const comprobante = queryRunner.manager.create(Comprobante, {
         fechaEmision: createComprobanteDto.fechaEmision,
@@ -176,6 +185,7 @@ export class ComprobanteService {
       comprobante.tipoOperacion = tipoOperacion;
       comprobante.tipoComprobante = tipoComprobante;
       comprobante.correlativo = `CORR-${correlativo.ultimoNumero}`;
+      if (comprobanteAfecto) comprobante.comprobanteAfecto = comprobanteAfecto;
 
       // Guarda el COMPROBANTE
       const comprobanteSaved = await queryRunner.manager.save(comprobante);
@@ -197,10 +207,24 @@ export class ComprobanteService {
         );
         comprobanteSaved.detalles = detallesSaved;
         // Procesar lotes en función del tipo de operación y método de valoración
+        // Determinar modo de operación para procesar lotes (COMPRA/VENTA) considerando notas
+        let modoOperacionParaLote = tipoOperacion.descripcion;
+        if (['07', '08'].includes(tipoOperacion.codigo)) {
+          const esNotaCredito = tipoOperacion.codigo === '07';
+          const afectoCodigo = comprobanteAfecto?.tipoOperacion?.codigo;
+          if (afectoCodigo === '01') {
+            // Nota sobre VENTA
+            modoOperacionParaLote = esNotaCredito ? 'COMPRA' : 'VENTA';
+          } else if (afectoCodigo === '02') {
+            // Nota sobre COMPRA
+            modoOperacionParaLote = esNotaCredito ? 'VENTA' : 'COMPRA';
+          }
+        }
+
         const { costoUnitario, lotes } =
           await this.loteCreationService.procesarLotesComprobante(
             detallesSaved,
-            tipoOperacion.descripcion,
+            modoOperacionParaLote,
             metodoValoracionFinal,
             fechaEmisionFinal,
           );
@@ -230,7 +254,7 @@ export class ComprobanteService {
       // Cargar las relaciones necesarias para el MovimientoFactory DESPUÉS de guardar los detalles
       const comprobanteConRelaciones = await queryRunner.manager.findOne(Comprobante, {
         where: { idComprobante: comprobanteSaved.idComprobante },
-        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto']
+        relations: ['tipoOperacion', 'tipoComprobante', 'detalles', 'detalles.inventario', 'detalles.inventario.producto', 'comprobanteAfecto', 'comprobanteAfecto.tipoOperacion']
       });
       
       if (!comprobanteConRelaciones) {
@@ -239,7 +263,7 @@ export class ComprobanteService {
 
       // Solo crear movimientos si hay detalles y la operación es VENTA ("01") o COMPRA ("02")
       const tieneDetalles = comprobanteConRelaciones.detalles && comprobanteConRelaciones.detalles.length > 0;
-      const esOperacionKardex = ['01', '02'].includes(
+      const esOperacionKardex = ['01', '02', '07', '08'].includes(
         comprobanteConRelaciones.tipoOperacion?.codigo,
       );
 

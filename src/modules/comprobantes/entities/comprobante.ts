@@ -95,4 +95,9 @@ export class Comprobante {
   //manual
   @OneToOne(() => ComprobanteTotales, (totales) => totales.comprobante)
   totales: ComprobanteTotales;
+
+  // Relación con comprobante afecto (para notas de crédito/débito)
+  @ManyToOne(() => Comprobante, { nullable: true })
+  @JoinColumn({ name: 'id_comprobante_afecto' })
+  comprobanteAfecto?: Comprobante;
 }

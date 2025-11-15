@@ -115,4 +115,12 @@ export class CreateComprobanteDto {
   @IsOptional()
   @IsNumber()
   total?: number;
+
+  @ApiPropertyOptional({
+    description: 'ID del comprobante afecto (solo para notas de crédito/débito)',
+    example: 123,
+  })
+  @IsOptional()
+  @IsNumber()
+  idComprobanteAfecto?: number;
 }
