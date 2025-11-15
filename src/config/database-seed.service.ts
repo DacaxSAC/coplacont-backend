@@ -171,38 +171,51 @@ export class DatabaseSeedService implements OnModuleInit {
         tabla10 = await this.tablaRepository.save(tabla10);
       }
 
-      // Verificar si ya existen detalles
-      if (!tabla10.detalles || tabla10.detalles.length === 0) {
-        this.logger.log('Creando detalles para Tabla 10...');
+      // Upsert de detalles: crea los faltantes y actualiza descripciones si cambian
+      const detallesTabla10 = [
+        { codigo: '00', descripcion: 'Otros (especificar)' },
+        { codigo: '01', descripcion: 'Factura' },
+        { codigo: '02', descripcion: 'Recibo por Honorarios' },
+        { codigo: '03', descripcion: 'Boleta de Venta' },
+        { codigo: '04', descripcion: 'Liquidación de compra' },
+        { codigo: '05', descripcion: 'Boleto de compañía de aviación comercial por el servicio de transporte aéreo de pasajeros' },
+        { codigo: '06', descripcion: 'Carta de porte aéreo por el servicio de transporte de carga aérea' },
+        { codigo: '07', descripcion: 'Nota de crédito' },
+        { codigo: '08', descripcion: 'Nota de débito' },
+        { codigo: '09', descripcion: 'Guía de remisión - Remitente' },
+        { codigo: '10', descripcion: 'Recibo por Arrendamiento' },
+        { codigo: '100', descripcion: 'Documento Interno' },
+      ];
 
-        const detallesTabla10 = [
-          { codigo: '00', descripcion: 'Otros (especificar)' },
-          { codigo: '01', descripcion: 'Factura' },
-          { codigo: '02', descripcion: 'Recibo por Honorarios' },
-          { codigo: '03', descripcion: 'Boleta de Venta' },
-          { codigo: '04', descripcion: 'Liquidación de compra' },
-          { codigo: '05', descripcion: 'Boleto de compañía de aviación comercial por el servicio de transporte aéreo de pasajeros' },
-          { codigo: '06', descripcion: 'Carta de porte aéreo por el servicio de transporte de carga aérea' },
-          { codigo: '07', descripcion: 'Nota de crédito' },
-          { codigo: '08', descripcion: 'Nota de débito' },
-          { codigo: '09', descripcion: 'Guía de remisión - Remitente' },
-          { codigo: '10', descripcion: 'Recibo por Arrendamiento' },
-        ];
+      for (const detalle of detallesTabla10) {
+        const existente = await this.tablaDetalleRepository.findOne({
+          where: { codigo: detalle.codigo, tabla: { idTabla: tabla10.idTabla } },
+          relations: ['tabla'],
+        });
 
-        for (const detalle of detallesTabla10) {
-          const tablaDetalle = this.tablaDetalleRepository.create({
+        if (!existente) {
+          const nuevo = this.tablaDetalleRepository.create({
             tabla: tabla10,
             codigo: detalle.codigo,
             descripcion: detalle.descripcion,
             activo: true,
           });
-          await this.tablaDetalleRepository.save(tablaDetalle);
+          await this.tablaDetalleRepository.save(nuevo);
+          this.logger.log(`Detalle agregado a Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`);
+        } else {
+          // Actualizar descripción si cambió y asegurar que está activo
+          const descCambio = existente.descripcion !== detalle.descripcion;
+          const activoCambio = existente.activo !== true;
+          if (descCambio || activoCambio) {
+            existente.descripcion = detalle.descripcion;
+            existente.activo = true;
+            await this.tablaDetalleRepository.save(existente);
+            this.logger.log(`Detalle actualizado en Tabla 10: ${detalle.codigo} - ${detalle.descripcion}`);
+          }
         }
-
-        this.logger.log('Tabla 10 y sus detalles creados exitosamente');
-      } else {
-        this.logger.log('La Tabla 10 y sus detalles ya existen en la base de datos');
       }
+
+      this.logger.log('Tabla 10 verificada y detalles sincronizados');
     } catch (error) {
       this.logger.error('Error al crear Tabla 10:', error.message);
     }
