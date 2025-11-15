@@ -1,34 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
-import {
-  KardexRepository,
-  KardexMovementData,
-} from '../repository/kardex.repository';
+import { Injectable } from '@nestjs/common';
 import {
   KardexRequestDto,
   KardexResponseDto,
-  KardexReportMovementDto,
 } from '../dto';
 import { TipoMovimiento } from 'src/modules/movimientos/enum/tipo-movimiento.enum';
 import { plainToInstance } from 'class-transformer';
 import { InventarioRepository } from '../repository';
 import { KardexCalculationService } from './kardex-calculation.service';
 import { PeriodoContableService } from 'src/modules/periodos/service';
-import { MetodoValoracion } from 'src/modules/comprobantes/enum/metodo-valoracion.enum';
 
 @Injectable()
 export class KardexService {
-  private readonly logger = new Logger(KardexService.name);
-
   constructor(
-    private readonly kardexRepository: KardexRepository,
     private readonly inventarioRepository: InventarioRepository,
     private readonly kardexCalculationService: KardexCalculationService,
     private readonly periodoContableService: PeriodoContableService,
   ) {}
 
-  /**
-   * Genera el reporte Kardex para un inventario específico usando cálculo dinámico
-   */
   /**
    * Genera el reporte Kardex para un inventario específico usando cálculo dinámico
    * @param request - Datos de la solicitud incluyendo personaId
@@ -70,7 +58,6 @@ export class KardexService {
     const configuracionPeriodo =
       await this.periodoContableService.obtenerConfiguracion(personaId);
     const metodoValoracion = configuracionPeriodo.metodoCalculoCosto;
-    console.log('Metodo de costeo:', metodoValoracion);
 
     // Usar KardexCalculationService para cálculo dinámico
     const kardexResult = await this.kardexCalculationService.generarKardex(

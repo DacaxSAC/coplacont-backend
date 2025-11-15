@@ -47,9 +47,6 @@ export class ComprobanteDetalleService {
 
     const detalles = await Promise.all(
       createComprobanteDetalleDtos.map(async (dto, index) => {
-        console.log(
-          `📦 Procesando detalle ${index + 1}: Inventario=${dto.idInventario}, Cantidad=${dto.cantidad}`,
-        );
         const detalle = detalleRepo.create(dto);
         detalle.comprobante = comprobante;
 
