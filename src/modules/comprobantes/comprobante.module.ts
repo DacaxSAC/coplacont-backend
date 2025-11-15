@@ -11,6 +11,7 @@ import { ComprobanteController } from './controller/comprobante.controller';
 import { ComprasController } from './controller/compras.controller';
 import { VentasController } from './controller/ventas.controller';
 import { TestComprobanteController } from './controller/test-comprobante.controller';
+import { TransferenciasController } from './controller/transferencias.controller';
 import { ComprobanteService } from './service/comprobante.service';
 import { ComprasService } from './service/compras.service';
 import { VentasService } from './service/ventas.service';
@@ -19,6 +20,7 @@ import { MovimientosModule } from '../movimientos/movimientos.module';
 import { InventarioModule } from '../inventario/inventario.module';
 import { ComprobanteDetalleService } from './service/comprobante-detalle.service';
 import { ComprobanteTotalesService } from './service/comprobante-totales.service';
+import {TransferenciasService} from './service/transferencias.service';
 import { UserModule } from '../users/user.module';
 import { PeriodosModule } from '../periodos/periodos.module';
 
@@ -44,6 +46,7 @@ import { PeriodosModule } from '../periodos/periodos.module';
     ComprasController,
     VentasController,
     TestComprobanteController,
+    TransferenciasController,
   ],
   providers: [
     ComprobanteService,
@@ -51,6 +54,7 @@ import { PeriodosModule } from '../periodos/periodos.module';
     VentasService,
     ComprobanteDetalleService,
     ComprobanteTotalesService,
+    TransferenciasService,
   ],
   exports: [TypeOrmModule, ComprobanteService, ComprasService, VentasService],
 })

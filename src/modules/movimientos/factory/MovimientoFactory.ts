@@ -94,7 +94,8 @@ export class MovimientoFactory {
       let costoUnitario: number;
       let detallesSalida: CreateDetalleSalidaDto[] | undefined;
 
-      if (tipoOperacion === 'COMPRA') {
+      const op = (tipoOperacion || '').toUpperCase();
+      if (op === 'COMPRA' || op.includes('ENTRADA')) {
         // Para compras (entradas), usar el precio unitario original del comprobante
         costoUnitario = detalle.precioUnitario;
         console.log(`🔍 DEBUG - Es COMPRA, costoUnitario: ${costoUnitario}`);
@@ -147,17 +148,18 @@ export class MovimientoFactory {
 
       console.log('Estos serian los detalles de salida', detallesSalida);
 
-      // Para compras, asignar el idLote del lote creado
+      // Para compras/entradas, asignar el idLote del lote creado
       if (
-        tipoOperacion === 'COMPRA' &&
-        indiceLote < precioYcantidadPorLote.length
+        op === 'COMPRA' || op.includes('ENTRADA') || op.includes('INGRESO')
       ) {
+        if (indiceLote < precioYcantidadPorLote.length) {
         const loteCompra = precioYcantidadPorLote[indiceLote];
         movimientoDetalle.idLote = loteCompra.idLote;
         console.log(
           `🔗 Asignando lote ${loteCompra.idLote} al movimiento de entrada para inventario ${detalle.inventario.id}`,
         );
-        indiceLote++; // Avanzar al siguiente lote para el próximo detalle
+        indiceLote++;
+        }
       }
 
       if (detallesSalida) {
@@ -175,15 +177,11 @@ export class MovimientoFactory {
   }
 
   private generateTipoFromTipoOperacion(tipoOperacion: string): TipoMovimiento {
-    // Normalizar la descripción del tipo de operación
-    const tipoOperacionNormalizado = tipoOperacion.toUpperCase();
-    
-    if (tipoOperacionNormalizado === 'COMPRA') {
-      return TipoMovimiento.ENTRADA;
-    } else if (tipoOperacionNormalizado === 'VENTA') {
-      return TipoMovimiento.SALIDA;
-    } else {
-      throw new Error(`Tipo de operación no soportado: ${tipoOperacion}`);
-    }
+    const op = (tipoOperacion || '').trim().toUpperCase();
+    if (op === 'COMPRA') return TipoMovimiento.ENTRADA;
+    if (op === 'VENTA') return TipoMovimiento.SALIDA;
+    if (op.includes('ENTRADA') || op.includes('INGRESO')) return TipoMovimiento.ENTRADA;
+    if (op.includes('SALIDA') || op.includes('EGRESO')) return TipoMovimiento.SALIDA;
+    throw new Error(`Tipo de operación no soportado: ${tipoOperacion}`);
   }
 }
