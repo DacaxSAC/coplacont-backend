@@ -144,7 +144,7 @@ export class KardexRepository {
         }
 
         // Remover el campo idMovimientoDetalle del resultado final
-        const { idMovimientoDetalle, ...mov } = movimiento as any;
+        const mov = movimiento as any;
         return {
           fecha: new Date(mov.fecha),
           tipoOperacion: mov.tipoOperacion,

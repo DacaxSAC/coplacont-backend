@@ -328,7 +328,7 @@ export class InventarioService {
         tipoEntrada: TipoMovimiento.ENTRADA,
       })
       .andWhere('persona.id = :personaId', { personaId })
-      .getRawOne();
+      .getRawOne<{ totalEntradas: string | number | null }>();
 
     // Obtener todas las salidas (SALIDA) para este inventario
     const salidas = await this.movimientoDetalleRepository
@@ -342,7 +342,7 @@ export class InventarioService {
         tipoSalida: TipoMovimiento.SALIDA,
       })
       .andWhere('persona.id = :personaId', { personaId })
-      .getRawOne();
+      .getRawOne<{ totalSalidas: string | number | null }>();
 
     // Obtener todos los ajustes para este inventario
     const ajustes = await this.movimientoDetalleRepository
@@ -356,11 +356,11 @@ export class InventarioService {
         tipoAjuste: TipoMovimiento.AJUSTE,
       })
       .andWhere('persona.id = :personaId', { personaId })
-      .getRawOne();
+      .getRawOne<{ totalAjustes: string | number | null }>();
 
-    const totalEntradas = parseFloat(entradas?.totalEntradas) || 0;
-    const totalSalidas = parseFloat(salidas?.totalSalidas) || 0;
-    const totalAjustes = parseFloat(ajustes?.totalAjustes) || 0;
+    const totalEntradas = parseFloat(String(entradas?.totalEntradas ?? 0)) || 0;
+    const totalSalidas = parseFloat(String(salidas?.totalSalidas ?? 0)) || 0;
+    const totalAjustes = parseFloat(String(ajustes?.totalAjustes ?? 0)) || 0;
 
     // Stock = Entradas - Salidas + Ajustes
     return totalEntradas - totalSalidas + totalAjustes;

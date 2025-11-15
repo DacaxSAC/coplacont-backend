@@ -263,11 +263,7 @@ export class KardexCalculationService {
       let movimientoKardex: KardexMovement;
 
       if (esEntrada) {
-        movimientoKardex = await this.procesarEntrada(
-          mov,
-          saldoActual,
-          metodoValoracion,
-        );
+        movimientoKardex = await this.procesarEntrada(mov, saldoActual);
 
         // Actualizar lotes temporales para FIFO en entradas
         if (metodoValoracion === MetodoValoracion.FIFO && mov.idLote) {
@@ -333,7 +329,6 @@ export class KardexCalculationService {
       costoUnitario: number;
       valorTotal: number;
     },
-    metodoValoracion: MetodoValoracion,
   ): Promise<KardexMovement> {
     const cantidad = Number(mov.md_cantidad);
 
@@ -418,11 +413,7 @@ export class KardexCalculationService {
     // Para método FIFO, crear un movimiento por cada lote consumido
     else {
       // Calcular los lotes a consumir usando FIFO
-      const resultadoFIFO = this.calcularCostoFIFO(
-        idInventario,
-        cantidad,
-        new Date(mov.m_fecha),
-      );
+      const resultadoFIFO = this.calcularCostoFIFO(idInventario, cantidad);
 
       const movimientosPorLote: KardexMovement[] = [];
       let saldoActualizado = { ...saldoAnterior };
@@ -557,7 +548,6 @@ export class KardexCalculationService {
   private calcularCostoFIFO(
     idInventario: number,
     cantidadSalida: number,
-    fechaMovimiento: Date,
   ): {
     costoUnitarioPromedio: number;
     detallesSalida: DetalleSalidaCalculado[];
@@ -566,7 +556,7 @@ export class KardexCalculationService {
     const lotesDisponibles = Array.from(
       this.lotesDisponiblesTemporales.entries(),
     )
-      .filter(([_, lote]) => lote.cantidadDisponible > 0)
+      .filter((entry) => entry[1].cantidadDisponible > 0)
       .map(([idLote, lote]) => ({
         idLote,
         cantidadDisponible: lote.cantidadDisponible,

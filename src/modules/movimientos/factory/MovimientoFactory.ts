@@ -17,7 +17,7 @@ export class MovimientoFactory {
    * Utiliza el método de costeo promedio ponderado para calcular los costos en ventas
    * Para compras usa el precio unitario original del comprobante
    */
-  async createMovimientoFromComprobante(
+  createMovimientoFromComprobante(
     comprobante: Comprobante,
     costosUnitarios: number[],
     precioYcantidadPorLote: {
@@ -25,7 +25,7 @@ export class MovimientoFactory {
       costoUnitarioDeLote: number;
       cantidad: number;
     }[],
-  ): Promise<CreateMovimientoDto> {
+  ): CreateMovimientoDto {
     const tipoMovimiento = this.generateTipoFromComprobante(comprobante);
     const modoOperacion =
       tipoMovimiento === TipoMovimiento.ENTRADA ? 'COMPRA' : 'VENTA';
@@ -55,7 +55,7 @@ export class MovimientoFactory {
   createMovimientosDetallesFromDetallesComprobante(
     detalles: ComprobanteDetalle[],
     tipoOperacion: string,
-    costosUnitarios: number[],
+    _costosUnitarios: number[],
     precioYcantidadPorLote: {
       idLote: number;
       costoUnitarioDeLote: number;
@@ -63,32 +63,19 @@ export class MovimientoFactory {
     }[],
   ): CreateMovimientoDetalleDto[] {
     const movimientoDetalles: CreateMovimientoDetalleDto[] = [];
-    let indice = 0; // Contador para acceder a los elementos consecutivos del array costosUnitarios
     let indiceLote = 0; // Contador para acceder a los lotes por detalle
 
     for (const detalle of detalles) {
       // Validar que el detalle tenga inventario
       if (!detalle.inventario || !detalle.inventario.id) {
         // Inventario inválido: saltar este detalle
-        indice++;
         continue;
       }
 
-      let costoUnitario: number;
       let detallesSalida: CreateDetalleSalidaDto[] | undefined;
 
       const op = (tipoOperacion || '').toUpperCase();
-      if (op === 'COMPRA' || op.includes('ENTRADA')) {
-        // Para compras (entradas), usar el precio unitario original del comprobante
-        costoUnitario = detalle.precioUnitario;
-      } else {
-        const costoUnitarioCalculado = costosUnitarios[indice];
-        // Si no hay costo calculado, usar el precio unitario del comprobante como fallback
-        costoUnitario =
-          costoUnitarioCalculado > 0
-            ? costoUnitarioCalculado
-            : detalle.precioUnitario;
-
+      if (!(op === 'COMPRA' || op.includes('ENTRADA'))) {
         // Obtener los lotes correspondientes a este detalle
         const lotesParaEsteDetalle: CreateDetalleSalidaDto[] = [];
         let cantidadRestante = detalle.cantidad;
@@ -123,10 +110,7 @@ export class MovimientoFactory {
       const movimientoDetalle: CreateMovimientoDetalleDto = {
         idInventario: detalle.inventario.id,
         cantidad: detalle.cantidad,
-        // costoUnitario se calcula dinámicamente
       };
-
-      console.log('Estos serian los detalles de salida', detallesSalida);
 
       // Para compras/entradas, asignar el idLote del lote creado
       if (op === 'COMPRA' || op.includes('ENTRADA') || op.includes('INGRESO')) {
@@ -141,15 +125,9 @@ export class MovimientoFactory {
         movimientoDetalle.detallesSalida = detallesSalida;
       }
 
-      console.log(`🔍 DEBUG - MovimientoDetalle creado:`, movimientoDetalle);
       movimientoDetalles.push(movimientoDetalle);
-
-      indice++;
     }
 
-    console.log(
-      `🔍 DEBUG - Total movimientoDetalles creados: ${movimientoDetalles.length}`,
-    );
     return movimientoDetalles;
   }
 

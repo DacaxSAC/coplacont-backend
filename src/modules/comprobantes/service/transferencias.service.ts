@@ -182,7 +182,7 @@ export class TransferenciasService {
       }
 
       const movimientoSalidaDto =
-        await this.movimientoFactory.createMovimientoFromComprobante(
+        this.movimientoFactory.createMovimientoFromComprobante(
           comprobanteSalidaConRel,
           procesadoSalida.costoUnitario,
           procesadoSalida.lotes,
@@ -274,7 +274,7 @@ export class TransferenciasService {
       }
 
       const movimientoEntradaDto =
-        await this.movimientoFactory.createMovimientoFromComprobante(
+        this.movimientoFactory.createMovimientoFromComprobante(
           comprobanteEntradaConRel,
           procesadoEntrada.costoUnitario,
           procesadoEntrada.lotes,

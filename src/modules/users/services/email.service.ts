@@ -33,14 +33,23 @@ export class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
 
-      this.logger.log(`Email enviado exitosamente a: ${emailOptions.to}`);
+      const toLog = Array.isArray(emailOptions.to)
+        ? emailOptions.to.join(',')
+        : String(emailOptions.to);
+      this.logger.log('Email enviado exitosamente a: ' + toLog);
 
       return {
         success: true,
         messageId: result.messageId,
       };
     } catch (error) {
-      this.logger.error(`Error al enviar email a ${emailOptions.to}:`, error);
+      const toErr = Array.isArray(emailOptions.to)
+        ? emailOptions.to.join(',')
+        : String(emailOptions.to);
+      this.logger.error(
+        'Error al enviar email a ' + toErr + ':',
+        error as unknown as Error,
+      );
 
       return {
         success: false,

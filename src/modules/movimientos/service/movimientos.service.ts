@@ -27,7 +27,7 @@ export class MovimientosService {
     createMovimientoDto: CreateMovimientoDto,
   ): Promise<ResponseMovimientoDto> {
     this.logger.log(
-      `🔄 [RECALCULO-TRACE] Iniciando creación de movimiento: Tipo=${createMovimientoDto.tipo}, Fecha=${createMovimientoDto.fecha}, ComprobanteId=${createMovimientoDto.idComprobante}`,
+      `🔄 [RECALCULO-TRACE] Iniciando creación de movimiento: Tipo=${String(createMovimientoDto.tipo)}, Fecha=${new Date(createMovimientoDto.fecha).toISOString()}, ComprobanteId=${String(createMovimientoDto.idComprobante)}`,
     );
 
     // Verificar si es un movimiento retroactivo
@@ -85,7 +85,7 @@ export class MovimientosService {
     manager: any,
   ): Promise<ResponseMovimientoDto> {
     this.logger.log(
-      `🔄 [RECALCULO-TRACE] Iniciando creación de movimiento con EntityManager: Tipo=${createMovimientoDto.tipo}, Fecha=${createMovimientoDto.fecha}, ComprobanteId=${createMovimientoDto.idComprobante}`,
+      `🔄 [RECALCULO-TRACE] Iniciando creación de movimiento con EntityManager: Tipo=${String(createMovimientoDto.tipo)}, Fecha=${new Date(createMovimientoDto.fecha).toISOString()}, ComprobanteId=${String(createMovimientoDto.idComprobante)}`,
     );
 
     // Verificar si es un movimiento retroactivo

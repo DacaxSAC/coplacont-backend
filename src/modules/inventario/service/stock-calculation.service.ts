@@ -102,9 +102,10 @@ export class StockCalculationService {
       queryBuilder.andWhere('m.fecha <= :fechaHasta', { fechaHasta });
     }
 
-    const movimientos = await queryBuilder
-      .select(['md.cantidad as md_cantidad', 'm.tipo as m_tipo'])
-      .getRawMany();
+    const movimientos: Array<{ md_cantidad: number; m_tipo: string }> =
+      await queryBuilder
+        .select(['md.cantidad as md_cantidad', 'm.tipo as m_tipo'])
+        .getRawMany();
 
     // Calcular stock actual basado únicamente en movimientos reales
     // No usar cantidadInicial como stock base, solo movimientos registrados
@@ -112,7 +113,7 @@ export class StockCalculationService {
 
     for (const mov of movimientos) {
       const cantidad = Number(mov.md_cantidad);
-      const tipo = mov.m_tipo;
+      const tipo = mov.m_tipo as TipoMovimiento;
 
       if (tipo === TipoMovimiento.ENTRADA) {
         cantidadActual += cantidad;

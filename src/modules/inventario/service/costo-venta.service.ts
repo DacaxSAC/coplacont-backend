@@ -3,6 +3,7 @@ import {
   CostoVentaRepository,
   CostoVentaFiltros,
   CostoVentaPorInventarioFiltros,
+  CostoVentaPorInventarioData,
 } from '../repository/costo-venta.repository';
 import {
   CostoVentaRequestDto,
@@ -116,9 +117,8 @@ export class CostoVentaService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new Error(
-        `Error al generar el reporte de costo de venta: ${error.message}`,
-      );
+      const msg = (error as Error)?.message || 'Error desconocido';
+      throw new Error(`Error al generar el reporte de costo de venta: ${msg}`);
     }
   }
 
@@ -185,7 +185,9 @@ export class CostoVentaService {
         // TODO: Implementar exportación a Excel
         throw new Error('Exportación a Excel no implementada aún');
       default:
-        throw new Error(`Formato de exportación '${formato}' no soportado`);
+        throw new Error(
+          `Formato de exportación '${String(formato)}' no soportado`,
+        );
     }
   }
 
@@ -267,8 +269,9 @@ export class CostoVentaService {
       if (error instanceof NotFoundException) {
         throw error;
       }
+      const msg = (error as Error)?.message || 'Error desconocido';
       throw new Error(
-        `Error al generar el reporte de costo de venta por inventario: ${error.message}`,
+        `Error al generar el reporte de costo de venta por inventario: ${msg}`,
       );
     }
   }
@@ -277,7 +280,7 @@ export class CostoVentaService {
    * Calcula las sumatorias totales a partir de los datos por inventario
    */
   private calcularSumatoriasPorInventario(
-    datosInventario: any[],
+    datosInventario: CostoVentaPorInventarioData[],
   ): CostoVentaInventarioSumatoriaDto {
     const totalEntradasAnual = datosInventario.reduce(
       (sum, dato) => sum + Number(dato.entradas),
@@ -318,7 +321,9 @@ export class CostoVentaService {
         // TODO: Implementar exportación a Excel
         throw new Error('Exportación a Excel no implementada aún');
       default:
-        throw new Error(`Formato de exportación '${formato}' no soportado`);
+        throw new Error(
+          `Formato de exportación '${String(formato)}' no soportado`,
+        );
     }
   }
 }

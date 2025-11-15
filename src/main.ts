@@ -73,5 +73,5 @@ export default async (req: Request, res: Response): Promise<void> => {
 
 // Solo ejecutar bootstrap en desarrollo local
 if (process.env.NODE_ENV !== 'production') {
-  bootstrap();
+  void bootstrap();
 }

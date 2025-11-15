@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { Movimiento } from '../entities/movimiento.entity';
 import { MovimientoDetalle } from '../entities/movimiento-detalle.entity';
 import { DetalleSalida } from '../entities/detalle-salida.entity';
@@ -53,7 +53,7 @@ export class MovimientosRepository {
    */
   async createWithManager(
     createMovimientoDto: CreateMovimientoDto,
-    manager: any,
+    manager: EntityManager,
   ): Promise<Movimiento> {
     // Crear el movimiento principal
     const movimiento = manager.create(Movimiento, {

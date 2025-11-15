@@ -7,7 +7,6 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { CreatePersonaDto } from '../persona/create-persona.dto';
-import { RolEnum } from '../../enums/RoleEnum';
 
 /**
  * DTO para crear un nuevo usuario

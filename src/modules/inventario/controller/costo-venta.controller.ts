@@ -148,7 +148,10 @@ export class CostoVentaController {
         );
       }
 
-      const { formato: _, ...requestData } = query;
+      const requestData = { ...query } as CostoVentaRequestDto & {
+        formato?: string;
+      };
+      delete (requestData as { formato?: string }).formato;
       return await this.costoVentaService.exportCostoVentaReport(
         requestData as CostoVentaRequestDto,
         formato as 'json',

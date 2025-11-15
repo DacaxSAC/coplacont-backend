@@ -211,7 +211,7 @@ export class LoteCreationService {
       }
 
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

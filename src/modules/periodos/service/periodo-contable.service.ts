@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository } from 'typeorm';
 import { PeriodoContable } from '../entities/periodo-contable.entity';
 import { ConfiguracionPeriodo } from '../entities/configuracion-periodo.entity';
 import { MetodoValoracion } from '../../comprobantes/enum/metodo-valoracion.enum';
@@ -501,6 +501,7 @@ export class PeriodoContableService {
         periodo,
       };
     } catch (error) {
+      void error;
       return {
         valida: false,
         mensaje: 'No hay un período activo configurado',
@@ -591,10 +592,7 @@ export class PeriodoContableService {
    * @param nuevoMetodo Nuevo método de valoración
    * @throws BadRequestException si hay movimientos en el período activo
    */
-  async validarCambioMetodoValoracion(
-    personaId: number,
-    nuevoMetodo: MetodoValoracion,
-  ): Promise<void> {
+  async validarCambioMetodoValoracion(personaId: number): Promise<void> {
     const periodoActivo = await this.obtenerPeriodoActivo(personaId);
     if (!periodoActivo) {
       throw new BadRequestException('No hay un período activo configurado');
@@ -611,7 +609,7 @@ export class PeriodoContableService {
     nuevoMetodo: MetodoValoracion,
   ): Promise<ConfiguracionPeriodo> {
     // Validar que se pueda cambiar
-    await this.validarCambioMetodoValoracion(personaId, nuevoMetodo);
+    await this.validarCambioMetodoValoracion(personaId);
 
     // Obtener configuración actual
     const configuracion = await this.obtenerConfiguracion(personaId);

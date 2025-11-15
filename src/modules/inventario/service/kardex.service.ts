@@ -79,7 +79,22 @@ export class KardexService {
 
     // Convertir movimientos de KardexCalculationService al formato esperado por el DTO
     const movimientosFormateados = kardexResult.movimientos.map((mov) => {
-      const movimientoDto: any = {
+      const movimientoDto: {
+        fecha: string;
+        tipo: 'Entrada' | 'Salida';
+        tComprob: string;
+        nComprobante: string;
+        cantidad: number;
+        saldo: number;
+        costoUnitario: number;
+        costoTotal: number;
+        detallesSalida?: Array<{
+          id: number;
+          idLote: number;
+          costoUnitarioDeLote: number;
+          cantidad: number;
+        }>;
+      } = {
         fecha: this.formatDate(mov.fecha),
         tipo:
           mov.tipoMovimiento === TipoMovimiento.ENTRADA ? 'Entrada' : 'Salida',

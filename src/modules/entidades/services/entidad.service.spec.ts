@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { EntidadService } from './entidad.service';
 import { Entidad } from '../entities';
 import { CreateEntidadDto, UpdateEntidadDto, ActivateRoleDto } from '../dto';

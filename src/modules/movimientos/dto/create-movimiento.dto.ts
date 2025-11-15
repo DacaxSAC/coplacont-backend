@@ -12,7 +12,6 @@ import {
 import { Type } from 'class-transformer';
 import { CreateMovimientoDetalleDto } from './create-movimiento-detalle.dto';
 import { TipoMovimiento } from '../enum/tipo-movimiento.enum';
-import { MotivoMovimiento } from '../enum/motivo-movimiento.enum';
 import { EstadoMovimiento } from '../enum/estado-movimiento.enum';
 
 /**

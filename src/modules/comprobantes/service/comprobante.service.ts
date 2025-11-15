@@ -204,7 +204,7 @@ export class ComprobanteService {
       }[] = [];
 
       //verificamos DETALLES
-      if (await this.existDetails(createComprobanteDto)) {
+      if (this.existDetails(createComprobanteDto)) {
         // Registra DETALLES DE COMPROBANTE
         const detallesSaved = await this.comprobanteDetalleService.register(
           comprobanteSaved.idComprobante,
@@ -294,7 +294,7 @@ export class ComprobanteService {
 
       if (tieneDetalles && esOperacionKardex) {
         const movimientoDto =
-          await this.movimientoFactory.createMovimientoFromComprobante(
+          this.movimientoFactory.createMovimientoFromComprobante(
             comprobanteConRelaciones,
             costosUnitarios,
             precioYcantidadPorLote,
