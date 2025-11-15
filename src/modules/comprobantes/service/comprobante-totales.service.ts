@@ -17,6 +17,10 @@ export class ComprobanteTotalesService {
     detalles: ComprobanteDetalle[],
     manager?: EntityManager,
   ) {
+    /**
+     * Registra los totales de un comprobante calculándolos a partir de sus detalles.
+     * En caso de comprobantes sin detalles, utilizar `registerFromTotal`.
+     */
     const comprobante = new Comprobante();
     comprobante.idComprobante = idComprobante;
 
@@ -49,6 +53,38 @@ export class ComprobanteTotalesService {
     });
 
     // Guardar totales en BD
+    await totalesRepo.save(totales);
+  }
+
+  /**
+   * Registra totales para comprobantes sin detalles, usando un total general provisto.
+   * Los campos restantes se inicializan en 0 por defecto.
+   * @param idComprobante ID del comprobante recién creado
+   * @param totalGeneral Total general enviado en el payload
+   * @param manager EntityManager opcional para transacción
+   */
+  async registerFromTotal(
+    idComprobante: number,
+    totalGeneral: number,
+    manager?: EntityManager,
+  ) {
+    const comprobante = new Comprobante();
+    comprobante.idComprobante = idComprobante;
+
+    const totalesRepo = manager
+      ? manager.getRepository(ComprobanteTotales)
+      : this.comprobanteTotalesRepository;
+
+    const totales = totalesRepo.create({
+      comprobante,
+      totalGravada: 0,
+      totalExonerada: 0,
+      totalInafecta: 0,
+      totalIgv: 0,
+      totalIsc: 0,
+      totalGeneral: Number(totalGeneral ?? 0),
+    });
+
     await totalesRepo.save(totales);
   }
 }

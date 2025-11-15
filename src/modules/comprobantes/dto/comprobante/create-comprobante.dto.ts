@@ -101,4 +101,18 @@ export class CreateComprobanteDto {
   @IsOptional()
   @IsEnum(MetodoValoracion)
   metodoValoracion?: MetodoValoracion;
+
+  /**
+   * Total general del comprobante cuando no existen detalles.
+   * Para ventas/compras con detalles, este campo será ignorado y los totales
+   * se calcularán a partir de los detalles registrados.
+   */
+  @ApiPropertyOptional({
+    description:
+      'Total general del comprobante (usado cuando no hay detalles).',
+    example: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  total?: number;
 }

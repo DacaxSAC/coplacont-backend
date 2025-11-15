@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CreateComprobanteDto } from '../dto/comprobante/create-comprobante.dto';
 import { EntidadService } from 'src/modules/entidades/services';
 import { ComprobanteDetalleService } from './comprobante-detalle.service';
+import { ComprobanteTotalesService } from './comprobante-totales.service';
 import { ResponseComprobanteDto } from '../dto/comprobante/response-comprobante.dto';
 import { plainToInstance } from 'class-transformer';
 import { TablaDetalle } from '../entities/tabla-detalle.entity';
@@ -25,6 +26,7 @@ export class ComprobanteService {
     @InjectRepository(TablaDetalle)
     private readonly tablaDetalleRepository: Repository<TablaDetalle>,
     private readonly comprobanteDetalleService: ComprobanteDetalleService,
+    private readonly comprobanteTotalesService: ComprobanteTotalesService,
     private readonly personaService: PersonaService,
     private readonly entidadService: EntidadService,
     private readonly movimientoService: MovimientosService,
@@ -89,7 +91,12 @@ export class ComprobanteService {
   async register(
     createComprobanteDto: CreateComprobanteDto,
     personaId: number,
-  ): Promise<void> {
+  ): Promise<ResponseComprobanteDto> {
+    /**
+     * Registra un comprobante. Si existen detalles, calcula y guarda totales a partir de ellos.
+     * Si no existen detalles (operaciones distintas a venta/compra), registra los totales
+     * usando el campo `total` proporcionado en el payload.
+     */
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -211,6 +218,13 @@ export class ComprobanteService {
             );
           }
         }
+      } else {
+        // No hay detalles: registrar totales usando el total enviado en el payload
+        await this.comprobanteTotalesService.registerFromTotal(
+          comprobanteSaved.idComprobante,
+          Number(createComprobanteDto.total ?? 0),
+          queryRunner.manager,
+        );
       }
 
       // Cargar las relaciones necesarias para el MovimientoFactory DESPUÉS de guardar los detalles
@@ -247,6 +261,28 @@ export class ComprobanteService {
       }
 
       await queryRunner.commitTransaction();
+      // Cargar comprobante con relaciones completas y devolver DTO
+      const savedWithRelations = await this.comprobanteRepository.findOne({
+        where: { idComprobante: comprobanteSaved.idComprobante },
+        relations: [
+          'totales',
+          'persona',
+          'entidad',
+          'tipoOperacion',
+          'tipoComprobante',
+          'detalles',
+          'detalles.inventario',
+          'detalles.inventario.producto',
+        ],
+      });
+
+      if (!savedWithRelations) {
+        throw new Error('Error al cargar el comprobante creado');
+      }
+
+      return plainToInstance(ResponseComprobanteDto, savedWithRelations, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

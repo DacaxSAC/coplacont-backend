@@ -93,14 +93,41 @@ export class ComprobanteController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo comprobante' })
-  @ApiBody({ type: CreateComprobanteDto })
-  @ApiResponse({ status: 201, description: 'Comprobante creado exitosamente' })
+  @ApiOperation({
+    summary: 'Crear un nuevo comprobante',
+    description:
+      'Registra un comprobante. Si se envían detalles, los totales se calculan automáticamente. Si no hay detalles (comprobantes que no son venta ni compra), puede enviarse el campo `total` y se registrará como `totalGeneral` con el resto de campos en 0.',
+  })
+  @ApiBody({
+    type: CreateComprobanteDto,
+    examples: {
+      operacionSinDetalles: {
+        summary: 'Comprobante sin detalles (no venta/compra)',
+        value: {
+          idPersona: 2,
+          idTipoOperacion: 23,
+          idTipoComprobante: 2,
+          fechaEmision: '2025-11-15',
+          moneda: 'PEN',
+          tipoCambio: 1,
+          serie: 'F9320',
+          numero: '032932',
+          total: 100,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Comprobante creado exitosamente', type: ResponseComprobanteDto })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   create(
     @Body() createComprobanteDto: CreateComprobanteDto,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<void> {
+  ): Promise<ResponseComprobanteDto> {
+    /**
+     * Crea un comprobante para la empresa del usuario autenticado.
+     * - Con detalles: calcula y guarda totales desde los detalles.
+     * - Sin detalles: usa el campo `total` para registrar `totalGeneral`.
+     */
     if (!user.personaId) {
       throw new Error('Usuario no tiene una empresa asociada');
     }
