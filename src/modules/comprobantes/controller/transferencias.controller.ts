@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -32,7 +32,6 @@ import { TransferenciasService } from '../service/transferencias.service';
 export class TransferenciasController {
   constructor(private readonly transferenciasService: TransferenciasService) {}
 
-  @Post()
   /**
    * Registra una transferencia entre dos almacenes para la empresa del usuario autenticado.
    * - Genera comprobante de salida en el almacén origen y de entrada en el almacén destino.
@@ -41,7 +40,8 @@ export class TransferenciasController {
    * @param user Usuario autenticado, usado para obtener `personaId`.
    * @param dto Datos de la transferencia, incluyendo almacenes y lista de productos.
    * @returns Comprobantes creados (salida y entrada) con sus relaciones principales.
-   */
+  */
+  @Post()
   @ApiOperation({ summary: 'Registrar transferencia entre almacenes' })
   @ApiBody({
     type: CreateTransferenciaDto,
@@ -73,5 +73,22 @@ export class TransferenciasController {
   ): Promise<ResponseTransferenciaDto> {
     const personaId = user.personaId as number;
     return this.transferenciasService.registerTransfer(dto, personaId);
+  }
+
+  @Get()
+  /**
+   * Lista todos los comprobantes de transferencias (ingreso/salida interna) de la empresa.
+   * Filtra por tipos de operación especiales: 29 (DOCUMENTO INTERNO - INGRESO) y 30 (DOCUMENTO INTERNO - SALIDA).
+   *
+   * @param user Usuario autenticado, usado para obtener `personaId`.
+   * @returns Lista de comprobantes de transferencias.
+   */
+  @ApiOperation({ summary: 'Listar transferencias de almacén' })
+  @ApiResponse({ status: 200, description: 'Listado obtenido', type: ResponseTransferenciaDto, isArray: false })
+  async findAll(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<import('../dto/comprobante/response-comprobante.dto').ResponseComprobanteDto[]> {
+    const personaId = user.personaId as number;
+    return this.transferenciasService.findAll(personaId);
   }
 }

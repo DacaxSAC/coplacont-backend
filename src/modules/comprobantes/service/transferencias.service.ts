@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository, In } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { CreateTransferenciaDto } from '../dto/transferencia/create-transferencia.dto';
 import { ResponseTransferenciaDto } from '../dto/transferencia/response-transferencia.dto';
@@ -299,5 +299,28 @@ export class TransferenciasService {
     }
 
     return result;
+  }
+
+  async findAll(personaId: number): Promise<ResponseComprobanteDto[]> {
+    const comprobantes = await this.comprobanteRepository.find({
+      where: {
+        persona: { id: personaId },
+        tipoOperacion: { idTablaDetalle: In([29, 30]) },
+      },
+      relations: [
+        'totales',
+        'persona',
+        'entidad',
+        'tipoOperacion',
+        'tipoComprobante',
+        'detalles',
+        'detalles.inventario',
+        'detalles.inventario.producto',
+      ],
+      order: { fechaRegistro: 'DESC' },
+    });
+    return plainToInstance(ResponseComprobanteDto, comprobantes, {
+      excludeExtraneousValues: true,
+    });
   }
 }
