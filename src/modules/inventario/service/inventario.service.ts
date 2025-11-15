@@ -10,6 +10,7 @@ import {
   UpdateInventarioDto,
   ResponseInventarioDto,
 } from '../dto';
+import { ResponseProductoDto } from 'src/modules/productos/dto/response-producto.dto';
 import { InventarioRepository } from '../repository';
 import { Inventario } from '../entities';
 import { StockCalculationService } from './stock-calculation.service';
@@ -155,6 +156,46 @@ export class InventarioService {
     }
 
     return inventarios.map((inventario) => this.mapToResponseDto(inventario));
+  }
+
+  /**
+   * Obtiene inventarios de dos almacenes filtrando por productos comunes entre ambos
+   * @param idAlmacen1 - ID del primer almacén
+   * @param idAlmacen2 - ID del segundo almacén
+   * @param personaId - ID de la empresa (opcional, usado para cálculo de stock y filtro)
+   * @returns Lista de inventarios de ambos almacenes, solo para productos presentes en ambos
+   */
+  async findCommonByAlmacenes(
+    idAlmacen1: number,
+    idAlmacen2: number,
+    personaId?: number,
+  ): Promise<ResponseProductoDto[]> {
+    await this.validateAlmacenExists(idAlmacen1);
+    await this.validateAlmacenExists(idAlmacen2);
+
+    const [invAlm1, invAlm2] = await Promise.all([
+      this.inventarioRepository.findByAlmacen(idAlmacen1, personaId),
+      this.inventarioRepository.findByAlmacen(idAlmacen2, personaId),
+    ]);
+
+    const productosAlm1 = new Set(invAlm1.map((i) => i.producto.id));
+    const productosAlm2 = new Set(invAlm2.map((i) => i.producto.id));
+    const comunes = new Set(
+      [...productosAlm1].filter((id) => productosAlm2.has(id)),
+    );
+
+    const productosMap = new Map<number, typeof invAlm1[0]['producto']>();
+    for (const inv of invAlm1) {
+      if (comunes.has(inv.producto.id)) productosMap.set(inv.producto.id, inv.producto);
+    }
+    for (const inv of invAlm2) {
+      if (comunes.has(inv.producto.id)) productosMap.set(inv.producto.id, inv.producto);
+    }
+
+    const productosComunes = Array.from(productosMap.values());
+    return productosComunes.map((producto) =>
+      plainToInstance(ResponseProductoDto, producto, { excludeExtraneousValues: true }),
+    );
   }
 
   async findByAlmacenAndProducto(

@@ -27,6 +27,7 @@ import {
   UpdateInventarioDto,
   ResponseInventarioDto,
 } from '../dto';
+import { ResponseProductoDto } from 'src/modules/productos/dto/response-producto.dto';
 import { plainToClass } from 'class-transformer';
 import { JwtAuthGuard } from '../../users/guards/jwt-auth.guard';
 import { CurrentUser } from '../../users/decorators/current-user.decorator';
@@ -203,6 +204,38 @@ export class InventarioController {
     return inventarios.map((inventario) =>
       plainToClass(ResponseInventarioDto, inventario),
     );
+  }
+
+  /**
+   * Obtener inventarios de dos almacenes para productos comunes en ambos
+   */
+  @Get('almacenes/comunes')
+  @ApiOperation({
+    summary: 'Inventarios comunes entre dos almacenes',
+    description:
+      'Lista inventarios (almacén y producto) donde el producto existe en ambos almacenes',
+  })
+  @ApiQuery({ name: 'idAlmacen1', type: 'number', required: true })
+  @ApiQuery({ name: 'idAlmacen2', type: 'number', required: true })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Productos comunes entre ambos almacenes',
+    type: [ResponseProductoDto],
+  })
+  async findCommonByAlmacenes(
+    @Query('idAlmacen1') idAlmacen1: number,
+    @Query('idAlmacen2') idAlmacen2: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ResponseProductoDto[]> {
+    if (!user.personaId) {
+      throw new Error('Usuario no tiene una empresa asociada');
+    }
+    const result = await this.inventarioService.findCommonByAlmacenes(
+      Number(idAlmacen1),
+      Number(idAlmacen2),
+      user.personaId,
+    );
+    return result;
   }
 
   /**
